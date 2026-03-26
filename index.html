@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --bg:#0a0c10; --surface:#111418; --surface2:#181c22; --surface3:#1e232b;
@@ -546,7 +547,7 @@
       <span id="themeLabel">☀ Light mode</span>
       <div class="toggle-track"><div class="toggle-thumb"></div></div>
     </div>
-    Updated: Mar 2026<br><span id="activeCount">8</span> active providers
+    Updated: Mar 2026<br><span id="activeCount">8</span> active providers<br><span id="supabaseBadge" style="display:inline-block;margin-top:8px;padding:4px 8px;border-radius:4px;border:1px solid var(--border);font-size:10px;font-weight:600;color:var(--muted);white-space:nowrap;">🔴 Offline</span>
   </div>
 </aside>
 
@@ -5203,5 +5204,8 @@ setTimeout(()=>{
 }, 80);
 
 </script>
+
+<!-- Supabase Configuration -->
+<script src="supabase.js"></script>
 </body>
 </html>
