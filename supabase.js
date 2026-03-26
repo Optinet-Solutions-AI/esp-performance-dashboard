@@ -46,18 +46,18 @@ async function sbSave() {
 
     // Prepare data payload
     const payload = {
+      id: 'esp-dashboard-main',
       data: JSON.stringify(mmData),
       updated_at: timestamp,
       dashboard_version: '2.0'
     };
 
-    // Insert or update record (requires 'dashboards' table to exist)
+    // Delete old record and insert new one (avoids upsert 406 issue)
+    await sb.from('dashboards').delete().eq('id', 'esp-dashboard-main');
+
     const { error } = await sb
       .from('dashboards')
-      .upsert(
-        { id: 'esp-dashboard-main', ...payload },
-        { onConflict: 'id' }
-      );
+      .insert([payload]);
 
     if (error) {
       console.error('❌ Save failed:', error);
