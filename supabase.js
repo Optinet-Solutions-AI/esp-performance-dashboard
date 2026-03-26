@@ -84,21 +84,24 @@ async function sbLoad() {
   try {
     const { data, error } = await sb
       .from('dashboards')
-      .select('data, updated_at')
-      .eq('id', 'esp-dashboard-main')
-      .single();
+      .select('*')
+      .eq('id', 'esp-dashboard-main');
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        console.log('ℹ️ No saved data in Supabase yet');
-        return false;
-      }
-      throw error;
+      console.log('ℹ️ No saved data in Supabase yet');
+      return false;
     }
 
-    if (data && data.data) {
+    if (!data || data.length === 0) {
+      console.log('ℹ️ No saved data in Supabase yet');
+      return false;
+    }
+
+    const record = data[0];
+
+    if (record && record.data) {
       try {
-        const loaded = JSON.parse(data.data);
+        const loaded = JSON.parse(record.data);
         Object.assign(mmData, loaded);
         console.log('✅ Dashboard loaded from Supabase');
         updateSupabaseStatus(true);
@@ -109,6 +112,7 @@ async function sbLoad() {
       }
     }
 
+    console.log('ℹ️ No saved data in Supabase yet');
     return false;
   } catch (err) {
     console.error('❌ Load error:', err);
