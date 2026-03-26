@@ -248,8 +248,118 @@
   ::-webkit-scrollbar{width:4px;height:4px;}
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
-  @media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr);}.charts-row{grid-template-columns:1fr;}.charts-row2{grid-template-columns:1fr 1fr;}}
-  @media(max-width:768px){.layout{grid-template-columns:1fr;}.sidebar{display:none;}.main{padding:16px;}.charts-row2{grid-template-columns:1fr;}}
+
+  /* Tablet: 1024px and below */
+  @media(max-width:1100px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .charts-row{grid-template-columns:1fr;}
+    .charts-row2{grid-template-columns:1fr 1fr;}
+  }
+
+  /* Mobile: 768px and below */
+  @media(max-width:768px){
+    .layout{grid-template-columns:1fr;}
+    .sidebar{display:none !important;}
+    .mobile-nav-btn{display:block;}
+    .mobile-sidebar{display:block;}
+    .mobile-menu-overlay{display:none;}
+    .main{padding:16px;}
+    .charts-row2{grid-template-columns:1fr;}
+    .kpi-grid{grid-template-columns:1fr;}
+    .charts-row{grid-template-columns:1fr;}
+    .page-title{font-size:18px;}
+    .topbar{flex-direction:column;align-items:flex-start;gap:12px;}
+    .topbar-actions{flex-wrap:wrap;gap:8px;}
+    .btn{padding:6px 12px;font-size:11px;}
+    .filter-bar{gap:6px;}
+    .filter-chip{padding:3px 10px;font-size:10px;}
+    table{font-size:11px;}
+    th,td{padding:8px 12px;}
+    .kpi-value{font-size:22px;}
+    .kpi-label{font-size:8px;}
+    .chart-wrap{height:250px !important;}
+    .modal{width:90vw;padding:20px;}
+    .modal-grid{grid-template-columns:1fr;}
+    .table-wrap{overflow-x:auto;}
+    table{min-width:100%;}
+  }
+
+  /* Small Mobile: 480px and below */
+  @media(max-width:480px){
+    .main{padding:12px;}
+    .page-title{font-size:16px;margin-bottom:8px;}
+    .page-sub{font-size:11px;}
+    .topbar{margin-bottom:16px;}
+    .topbar-actions{width:100%;gap:6px;}
+    .btn{padding:6px 10px;font-size:10px;flex:1;}
+    .btn-sm{padding:4px 8px;}
+    .filter-bar{gap:4px;}
+    .filter-chip{padding:2px 8px;font-size:9px;}
+    .kpi-grid{grid-template-columns:1fr;gap:10px;}
+    .kpi-card{padding:14px 16px;}
+    .kpi-value{font-size:20px;}
+    .kpi-label{font-size:7px;}
+    .chart-card{padding:16px 12px;}
+    .chart-title{font-size:12px;}
+    .chart-sub{font-size:10px;}
+    .section-title{font-size:8px;}
+    table{font-size:10px;}
+    th,td{padding:6px 8px;}
+    .td-right{font-size:10px;}
+    .legend-item{font-size:9px;}
+    .alert-strip{padding:10px 12px;gap:8px;font-size:11px;}
+    .ai{width:16px;height:16px;font-size:9px;}
+    .detail-hero{flex-direction:column;padding:16px;gap:12px;}
+    .detail-name{font-size:18px;}
+    .search-input{width:100%;margin-bottom:8px;}
+    .modal{width:95vw;padding:16px;}
+    .modal-title{font-size:15px;}
+    .modal-grid{gap:8px;}
+    .ms{padding:10px 12px;}
+    .msv{font-size:18px;}
+    .mst{font-size:9px;}
+  }
+
+  /* Extra small mobile: 360px and below */
+  @media(max-width:360px){
+    .main{padding:8px;}
+    .page-title{font-size:14px;}
+    .kpi-card{padding:12px 14px;}
+    .kpi-value{font-size:18px;}
+    .chart-card{padding:12px 10px;}
+    table{font-size:9px;}
+    th,td{padding:4px 6px;}
+    .modal{width:98vw;padding:12px;}
+  }
+
+  /* Touch-friendly improvements for mobile */
+  @media(max-width:768px){
+    .btn, .filter-chip, .nav-item, .esp-item {
+      min-height:44px;
+      display:flex;
+      align-items:center;
+    }
+    input, textarea, select {
+      min-height:44px;
+      font-size:16px; /* Prevents zoom on iOS */
+    }
+    .kpi-card, .chart-card {
+      cursor:pointer;
+    }
+  }
+
+  /* Prevent horizontal scroll on mobile */
+  @media(max-width:768px){
+    body { overflow-x:hidden; }
+    * { max-width:100%; }
+  }
+
+  /* Improve responsiveness for very narrow screens */
+  @media(max-width:320px){
+    .page-title{font-size:13px;}
+    .kpi-value{font-size:16px;}
+    .btn, .filter-chip{font-size:9px;padding:4px 8px;}
+  }
 
   /* Light mode — sharp dark text on white */
   body.light                     { color:#111827 !important; }
@@ -469,6 +579,62 @@
   .dp-m-btn:hover,.dp-y-btn:hover { background:var(--surface2); border-color:var(--border2); }
   .dp-m-btn.dp-selected,.dp-y-btn.dp-selected { background:#4a2fa0; color:#fff; }
 
+  /* Mobile menu button — visible on mobile only */
+  .mobile-nav-btn {
+    display:none;
+    background:none;
+    border:none;
+    color:var(--text);
+    font-size:20px;
+    cursor:pointer;
+    padding:8px;
+    position:sticky;
+    top:0;
+    z-index:50;
+  }
+  .mobile-nav-btn:hover{opacity:.7;}
+
+  /* Mobile menu overlay */
+  .mobile-menu-overlay {
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.7);
+    z-index:99;
+  }
+  .mobile-menu-overlay.open { display:block; }
+
+  /* Mobile sidebar drawer */
+  .mobile-sidebar {
+    display:none;
+    position:fixed;
+    left:0;
+    top:0;
+    width:280px;
+    height:100vh;
+    background:var(--surface);
+    border-right:1px solid var(--border);
+    overflow-y:auto;
+    z-index:100;
+    transform:translateX(-100%);
+    transition:transform .3s ease;
+  }
+  .mobile-sidebar.open { transform:translateX(0); }
+  .mobile-sidebar-close {
+    position:absolute;
+    top:12px;
+    right:12px;
+    background:none;
+    border:none;
+    color:var(--text);
+    font-size:24px;
+    cursor:pointer;
+  }
+
+  /* Light mode: mobile menu */
+  body.light .mobile-menu-overlay { background:rgba(0,0,0,.5); }
+  body.light .mobile-sidebar { background:#ffffff; border-color:rgba(0,0,0,.1); }
+
   /* Light mode inactive tab — readable on white */
   body.light .mm-tab-btn { color:#374151; }
   body.light #mmTab-provider[style*="background:#1e232b"],
@@ -548,6 +714,53 @@
 </aside>
 
 <main class="main">
+  <!-- Mobile nav button -->
+  <button class="mobile-nav-btn" onclick="toggleMobileMenu()">☰</button>
+
+  <!-- Mobile menu overlay -->
+  <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu()"></div>
+
+  <!-- Mobile sidebar menu -->
+  <aside class="mobile-sidebar" id="mobileSidebar">
+    <button class="mobile-sidebar-close" onclick="closeMobileMenu()">×</button>
+    <div class="logo" onclick="showView('mailmodo'); closeMobileMenu();" style="padding:16px 20px 16px;border-bottom:1px solid var(--border);margin-bottom:16px;">
+      <div class="logo-tag">Email Ops</div>
+      <div class="logo-title">ESP Control</div>
+    </div>
+    <div class="nav-section" style="padding:0 12px;margin-bottom:8px;">
+      <div class="nav-label">Navigation</div>
+      <button class="nav-item active" id="nav-mailmodo-mobile" onclick="showView('mailmodo'); closeMobileMenu();">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
+        Mailmodo Review
+      </button>
+      <button class="nav-item" id="nav-upload-mobile" onclick="showView('upload'); closeMobileMenu();">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10V2M5 5l3-3 3 3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
+        Upload Report
+      </button>
+      <button class="nav-item" id="nav-matrix-mobile" onclick="showView('matrix'); closeMobileMenu();">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="3" rx="1"/><rect x="1" y="6" width="14" height="3" rx="1"/><rect x="1" y="11" width="14" height="3" rx="1"/></svg>
+        ESP Deliverability Matrix
+      </button>
+      <button class="nav-item" id="nav-datamgmt-mobile" onclick="showView('datamgmt'); closeMobileMenu();">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="8" cy="4" rx="6" ry="2"/><path d="M2 4v3c0 1.1 2.7 2 6 2s6-.9 6-2V4"/><path d="M2 7v3c0 1.1 2.7 2 6 2s6-.9 6-2V7"/><path d="M2 10v3c0 1.1 2.7 2 6 2s6-.9 6-2v-3"/></svg>
+        Data Management
+      </button>
+    </div>
+    <div class="esp-list" style="margin-top:8px;padding:0 12px;">
+      <div class="nav-label" style="padding:0 8px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="toggleEspList()" id="espListHeaderMobile">
+        <span>ESP Providers</span>
+        <span id="espArrowMobile" style="font-size:12px;color:var(--muted);transition:transform .2s;display:inline-block;transform:rotate(0deg);">▼</span>
+      </div>
+      <div id="sidebarEspListMobile" style="display:none;"></div>
+    </div>
+    <div class="sidebar-footer" style="margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:#c8cdd6;">
+      <div class="theme-toggle" onclick="toggleTheme()" title="Switch theme">
+        <span id="themeLabel-mobile">☀ Light mode</span>
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      </div>
+      Updated: Mar 2026<br><span id="activeCount-mobile">8</span> active providers
+    </div>
+  </aside>
 
   <!-- DASHBOARD VIEW -->
   <div class="view active" id="view-dashboard">
@@ -4120,7 +4333,11 @@ let isLight = false;
 function toggleTheme() {
   isLight = !isLight;
   document.body.classList.toggle('light', isLight);
-  document.getElementById('themeLabel').textContent = isLight ? '☀ Light mode' : '🌙 Dark mode';
+  const label = isLight ? '☀ Light mode' : '🌙 Dark mode';
+  const themeLabel = document.getElementById('themeLabel');
+  const themeLabelMobile = document.getElementById('themeLabel-mobile');
+  if (themeLabel) themeLabel.textContent = label;
+  if (themeLabelMobile) themeLabelMobile.textContent = label;
 
   // Save preference
   try { localStorage.setItem('espDashTheme', isLight ? 'light' : 'dark'); } catch(e){}
@@ -4144,9 +4361,41 @@ function toggleTheme() {
 function applyThemeOnLoad() {
   try {
     const saved = localStorage.getItem('espDashTheme');
-    if (saved === 'light') { isLight=true; document.body.classList.add('light'); document.getElementById('themeLabel').textContent = '☀ Light mode'; }
+    if (saved === 'light') {
+      isLight=true;
+      document.body.classList.add('light');
+      const label = '☀ Light mode';
+      const themeLabel = document.getElementById('themeLabel');
+      const themeLabelMobile = document.getElementById('themeLabel-mobile');
+      if (themeLabel) themeLabel.textContent = label;
+      if (themeLabelMobile) themeLabelMobile.textContent = label;
+    }
   } catch(e){}
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE MENU — hamburger nav toggle
+   ═══════════════════════════════════════════════════════════ */
+function toggleMobileMenu() {
+  const sidebar = document.getElementById('mobileSidebar');
+  const overlay = document.getElementById('mobileMenuOverlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('open');
+  document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+}
+
+function closeMobileMenu() {
+  const sidebar = document.getElementById('mobileSidebar');
+  const overlay = document.getElementById('mobileMenuOverlay');
+  sidebar.classList.remove('open');
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close mobile menu when pressing Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeMobileMenu();
+});
 
 /* ═══════════════════════════════════════════════════════════
    EXPORT UPDATED DASHBOARD
