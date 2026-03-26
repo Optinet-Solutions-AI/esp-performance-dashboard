@@ -1,4 +1,4 @@
-   CALENDAR DATE PICKER ENGINE
+/* CALENDAR DATE PICKER ENGINE
    Shared across all three views: mm / mmc / mx
    ═══════════════════════════════════════════════════════════ */
 const DP_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -292,5 +292,3 @@ function toggleEspList(){
   if(listM)  listM.style.display  = open ? 'none' : 'block';
   if(arrowM) arrowM.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
 }
-
-/* ═══════════════════════════════════════════════════════════

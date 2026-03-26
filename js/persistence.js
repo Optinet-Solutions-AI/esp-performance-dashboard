@@ -1,4 +1,4 @@
-   PERSISTENCE — localStorage save/load
+/* PERSISTENCE — localStorage save/load
    Saves uploaded data so it survives page refresh.
    The original seed data is always the fallback.
    ═══════════════════════════════════════════════════════════ */

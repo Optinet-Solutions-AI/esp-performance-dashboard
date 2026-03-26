@@ -1,4 +1,4 @@
-   EXPORT UPDATED DASHBOARD
+/* EXPORT UPDATED DASHBOARD
    Reads this file's own source, replaces the mmData block
    with current live data, and downloads the result.
    ═══════════════════════════════════════════════════════════ */
@@ -75,5 +75,3 @@ function exportUpdatedDashboardFallback() {
   URL.revokeObjectURL(url);
   uploadLog('✅ Dashboard downloaded (inline export). Use this file as your new master copy.', 'ok');
 }
-
-/* ═══════════════════════════════════════════════════════════

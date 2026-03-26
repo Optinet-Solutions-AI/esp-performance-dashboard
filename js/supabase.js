@@ -1,4 +1,4 @@
-   SUPABASE CONFIG
+/* SUPABASE CONFIG
    ═══════════════════════════════════════════════ */
 const SUPABASE_URL = 'YOUR_SUPABASE_URL';
 const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
@@ -108,5 +108,3 @@ async function sbSave() {
     if (badgeMobile) badgeMobile.innerHTML = '✗ Error';
   }
 }
-
-/* ═══════════════════════════════════════════════════════════
