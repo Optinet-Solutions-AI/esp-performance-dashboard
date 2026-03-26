@@ -4,8 +4,8 @@
    ═══════════════════════════════════════════════════════════ */
 
 // Replace with your actual Supabase credentials
-const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-const SUPABASE_KEY = 'YOUR_ANON_KEY';
+const SUPABASE_URL = 'https://hhegcttzjtvyfjuszcqq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhoZWdjdHR6anR2eWZqdXN6Y3FxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1Mjc3MTYsImV4cCI6MjA5MDEwMzcxNn0.5knhwcNr7lfZRc3ZwHtMVjwcS7emoQEVKFwPkMqXrjM';
 
 let sb = null; // Supabase client instance
 let sbConnected = false;
