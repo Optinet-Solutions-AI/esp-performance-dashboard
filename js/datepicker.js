@@ -285,7 +285,12 @@ function toggleEspList(){
   const arrow = document.getElementById('espArrow');
   const open  = list.style.display === 'block';
   list.style.display  = open ? 'none' : 'block';
-  arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+  if(arrow) arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+  // Mobile
+  const listM  = document.getElementById('sidebarEspListMobile');
+  const arrowM = document.getElementById('espArrowMobile');
+  if(listM)  listM.style.display  = open ? 'none' : 'block';
+  if(arrowM) arrowM.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
 /* ═══════════════════════════════════════════════════════════

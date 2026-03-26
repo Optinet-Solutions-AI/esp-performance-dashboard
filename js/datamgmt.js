@@ -530,16 +530,26 @@ function mxTotalStyle(light){
   return `font-weight:700;background:var(--surface2);border-top:2px solid ${bt};`;
 }
 
-let mxExpanded = {}; // tracks which provider groups are expanded
+let mxExpanded = {}; // tracks which ESP/IP/domain groups are expanded
 
-// Delegated click handler for expandable provider rows
+// Build IP→FromDomain map from ipmData for a given ESP
+function mxGetIpMap(espName){
+  const map = {};
+  const espRows = ipmData.filter(r => r.esp && r.esp.toLowerCase() === espName.toLowerCase());
+  espRows.forEach(r=>{
+    if(!r.ip) return;
+    const ip = r.ip.trim();
+    if(!map[ip]) map[ip] = [];
+    if(r.domain && !map[ip].includes(r.domain.trim())) map[ip].push(r.domain.trim());
+  });
+  return map;
+}
+
+// Delegated click handler for expandable rows (uses data-mxkey)
 document.addEventListener('click', function(e){
-  const row = e.target.closest('.mx-provider-row');
+  const row = e.target.closest('[data-mxkey]');
   if(!row) return;
-  const esp  = row.dataset.esp;
-  const prov = row.dataset.prov;
-  if(!esp || !prov) return;
-  const key = esp + '||' + prov;
+  const key = row.dataset.mxkey;
   mxExpanded[key] = !mxExpanded[key];
   mxRender();
 });
@@ -554,14 +564,21 @@ function mxRender(){
   const mxLbl = document.getElementById('mxRangeLabel');
   if(mxLbl) mxLbl.textContent = `${lbl} · ${dates.length} day${dates.length>1?'s':''}`;
   const mxSub = document.getElementById('mxPageSub');
-  if(mxSub) mxSub.textContent = `${lbl} · per ${mxTab==='domain'?'sending domain':'email provider'} · per ESP`;
+  if(mxSub) mxSub.textContent = `${lbl} · ESP → IP → From Domain → Email Provider`;
 
   const textCol  = light?'#111827':'#f0f2f5';
   const mutedCol = light?'#374151':'#c8cdd6';
-  const subBg    = light?'rgba(0,0,0,.025)':'rgba(255,255,255,.025)';
   const COLS = 13;
 
-  function dataRow(espCell, nameCell, agg, isTotal, extraStyle){
+  function toggleBtn(key, expanded, label, count=''){
+    const bc = light?'rgba(0,0,0,.2)':'rgba(255,255,255,.25)';
+    const tc2 = light?'#374151':'#d4dae6';
+    return `<button data-mxbtn="${esc(key)}" style="background:none;border:1px solid ${bc};border-radius:4px;width:18px;height:18px;cursor:pointer;font-size:12px;font-weight:700;color:${tc2};line-height:1;display:inline-flex;align-items:center;justify-content:center;margin-right:7px;flex-shrink:0;">${expanded?'−':'+'}</button>`
+      +`<span style="font-weight:600;">${label}</span>`
+      +(count?`<span style="font-family:var(--mono);font-size:9px;color:${mutedCol};margin-left:6px;">${count}</span>`:'');
+  }
+
+  function dataRow(col1, col2, agg, isTotal, extraStyle){
     const R = mxRates(agg);
     const ts = isTotal ? mxTotalStyle(light) : (extraStyle||'');
     const fw = isTotal ? 'font-weight:700;' : '';
@@ -571,8 +588,8 @@ function mxRender(){
     const tc_b = esc(tipBounce(agg.bounced, agg.sent));
     const tc_u = esc(tipUnsub(agg.unsubscribed||0, agg.opened));
     return `
-      <td class="mx-cell-name" style="${ts}${fw}color:${isTotal?light?'#111827':'#fff':textCol};text-align:left;">${espCell}</td>
-      <td class="mx-cell-name" style="${ts}${fw}color:${isTotal?mutedCol:textCol};font-family:var(--mono);font-size:11px;text-align:left;">${nameCell}</td>
+      <td class="mx-cell-name" style="${ts}${fw}color:${isTotal?light?'#111827':'#fff':textCol};text-align:left;">${col1}</td>
+      <td class="mx-cell-name" style="${ts}${fw}color:${textCol};font-family:var(--mono);font-size:11px;text-align:left;">${col2}</td>
       <td class="mx-cell-num" style="${ts}${fw}">${fmtMx(agg.sent)}</td>
       <td class="mx-cell-num ${mxCls(R.sr,true,80,95)}" style="${ts}${fw}" data-tip="${tc_d}">${fmtMx(agg.delivered)}</td>
       <td class="mx-cell-num" style="${ts}${fw}"></td>
@@ -586,84 +603,140 @@ function mxRender(){
       <td class="mx-cell-num" style="${ts}${fw}"></td>`;
   }
 
+  function emptyAgg(){ return {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0,complained:0}; }
+  function addAgg(tot,a){ Object.keys(tot).forEach(k=>tot[k]+=(a[k]||0)); }
+
   let html = '';
 
   Object.entries(mxEspRegistry).forEach(([espName, espDef])=>{
     const espColor = espDef.color||'#7c5cfc';
+    const allProviders = espDef.providers ? espDef.providers() : {};
+    const allDomains   = espDef.domains   ? espDef.domains()   : {};
 
-    // ── DOMAIN TAB: flat list of sending domains ──────────────────
-    if(mxTab === 'domain'){
-      const domains = espDef.domains ? espDef.domains() : {};
-      const entries = Object.entries(domains)
-        .map(([name,d])=>({ name, agg: mxAgg(d.byDate, dates) }))
-        .filter(d=>d.agg.sent>0).sort((a,b)=>b.agg.sent-a.agg.sent);
-      if(!entries.length){
-        html += `<tr><td colspan="${COLS}" class="mx-cell-name" style="color:${mutedCol};padding:12px 14px;">No data for selected period</td></tr>`;
-        return;
-      }
-      const tot={sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0,complained:0};
-      entries.forEach(({name,agg},idx)=>{
-        Object.keys(tot).forEach(k=>tot[k]+=(agg[k]||0));
-        const espCell = idx===0 ? `<span style="font-weight:700;color:${espColor};">${espName}</span>` : '';
-        html += `<tr class="mx-domain-row">${dataRow(espCell, name, agg, false)}</tr>`;
+    // Get IP map from ipmData for this ESP
+    const ipMap = mxGetIpMap(espName); // { ip: [fromDomain,...] }
+
+    const allFromDomains = Object.keys(allDomains);
+
+    // Map each from-domain to its IP (from ipmData)
+    const domainToIp = {};
+    Object.entries(ipMap).forEach(([ip, fromDomains])=>{
+      fromDomains.forEach(fd => { domainToIp[fd] = ip; });
+    });
+
+    // Group from-domains by IP; unmatched → 'IP NOT FOUND'
+    const ipGroups = {};
+    allFromDomains.forEach(fd=>{
+      const ip = domainToIp[fd] || 'IP NOT FOUND';
+      if(!ipGroups[ip]) ipGroups[ip] = [];
+      ipGroups[ip].push(fd);
+    });
+
+    // Also add IPs from ipmData that have no from-domains in mmData
+    Object.keys(ipMap).forEach(ip=>{
+      if(!ipGroups[ip]) ipGroups[ip] = [];
+    });
+
+    // Sort IPs: real IPs first (numeric sort), 'IP NOT FOUND' last
+    const sortedIps = Object.keys(ipGroups).sort((a,b)=>{
+      if(a==='IP NOT FOUND') return 1;
+      if(b==='IP NOT FOUND') return -1;
+      return a.localeCompare(b, undefined, {numeric:true});
+    });
+
+    // Aggregate entire ESP
+    const espTot = emptyAgg();
+    Object.values(allProviders).forEach(p=>{ const a=mxAgg(p.byDate,dates); addAgg(espTot,a); });
+
+    // ESP header row (collapsed by default)
+    const espKey = 'esp||'+espName;
+    const espExpanded = !!mxExpanded[espKey];
+    const espNameCell = `<div style="display:flex;align-items:center;" data-mxkey="${esc(espKey)}">`
+      +toggleBtn(espKey, espExpanded, `<span style="color:${espColor};font-weight:700;">${espName}</span>`, sortedIps.length+' IPs')
+      +'</div>';
+    html += `<tr class="mx-domain-row" data-mxkey="${esc(espKey)}" style="cursor:pointer;">${dataRow(espNameCell,'',espTot,false)}</tr>`;
+
+    if(!espExpanded){
+      html += `<tr>${dataRow('<span style="color:'+espColor+';font-weight:700;">'+espName+' — Total</span>','',espTot,true)}</tr>`;
+      return;
+    }
+
+    // ── LEVEL 2: IPs ──────────────────────────────────────────────
+    sortedIps.forEach(ip=>{
+      const fromDomains = ipGroups[ip] || [];
+      const isNotFound = ip === 'IP NOT FOUND';
+
+      const ipTot = emptyAgg();
+      fromDomains.forEach(fd=>{
+        const d = allDomains[fd];
+        if(d){ const a=mxAgg(d.byDate,dates); addAgg(ipTot,a); }
       });
-      const totalLabel = espName + ' — Total';
-      html += `<tr>${dataRow(totalLabel, '', tot, true)}</tr>`;
-      return;
-    }
 
-    // ── EMAIL PROVIDER TAB: grouped by provider with expandable domains ──
-    const providers = espDef.providers ? espDef.providers() : {};
-    const domains   = espDef.domains   ? espDef.domains()   : {};
+      if(ipTot.sent === 0) return;
 
-    const provEntries = Object.entries(providers)
-      .map(([name,d])=>({ name, agg: mxAgg(d.byDate, dates) }))
-      .filter(p=>p.agg.sent>0).sort((a,b)=>b.agg.sent-a.agg.sent);
+      const ipKey = 'ip||'+espName+'||'+ip;
+      const ipExpanded = !!mxExpanded[ipKey];
 
-    if(!provEntries.length){
-      html += `<tr><td colspan="${COLS}" class="mx-cell-name" style="color:${mutedCol};padding:12px 14px;">No data for selected period</td></tr>`;
-      return;
-    }
+      const activeFds = fromDomains.filter(fd=>{ const d=allDomains[fd]; if(!d) return false; const a=mxAgg(d.byDate,dates); return a.sent>0; });
 
-    const espTot={sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0,complained:0};
+      const ipLabel = isNotFound
+        ? `<span style="color:#f59e0b;font-family:var(--mono);font-size:11px;">&#9888; IP NOT FOUND</span>`
+        : `<span style="font-family:var(--mono);font-size:11px;color:${light?'#0369a1':'#7dd3fc'};">${ip}</span>`;
 
-    provEntries.forEach(({name: provName, agg: provAgg}, idx)=>{
-      Object.keys(espTot).forEach(k=>espTot[k]+=(provAgg[k]||0));
-      const key = espName+'||'+provName;
-      const isExpanded = !!mxExpanded[key];
+      const ipNameCell = `<div style="display:flex;align-items:center;padding-left:20px;" data-mxkey="${esc(ipKey)}">`
+        +toggleBtn(ipKey, ipExpanded, ipLabel, activeFds.length+' from-domains')
+        +'</div>';
+      const ipBg = `background:${light?'rgba(0,0,0,.015)':'rgba(255,255,255,.015)'};`;
+      html += `<tr class="mx-domain-row" data-mxkey="${esc(ipKey)}" style="cursor:pointer;">${dataRow('', ipNameCell, ipTot, false, ipBg)}</tr>`;
 
-      // Find domains that sent specifically to this provider, using cross-reference
-      const provDomainMap = (mmData.providerDomains && mmData.providerDomains[provName]) || {};
-      const provDomains = Object.entries(provDomainMap)
-        .map(([dname, stats])=>({ name:dname, agg: stats }))
-        .filter(d=>d.agg.sent>0).sort((a,b)=>b.agg.sent-a.agg.sent);
+      if(!ipExpanded) return;
 
-      // Provider row — with expand toggle
-      const espCell = idx===0 ? `<span style="font-weight:700;color:${espColor};">${espName}</span>` : '';
-      const safeEsp  = esc(espName);
-      const safeProv = esc(provName);
-      const toggleBtn = `<button class="mx-toggle-btn" data-esp="${safeEsp}" data-prov="${safeProv}" style="background:none;border:1px solid ${light?'rgba(0,0,0,.2)':'rgba(255,255,255,.25)'};border-radius:4px;width:18px;height:18px;cursor:pointer;font-size:13px;font-weight:700;color:${light?'#374151':'#d4dae6'};line-height:1;display:inline-flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;">${isExpanded?'−':'+'}</button>`;
-      const nameCell = `<div style="display:flex;align-items:center;">${toggleBtn}<span style="font-weight:600;">${provName}</span><span style="font-family:var(--mono);font-size:9px;color:${mutedCol};margin-left:6px;">(${provDomains.length} domains)</span></div>`;
+      // ── LEVEL 3: From Domains ────────────────────────────────────
+      fromDomains.forEach(fd=>{
+        const fdData = allDomains[fd];
+        const fdAgg  = fdData ? mxAgg(fdData.byDate, dates) : emptyAgg();
 
-      html += `<tr class="mx-domain-row mx-provider-row" data-esp="${safeEsp}" data-prov="${safeProv}" style="cursor:pointer;">${dataRow(espCell, nameCell, provAgg, false)}</tr>`;
+        if(fdAgg.sent === 0) return;
 
-      // Expanded: show sending domains beneath
-      if(isExpanded){
-        provDomains.forEach(({name:dname, agg:dagg})=>{
-          const domStyle = `background:${subBg};`;
-          const domNameCell = `<div style="display:flex;align-items:center;padding-left:28px;"><span style="width:4px;height:4px;border-radius:50%;background:${mutedCol};display:inline-block;margin-right:8px;flex-shrink:0;"></span><span style="font-family:var(--mono);font-size:10px;color:${mutedCol};">${dname}</span></div>`;
-          html += `<tr class="mx-domain-row">${dataRow('', domNameCell, dagg, false, domStyle)}</tr>`;
+        const fdKey = 'fd||'+espName+'||'+ip+'||'+fd;
+        const fdExpanded = !!mxExpanded[fdKey];
+
+        const fdProviders = Object.entries(mmData.providerDomains||{})
+          .filter(([prov,domMap])=>domMap[fd] && domMap[fd].sent>0)
+          .map(([prov,domMap])=>({ name:prov, agg:domMap[fd] }))
+          .sort((a,b)=>b.agg.sent-a.agg.sent);
+
+        const fdLabel = `<span style="font-family:var(--mono);font-size:10px;color:${mutedCol};">${fd}</span>`;
+        const fdNameCell = `<div style="display:flex;align-items:center;padding-left:40px;" data-mxkey="${esc(fdKey)}">`
+          +toggleBtn(fdKey, fdExpanded, fdLabel, fdProviders.length > 0 ? fdProviders.length+' providers' : '')
+          +'</div>';
+        const fdBg = `background:${light?'rgba(0,0,0,.025)':'rgba(255,255,255,.025)'};`;
+        html += `<tr class="mx-domain-row" data-mxkey="${esc(fdKey)}" style="cursor:pointer;">${dataRow('', fdNameCell, fdAgg, false, fdBg)}</tr>`;
+
+        if(!fdExpanded) return;
+
+        // ── LEVEL 4: Email Providers ─────────────────────────────
+        fdProviders.forEach(({name:provName, agg:provAgg})=>{
+          const provBg = `background:${light?'rgba(0,0,0,.035)':'rgba(255,255,255,.035)'};`;
+          const provNameCell = `<div style="padding-left:60px;font-family:var(--mono);font-size:10px;color:${mutedCol};">`
+            +`<span style="width:3px;height:3px;border-radius:50%;background:${mutedCol};display:inline-block;margin-right:7px;vertical-align:middle;"></span>`
+            +provName+'</div>';
+          html += `<tr class="mx-domain-row">${dataRow('', provNameCell, provAgg, false, provBg)}</tr>`;
         });
-        // Subtotal = the provider's own exact aggregated data (not sum of estimated domain rows)
-        const subTs = `font-weight:600;background:${light?'rgba(0,0,0,.04)':'rgba(255,255,255,.04)'};border-top:1px solid ${light?'rgba(0,0,0,.08)':'rgba(255,255,255,.08)'};`;
-        const subNameCell = `<div style="padding-left:28px;font-family:var(--mono);font-size:10px;color:${mutedCol};">Provider total</div>`;
-        html += `<tr>${dataRow('', subNameCell, provAgg, false, subTs)}</tr>`;
-      }
+
+        if(fdProviders.length > 0){
+          const fdTotalBg = `font-weight:600;background:${light?'rgba(0,0,0,.04)':'rgba(255,255,255,.04)'};border-top:1px solid ${light?'rgba(0,0,0,.07)':'rgba(255,255,255,.07)'};`;
+          html += `<tr>${dataRow('', `<div style="padding-left:40px;font-family:var(--mono);font-size:10px;color:${mutedCol};">${fd} — total</div>`, fdAgg, false, fdTotalBg)}</tr>`;
+        }
+      });
+
+      // IP total row
+      const ipTotalBg = `font-weight:600;background:${light?'rgba(3,105,161,.07)':'rgba(125,211,252,.07)'};border-top:1px solid ${light?'rgba(0,0,0,.08)':'rgba(255,255,255,.08)'};`;
+      html += `<tr>${dataRow('', `<div style="padding-left:20px;font-family:var(--mono);font-size:10px;color:${light?'#0369a1':'#7dd3fc'};">${isNotFound?'&#9888; IP NOT FOUND':ip} — total</div>`, ipTot, false, ipTotalBg)}</tr>`;
     });
 
     // ESP grand total
-    const totalLabel = espName + ' — Total';
-    html += `<tr>${dataRow(totalLabel, '', espTot, true)}</tr>`;
+    html += `<tr>${dataRow('<span style="color:'+espColor+';font-weight:700;">'+espName+' — Total</span>','',espTot,true)}</tr>`;
   });
 
   tbody.innerHTML = html;
@@ -689,8 +762,8 @@ function mxResetRange(){
   mxPopulateDates(); mxRender();
 }
 function renderMatrixView(){
-  mxTab = 'provider'; // always Email Provider — Sending Domain tab removed
   mxFromIdx=0; mxToIdx=mmData.dates.length-1;
+  mxExpanded = {};
   mxPopulateDates(); mxRender();
 }
 
