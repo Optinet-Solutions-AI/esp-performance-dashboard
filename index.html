@@ -4120,7 +4120,7 @@ let isLight = false;
 function toggleTheme() {
   isLight = !isLight;
   document.body.classList.toggle('light', isLight);
-  document.getElementById('themeLabel').textContent = isLight ? '🌙 Dark mode' : '☀ Light mode';
+  document.getElementById('themeLabel').textContent = isLight ? '☀ Light mode' : '🌙 Dark mode';
 
   // Save preference
   try { localStorage.setItem('espDashTheme', isLight ? 'light' : 'dark'); } catch(e){}
@@ -4144,7 +4144,7 @@ function toggleTheme() {
 function applyThemeOnLoad() {
   try {
     const saved = localStorage.getItem('espDashTheme');
-    if (saved === 'light') { isLight=true; document.body.classList.add('light'); document.getElementById('themeLabel').textContent = '🌙 Dark mode'; }
+    if (saved === 'light') { isLight=true; document.body.classList.add('light'); document.getElementById('themeLabel').textContent = '☀ Light mode'; }
   } catch(e){}
 }
 
