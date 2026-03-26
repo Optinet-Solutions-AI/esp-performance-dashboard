@@ -544,7 +544,7 @@
 
   <div class="sidebar-footer">
     <div class="theme-toggle" onclick="toggleTheme()" title="Switch theme">
-      <span id="themeLabel">☀ Light mode</span>
+      <span id="themeLabel">🌙 Dark mode</span>
       <div class="toggle-track"><div class="toggle-thumb"></div></div>
     </div>
     Updated: Mar 2026<br><span id="activeCount">8</span> active providers<br><span id="supabaseBadge" style="display:inline-block;margin-top:8px;padding:4px 8px;border-radius:4px;border:1px solid var(--border);font-size:10px;font-weight:600;color:var(--muted);white-space:nowrap;">🔴 Offline</span>
@@ -4715,7 +4715,7 @@ let isLight = false;
 function toggleTheme() {
   isLight = !isLight;
   document.body.classList.toggle('light', isLight);
-  document.getElementById('themeLabel').textContent = isLight ? '🌙 Dark mode' : '☀ Light mode';
+  document.getElementById('themeLabel').textContent = isLight ? '☀ Light mode' : '🌙 Dark mode';
 
   // Save preference
   try { localStorage.setItem('espDashTheme', isLight ? 'light' : 'dark'); } catch(e){}
@@ -4739,7 +4739,7 @@ function toggleTheme() {
 function applyThemeOnLoad() {
   try {
     const saved = localStorage.getItem('espDashTheme');
-    if (saved === 'light') { isLight=true; document.body.classList.add('light'); document.getElementById('themeLabel').textContent = '🌙 Dark mode'; }
+    if (saved === 'light') { isLight=true; document.body.classList.add('light'); document.getElementById('themeLabel').textContent = '☀ Light mode'; }
   } catch(e){}
 }
 
