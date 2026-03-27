@@ -131,8 +131,6 @@
   .nav-item:hover{background:var(--surface2);color:var(--text);}
   .nav-item.active{background:rgba(0,229,195,.08);color:var(--accent);}
   .nav-item svg{width:15px;height:15px;flex-shrink:0;}
-  .nav-group-header{display:flex;align-items:center;justify-content:space-between;padding:8px 20px 6px;cursor:pointer;color:#c8cdd6;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;user-select:none;}
-  .nav-group-header:hover{color:var(--text);}
   .nav-group-arrow{font-size:10px;transition:transform .2s;display:inline-block;}
   .nav-item.nav-sub{padding-left:28px;font-size:12px;}
   .esp-list{padding:0 12px;margin-top:16px;}
@@ -521,10 +519,13 @@
     </button>
     <!-- Email Providers collapsible group -->
     <div id="nav-group-providers">
-      <div class="nav-group-header" onclick="toggleProvidersList()">
-        <span>Email Providers</span>
+      <button class="nav-item" onclick="toggleProvidersList()" style="justify-content:space-between;">
+        <span style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="3" rx="1"/><path d="M3 7h10M3 7l-1 6h10l-1-6"/><path d="M6 10h4"/></svg>
+          Email Providers
+        </span>
         <span id="providersArrow" class="nav-group-arrow">▼</span>
-      </div>
+      </button>
       <div id="providersNavList">
         <button class="nav-item nav-sub" id="nav-mailmodo" onclick="showMailmodoReview()">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
