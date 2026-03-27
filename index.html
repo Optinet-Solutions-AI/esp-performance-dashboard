@@ -509,12 +509,16 @@
 <div class="layout">
 
 <aside class="sidebar">
-  <div class="logo" onclick="showMailmodoReview()">
+  <div class="logo" onclick="showView('home')">
     <div class="logo-tag">Email Ops</div>
     <div class="logo-title">ESP Control</div>
   </div>
   <div class="nav-section">
     <div class="nav-label">Navigation</div>
+    <button class="nav-item" id="nav-home" onclick="showView('home')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14a1 1 0 01-1 1H3a1 1 0 01-1-1V6.5z"/><path d="M6 15V9h4v6"/></svg>
+      Overview
+    </button>
     <!-- Email Providers collapsible group -->
     <div id="nav-group-providers">
       <div class="nav-group-header" onclick="toggleProvidersList()">
@@ -522,7 +526,7 @@
         <span id="providersArrow" class="nav-group-arrow">▼</span>
       </div>
       <div id="providersNavList">
-        <button class="nav-item nav-sub active" id="nav-mailmodo" onclick="showMailmodoReview()">
+        <button class="nav-item nav-sub" id="nav-mailmodo" onclick="showMailmodoReview()">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
           Mailmodo Review
         </button>
@@ -571,7 +575,7 @@
 <main class="main">
 
   <!-- DASHBOARD VIEW -->
-  <div class="view active" id="view-dashboard">
+  <div class="view" id="view-dashboard">
     <div class="topbar">
       <div>
         <div class="page-title">Performance Overview</div>
@@ -687,6 +691,69 @@
           <tbody id="espTableBody"></tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- HOME VIEW -->
+  <div class="view" id="view-home">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Overview</div>
+        <div class="page-sub" id="homeSub">All providers · All time</div>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px;">
+      <div class="kpi-card" style="--card-accent:#00e5c3">
+        <div class="kpi-label">Total Reports</div>
+        <div class="kpi-value" id="homeKpiReports">—</div>
+        <div class="kpi-delta delta-neutral" id="homeKpiReportsSub"></div>
+      </div>
+      <div class="kpi-card" style="--card-accent:#7c5cfc">
+        <div class="kpi-label">Total Providers</div>
+        <div class="kpi-value" id="homeKpiProviders">—</div>
+        <div class="kpi-delta delta-neutral" id="homeKpiProvidersSub"></div>
+      </div>
+      <div class="kpi-card" style="--card-accent:#ffd166">
+        <div class="kpi-label">Total Reviews</div>
+        <div class="kpi-value" id="homeKpiReviews">2</div>
+        <div class="kpi-delta delta-neutral">Mailmodo · Ongage</div>
+      </div>
+      <div class="kpi-card" style="--card-accent:#ff6b6b">
+        <div class="kpi-label">Latest Upload</div>
+        <div class="kpi-value" id="homeKpiLatest" style="font-size:16px;">—</div>
+        <div class="kpi-delta delta-neutral" id="homeKpiLatestSub"></div>
+      </div>
+    </div>
+
+    <!-- Volume Chart + Category Breakdown -->
+    <div class="charts-row" style="margin-bottom:24px;">
+      <div class="chart-card" style="flex:2;">
+        <div class="chart-head">
+          <div><div class="chart-title">Monthly Send Volume</div><div class="chart-sub">Mailmodo + Ongage combined</div></div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="homeVolumeChart"></canvas></div>
+      </div>
+      <div class="chart-card" style="flex:1;">
+        <div class="chart-head">
+          <div><div class="chart-title">Category Breakdown</div><div class="chart-sub">By total volume</div></div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="homeCatChart"></canvas></div>
+        <div class="legend-row" id="homeCatLegend"></div>
+      </div>
+    </div>
+
+    <!-- Email Providers -->
+    <div class="table-section" style="margin-bottom:24px;">
+      <div class="section-head"><div class="section-title">Email Providers</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;" id="homeProviderCards"></div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="table-section">
+      <div class="section-head"><div class="section-title">Recent Activity</div></div>
+      <div id="homeActivityList" style="margin-top:8px;"></div>
     </div>
   </div>
 
@@ -1860,6 +1927,107 @@ function showView(name){
   if(ne)ne.classList.add('active');
   if(name==='performance')renderPerfView();
   if(name==='daily')renderDailyView();
+  if(name==='home')renderHomeView();
+}
+
+/* HOME VIEW */
+let _homeVolumeChart = null, _homeCatChart = null;
+function renderHomeView() {
+  // ── KPI: Total Reports ──────────────────────────────────
+  const mmDates = mmData.dates || [];
+  const ogDates = _ogCtx.data.dates || [];
+  const totalReports = mmDates.length + ogDates.length;
+  document.getElementById('homeKpiReports').textContent = totalReports || '—';
+  document.getElementById('homeKpiReportsSub').textContent = mmDates.length + ' Mailmodo · ' + ogDates.length + ' Ongage';
+
+  // ── KPI: Total Providers ────────────────────────────────
+  const mmProvs = Object.keys(mmData.providers || {});
+  const ogProvs = Object.keys(_ogCtx.data.providers || {});
+  const allProvs = new Set([...mmProvs, ...ogProvs]);
+  document.getElementById('homeKpiProviders').textContent = allProvs.size || '—';
+  document.getElementById('homeKpiProvidersSub').textContent = mmProvs.length + ' MM · ' + ogProvs.length + ' OG';
+
+  // ── KPI: Latest Upload ──────────────────────────────────
+  if (uploadHistory.length > 0) {
+    const h = uploadHistory[0];
+    document.getElementById('homeKpiLatest').textContent = h.esp.toUpperCase();
+    document.getElementById('homeKpiLatestSub').textContent = h.file.length > 22 ? h.file.slice(0,22)+'…' : h.file;
+  }
+
+  // ── Volume Chart: monthly buckets from mmData + ogData ──
+  const monthTotals = {};
+  function accumulateMonths(data) {
+    (data.dates||[]).forEach(d => {
+      const key = d.slice(0,6); // "Jan 20" style — use first 3 chars for month label
+      const m = d.replace(/\s+\d+$/,''); // e.g. "Jan" from "Jan 01"
+      monthTotals[m] = (monthTotals[m]||0) + (data.overallByDate[d]?.sent||0);
+    });
+  }
+  accumulateMonths(mmData);
+  accumulateMonths(_ogCtx.data);
+  const months = Object.keys(monthTotals);
+  const volumes = months.map(m=>monthTotals[m]);
+
+  if (_homeVolumeChart) { _homeVolumeChart.destroy(); _homeVolumeChart = null; }
+  const vCtx = document.getElementById('homeVolumeChart').getContext('2d');
+  _homeVolumeChart = new Chart(vCtx, {
+    type:'bar',
+    data:{ labels: months.length ? months : ['No data'], datasets:[{
+      label:'Sent', data: volumes.length ? volumes : [0],
+      backgroundColor:'rgba(0,229,195,0.7)', borderRadius:4
+    }]},
+    options:{...cOpts, scales:{
+      x:{ticks:{color:tc,font:{size:9}},grid:{display:false}},
+      y:{ticks:{color:tc,font:{size:9},callback:v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v},grid:{color:gc},border:{display:false}}
+    }}
+  });
+
+  // ── Category Breakdown doughnut ─────────────────────────
+  const mmSent = mmDates.reduce((s,d)=>s+(mmData.overallByDate[d]?.sent||0),0);
+  const ogSent = ogDates.reduce((s,d)=>s+(_ogCtx.data.overallByDate[d]?.sent||0),0);
+  if (_homeCatChart) { _homeCatChart.destroy(); _homeCatChart = null; }
+  const cCtx = document.getElementById('homeCatChart').getContext('2d');
+  _homeCatChart = new Chart(cCtx, {
+    type:'doughnut',
+    data:{ labels:['Mailmodo','Ongage'], datasets:[{
+      data:[mmSent||0, ogSent||0],
+      backgroundColor:['rgba(124,92,252,0.8)','rgba(255,209,102,0.8)'],
+      borderWidth:0, hoverOffset:6
+    }]},
+    options:{...cOpts,cutout:'65%',plugins:{...cOpts.plugins,legend:{display:false}}}
+  });
+  const fmt = v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v||'0';
+  document.getElementById('homeCatLegend').innerHTML =
+    `<div class="legend-item"><span class="legend-sq" style="background:rgba(124,92,252,0.8)"></span>Mailmodo ${fmt(mmSent)}</div>` +
+    `<div class="legend-item"><span class="legend-sq" style="background:rgba(255,209,102,0.8)"></span>Ongage ${fmt(ogSent)}</div>`;
+
+  // ── Provider Cards ──────────────────────────────────────
+  document.getElementById('homeProviderCards').innerHTML = `
+    <div class="kpi-card" style="--card-accent:#7c5cfc;cursor:pointer;" onclick="showMailmodoReview()">
+      <div class="kpi-label">Mailmodo</div>
+      <div class="kpi-value" style="font-size:18px;">${mmProvs.length || '—'}</div>
+      <div class="kpi-delta delta-neutral">${mmDates.length} date${mmDates.length!==1?'s':''} · Click to review →</div>
+    </div>
+    <div class="kpi-card" style="--card-accent:#ffd166;cursor:pointer;" onclick="showOngageReview()">
+      <div class="kpi-label">Ongage</div>
+      <div class="kpi-value" style="font-size:18px;">${ogProvs.length || '—'}</div>
+      <div class="kpi-delta delta-neutral">${ogDates.length} date${ogDates.length!==1?'s':''} · Click to review →</div>
+    </div>`;
+
+  // ── Recent Activity ─────────────────────────────────────
+  const actEl = document.getElementById('homeActivityList');
+  if (uploadHistory.length === 0) {
+    actEl.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0;">No uploads yet — use Upload Report to get started.</div>';
+  } else {
+    actEl.innerHTML = uploadHistory.slice(0,5).map(h=>`
+      <div class="upload-history-row">
+        <div>
+          <div style="font-weight:600;color:#fff;font-size:12px;">${h.file}</div>
+          <div style="font-size:11px;color:#d4dae6;margin-top:2px;font-family:var(--mono)">${h.esp.toUpperCase()} · ${h.rows.toLocaleString()} rows · ${h.dates.length} dates · ${h.time}</div>
+        </div>
+        <span class="upload-badge ${h.newDates>0?'badge-success':'badge-partial'}">${h.newDates>0?'+'+h.newDates+' new':'updated'}</span>
+      </div>`).join('');
+  }
 }
 
 /* SIDEBAR */
@@ -4802,6 +4970,7 @@ function toggleTheme() {
   if (typeof mmRenderAll === 'function') {
     setTimeout(()=>{
       try { mmRenderAll(); } catch(e){}
+      if (document.getElementById('view-home').classList.contains('active')) renderHomeView();
     }, 50);
   }
 }
@@ -5348,11 +5517,11 @@ mmcReset = function(){ dpReset('mmc'); };
 mxResetRange = function(){ dpReset('mx'); };
 
 setTimeout(()=>{
-  showView('mailmodo');
   mmPopulateDates(); mmcPopulateDates(); mxPopulateDates();
   dpInit('mm'); dpInit('mmc'); dpInit('mx');
   // Snapshot initial Mailmodo context so Ongage can restore it
   _savedMmCtx = _captureCtx();
+  showView('home');
 }, 80);
 
 </script>
