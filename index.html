@@ -2319,7 +2319,7 @@ esps.forEach(d=>{
   d.status=d.bounceRate>10||d.deliveryRate<70?'critical':d.bounceRate>2||d.deliveryRate<95?'warn':'healthy';
 });
 
-const daily7=[
+let daily7=[
   {date:'Feb 17',sent:2607, delivered:2607, opens:3897, clicks:1851,bounced:0},
   {date:'Feb 20',sent:868,  delivered:866,  opens:1392, clicks:646, bounced:2},
   {date:'Feb 21',sent:13882,delivered:13856,opens:21715,clicks:10257,bounced:26},
@@ -5446,11 +5446,17 @@ function mergeIntoMmData(result, espName) {
     // Merge providers
     Object.entries(parsed.providers).forEach(([provider, stats]) => {
       if (!mmData.providers[provider]) {
-        // New provider — create entry
-        mmData.providers[provider] = { overall: {...stats}, byDate: {} };
+        mmData.providers[provider] = { overall: {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0}, byDate: {} };
       }
-      // Update byDate for this date
-      mmData.providers[provider].byDate[date] = { ...stats };
+      const existing = mmData.providers[provider].byDate[date] || {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0};
+      mmData.providers[provider].byDate[date] = {
+        sent: existing.sent + stats.sent,
+        delivered: existing.delivered + stats.delivered,
+        opened: existing.opened + stats.opened,
+        clicked: existing.clicked + stats.clicked,
+        bounced: existing.bounced + stats.bounced,
+        unsubscribed: (existing.unsubscribed||0) + (stats.unsubscribed||0)
+      };
       // Recalculate overall
       mmData.providers[provider].overall = recalcOverall(mmData.providers[provider].byDate);
     });
@@ -5458,20 +5464,37 @@ function mergeIntoMmData(result, espName) {
     // Merge domains
     Object.entries(parsed.domains).forEach(([domain, stats]) => {
       if (!mmData.domains[domain]) {
-        mmData.domains[domain] = { overall: {...stats}, byDate: {} };
+        mmData.domains[domain] = { overall: {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0}, byDate: {} };
       }
-      mmData.domains[domain].byDate[date] = { ...stats };
+      const existing = mmData.domains[domain].byDate[date] || {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0};
+      mmData.domains[domain].byDate[date] = {
+        sent: existing.sent + stats.sent,
+        delivered: existing.delivered + stats.delivered,
+        opened: existing.opened + stats.opened,
+        clicked: existing.clicked + stats.clicked,
+        bounced: existing.bounced + stats.bounced,
+        unsubscribed: (existing.unsubscribed||0) + (stats.unsubscribed||0)
+      };
       mmData.domains[domain].overall = recalcOverall(mmData.domains[domain].byDate);
     });
 
     // Update overallByDate
+    const existingTotal = mmData.overallByDate[date] || {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0};
     const allProviders = Object.values(parsed.providers);
-    const totals = allProviders.reduce((a,p)=>({
+    const fileTotals = allProviders.reduce((a,p)=>({
       sent:a.sent+p.sent, delivered:a.delivered+p.delivered,
       opened:a.opened+p.opened, clicked:a.clicked+p.clicked,
       bounced:a.bounced+p.bounced, unsubscribed:a.unsubscribed+(p.unsubscribed||0)
     }), {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0});
-    mmData.overallByDate[date] = { ...totals };
+    
+    mmData.overallByDate[date] = {
+      sent: existingTotal.sent + fileTotals.sent,
+      delivered: existingTotal.delivered + fileTotals.delivered,
+      opened: existingTotal.opened + fileTotals.opened,
+      clicked: existingTotal.clicked + fileTotals.clicked,
+      bounced: existingTotal.bounced + fileTotals.bounced,
+      unsubscribed: (existingTotal.unsubscribed||0) + (fileTotals.unsubscribed||0)
+    };
   });
 
   // Sort dates chronologically
@@ -5485,6 +5508,55 @@ function mergeIntoMmData(result, espName) {
   mmToIdx   = mmData.dates.length - 1;
   mmcFromIdx = 0;
   mmcToIdx   = mmData.dates.length - 1;
+  
+  syncEspData();
+}
+
+function syncEspData() {
+  const reviewESPs = [
+    { name: 'Mailmodo', data: mmData },
+    { name: 'Ongage', data: ogData }
+  ];
+  
+  reviewESPs.forEach(esp => {
+    const espObj = esps.find(e => e.name.toLowerCase() === esp.name.toLowerCase());
+    if (!espObj || !esp.data.dates.length) return;
+
+    const totals = esp.data.dates.reduce((a, d) => {
+      const s = esp.data.overallByDate[d];
+      if (!s) return a;
+      return {
+        sent: a.sent + s.sent,
+        delivered: a.delivered + s.delivered,
+        opens: a.opens + (s.opened || 0),
+        clicks: a.clicks + (s.clicked || 0),
+        bounced: a.bounced + s.bounced,
+        unsub: a.unsub + (s.unsubscribed || 0)
+      };
+    }, {sent:0, delivered:0, opens:0, clicks:0, bounced:0, unsub:0});
+
+    if (totals.sent > 0) {
+      espObj.sent = totals.sent; espObj.delivered = totals.delivered;
+      espObj.opens = totals.opens; espObj.clicks = totals.clicks;
+      espObj.bounced = totals.bounced; espObj.unsub = totals.unsub;
+      espObj.deliveryRate = (totals.delivered / totals.sent) * 100;
+      espObj.openRate = totals.delivered > 0 ? (totals.opens / totals.delivered) * 100 : 0;
+      espObj.clickRate = totals.delivered > 0 ? (totals.clicks / totals.delivered) * 100 : 0;
+      espObj.bounceRate = (totals.bounced / totals.sent) * 100;
+      espObj.unsubRate = totals.delivered > 0 ? (totals.unsub / totals.delivered) * 100 : 0;
+      espObj.status = espObj.bounceRate > 10 || espObj.deliveryRate < 70 ? 'critical' : espObj.bounceRate > 2 || espObj.deliveryRate < 95 ? 'warn' : 'healthy';
+    }
+  });
+
+  const allDates = [...new Set([...mmData.dates, ...ogData.dates])].sort((a,b)=>new Date('2026 '+a)-new Date('2026 '+b));
+  if (allDates.length) {
+    daily7 = allDates.map(date => {
+      const mm = mmData.overallByDate[date] || {sent:0,delivered:0,opened:0,clicked:0,bounced:0};
+      const og = ogData.overallByDate[date] || {sent:0,delivered:0,opened:0,clicked:0,bounced:0};
+      return { date, sent: mm.sent + og.sent, delivered: mm.delivered + og.delivered, opens: mm.opened + og.opened, clicks: mm.clicked + og.clicked, bounced: mm.bounced + og.bounced };
+    }).slice(-7);
+  }
+  mxBuildProviderDomains();
 }
 
 function recalcOverall(byDate) {
@@ -5982,6 +6054,7 @@ function persistLoad() {
       mmFromIdx = 0;
       mmToIdx   = mmData.dates.length - 1;
     }
+    syncEspData();
     const hist = localStorage.getItem(HISTORY_KEY);
     if (hist) {
       uploadHistory = JSON.parse(hist);
