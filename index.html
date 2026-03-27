@@ -4909,13 +4909,14 @@ function parseGenericESP(rows, espName) {
   const keys   = Object.keys(sample).map(k=>k.toLowerCase());
 
   const findCol = (...candidates) => candidates.find(c => keys.includes(c)) || null;
-  const dateCol  = findCol('action_timestamp_rounded','date','sent-time','senttime','send_date','senddate','datetime','timestamp');
-  const delivCol = findCol('delivered','delivery','success','status');
-  const openCol  = findCol('opens','open','opens-html','opens_html','total_opens');
-  const clickCol = findCol('clicks','click','total_clicks');
-  const bounceCol= findCol('bounced','bounce','hard_bounce','hardbounce');
-  const unsubCol = findCol('unsubscribed','unsub','unsubscribe');
-  const emailCol = findCol('email','email_address','recipient');
+  const dateCol   = findCol('action_timestamp_rounded','date','sent-time','senttime','send_date','senddate','datetime','timestamp');
+  const delivCol  = findCol('delivered','delivery','success','status');
+  const openCol   = findCol('opens','open','opens-html','opens_html','total_opens');
+  const clickCol  = findCol('clicks','click','total_clicks');
+  const bounceCol = findCol('bounced','bounce','hard_bounce','hardbounce');
+  const unsubCol  = findCol('unsubscribed','unsub','unsubscribe');
+  const emailCol  = findCol('email','email_address','recipient');
+  const domainCol = findCol('mailing_name','from_domain','from-domain','sending_domain','domain');
 
   if (!dateCol) return { error: `Could not find a date column. Found: ${Object.keys(sample).join(', ')}` };
 
@@ -4954,6 +4955,7 @@ function parseGenericESP(rows, espName) {
     const unsub     = unsubCol ? (r[unsubCol]===true||r[unsubCol]==='true'||+r[unsubCol]>0 ? 1 : 0) : 0;
     const email     = emailCol ? (r[emailCol]||'').toLowerCase() : '';
     const provider  = email.includes('@') ? email.split('@')[1] : 'unknown';
+    const domain    = domainCol ? (r[domainCol]||'').toString().trim().toLowerCase() : null;
 
     if (!byDate[dateKey]) byDate[dateKey] = { rows:0, providers:{}, domains:{} };
     const dt2 = byDate[dateKey];
@@ -4962,6 +4964,12 @@ function parseGenericESP(rows, espName) {
     if (!dt2.providers[provider]) dt2.providers[provider] = {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0};
     const p = dt2.providers[provider];
     p.sent++; p.delivered+=delivered; p.opened+=opened; p.clicked+=clicked; p.bounced+=bounced; p.unsubscribed+=unsub;
+
+    if (domain) {
+      if (!dt2.domains[domain]) dt2.domains[domain] = {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0};
+      const dm = dt2.domains[domain];
+      dm.sent++; dm.delivered+=delivered; dm.opened+=opened; dm.clicked+=clicked; dm.bounced+=bounced; dm.unsubscribed+=unsub;
+    }
   });
 
   const dates = Object.keys(byDate).sort((a,b)=>new Date('2026 '+a)-new Date('2026 '+b));
