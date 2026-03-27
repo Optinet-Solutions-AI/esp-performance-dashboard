@@ -2332,7 +2332,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 /* =========================================================
    MAILMODO DEEP DIVE DATA
    ========================================================= */
-const mmData = {
+let mmData = {
   dates: ["Feb 17","Feb 20","Feb 21","Feb 23","Feb 24","Feb 25","Feb 26"],
   datesFull: [
     {label:"Feb 17", year:2026},{label:"Feb 20", year:2026},{label:"Feb 21", year:2026},
@@ -5116,10 +5116,10 @@ function exportUpdatedDashboard() {
     .then(r => r.text())
     .then(html => {
       // Build the new mmData block — serialize live data
-      const newBlock = `const mmData = ${JSON.stringify(mmData, null, 2)};`;
+      const newBlock = `let mmData = ${JSON.stringify(mmData, null, 2)};`;
 
       // Find and replace the old mmData block
-      let replaced = html.replace(/const mmData = \{[\s\S]*?\n\};/, newBlock);
+      let replaced = html.replace(/let mmData = \{[\s\S]*?\n\};/, newBlock);
 
       // Also embed DM data permanently
       if(dmData.length){
@@ -5162,8 +5162,8 @@ function exportUpdatedDashboardFallback() {
   // When opened as a local file, fetch(self) is blocked — use the document's own outerHTML
   // then patch the mmData variable inside it
   const html = document.documentElement.outerHTML;
-  const newBlock = `const mmData = ${JSON.stringify(mmData, null, 2)};`;
-  let replaced = html.replace(/const mmData = \{[\s\S]*?\n\};/, newBlock);
+  const newBlock = `let mmData = ${JSON.stringify(mmData, null, 2)};`;
+  let replaced = html.replace(/let mmData = \{[\s\S]*?\n\};/, newBlock);
   if(dmData.length){
     const dmRaw = JSON.stringify(dmData.map(r=>r._raw));
     replaced = replaced.replace('const dmSeedData = [];', 'const dmSeedData = ' + dmRaw + ';');
