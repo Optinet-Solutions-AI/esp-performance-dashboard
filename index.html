@@ -828,9 +828,11 @@
       <div class="topbar-actions" style="flex-wrap:wrap;gap:8px;">
         <div class="date-picker-wrap" style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:7px 14px;">
           <span class="dp-label">From</span>
-          <select id="mmFromDate" onchange="mmApplyRange()" class="mm-select"></select>
+          <button id="mmDpFromBtn" class="dp-input-btn" onclick="dpOpen('mm','from',event)"><span id="mmDpFromTxt">— —</span> ▾</button>
+          <div id="mmDpFromPopup" class="dp-popup" style="display:none;"></div>
           <span class="dp-label">To</span>
-          <select id="mmToDate" onchange="mmApplyRange()" class="mm-select"></select>
+          <button id="mmDpToBtn" class="dp-input-btn" onclick="dpOpen('mm','to',event)"><span id="mmDpToTxt">— —</span> ▾</button>
+          <div id="mmDpToPopup" class="dp-popup" style="display:none;"></div>
           <div style="width:1px;height:14px;background:var(--border2)"></div>
           <select class="dp-granularity" id="mmGranularity" onchange="mmApplyRange()">
             <option value="daily">Daily</option>
@@ -839,7 +841,7 @@
           </select>
           <div style="width:1px;height:14px;background:var(--border2)"></div>
           <span class="dp-range-label" id="mmRangeLabel"></span>
-          <button class="dp-reset" onclick="mmResetRange()" title="Reset">×</button>
+          <button class="dp-reset" onclick="dpReset('mm')" title="Reset">×</button>
         </div>
         <button class="btn btn-sm" onclick="showView('dashboard')">← Back</button>
       </div>
@@ -1078,9 +1080,11 @@
       <div class="topbar-actions" style="flex-wrap:wrap;gap:10px;">
         <div class="date-picker-wrap" style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:7px 14px;">
           <span class="dp-label">From</span>
-          <select id="mmcFrom" onchange="mmcApplyRange()" class="mm-select"></select>
+          <button id="mmcDpFromBtn" class="dp-input-btn" onclick="dpOpen('mmc','from',event)"><span id="mmcDpFromTxt">— —</span> ▾</button>
+          <div id="mmcDpFromPopup" class="dp-popup" style="display:none;"></div>
           <span class="dp-label">To</span>
-          <select id="mmcTo" onchange="mmcApplyRange()" class="mm-select"></select>
+          <button id="mmcDpToBtn" class="dp-input-btn" onclick="dpOpen('mmc','to',event)"><span id="mmcDpToTxt">— —</span> ▾</button>
+          <div id="mmcDpToPopup" class="dp-popup" style="display:none;"></div>
           <div style="width:1px;height:14px;background:var(--border2)"></div>
           <select class="dp-granularity" id="mmcGranularity" onchange="mmcApplyRange()">
             <option value="daily">Daily</option>
@@ -1089,7 +1093,7 @@
           </select>
           <div style="width:1px;height:14px;background:var(--border2)"></div>
           <span class="dp-range-label" id="mmcRangeLabel"></span>
-          <button class="dp-reset" onclick="mmcReset()" title="Reset">×</button>
+          <button class="dp-reset" onclick="dpReset('mmc')" title="Reset">×</button>
         </div>
 
         <!-- View toggle -->
@@ -1356,19 +1360,21 @@
       </div>
       <div class="topbar-actions" style="flex-wrap:wrap;gap:8px;">
         <div class="date-picker-wrap" style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:7px 14px;">
-          <span class="dp-label" style="color:#ffffff !important;">From</span>
-          <select id="mxFrom" onchange="mxApplyRange()" class="mm-select" style="color:#ffffff;"></select>
-          <span class="dp-label" style="color:#ffffff !important;">To</span>
-          <select id="mxTo" onchange="mxApplyRange()" class="mm-select" style="color:#ffffff;"></select>
+          <span class="dp-label">From</span>
+          <button id="mxDpFromBtn" class="dp-input-btn" onclick="dpOpen('mx','from',event)"><span id="mxDpFromTxt">— —</span> ▾</button>
+          <div id="mxDpFromPopup" class="dp-popup" style="display:none;"></div>
+          <span class="dp-label">To</span>
+          <button id="mxDpToBtn" class="dp-input-btn" onclick="dpOpen('mx','to',event)"><span id="mxDpToTxt">— —</span> ▾</button>
+          <div id="mxDpToPopup" class="dp-popup" style="display:none;"></div>
           <div style="width:1px;height:14px;background:var(--border2)"></div>
-          <select class="dp-granularity" id="mxGranularity" onchange="mxApplyRange()" style="color:#ffffff;">
+          <select class="dp-granularity" id="mxGranularity" onchange="mxApplyRange()">
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
           </select>
           <div style="width:1px;height:14px;background:var(--border2)"></div>
-          <span class="dp-range-label" id="mxRangeLabel" style="color:#ffffff !important;"></span>
-          <button class="dp-reset" onclick="mxResetRange()" title="Reset" style="color:#ffffff;">×</button>
+          <span class="dp-range-label" id="mxRangeLabel"></span>
+          <button class="dp-reset" onclick="mxResetRange()" title="Reset">×</button>
         </div>
       </div>
     </div>
@@ -3104,9 +3110,8 @@ function mmPopulateDates(){
 }
 
 function mmApplyRange(){
-  const fi=+document.getElementById('mmFromDate').value;
-  const ti=+document.getElementById('mmToDate').value;
-  mmFromIdx=Math.min(fi,ti); mmToIdx=Math.max(fi,ti);
+  const fromEl=document.getElementById('mmFromDate'), toEl=document.getElementById('mmToDate');
+  if(fromEl&&toEl){const fi=+fromEl.value,ti=+toEl.value; mmFromIdx=Math.min(fi,ti); mmToIdx=Math.max(fi,ti);}
   mmPopulateDates(); mmSelectedRow=null;
   document.getElementById('mmDayBreakdown').style.display='none';
   mmUpdateRangeLabel(); mmRenderAll();
@@ -3344,9 +3349,8 @@ function mmcPopulateDates(){
   Array.from(ts.options).forEach(o=>{o.disabled=+o.value<fi;});
 }
 function mmcApplyRange(){
-  const fi=+document.getElementById('mmcFrom').value;
-  const ti=+document.getElementById('mmcTo').value;
-  mmcFromIdx=Math.min(fi,ti); mmcToIdx=Math.max(fi,ti);
+  const fromEl=document.getElementById('mmcFrom'), toEl=document.getElementById('mmcTo');
+  if(fromEl&&toEl){const fi=+fromEl.value,ti=+toEl.value; mmcFromIdx=Math.min(fi,ti); mmcToIdx=Math.max(fi,ti);}
   mmcPopulateDates(); mmcRenderAll();
 }
 function mmcReset(){
@@ -3658,9 +3662,8 @@ function mxPopulateDates(){
   Array.from(ts.options).forEach(o=>{o.disabled=+o.value<fi;});
 }
 function mxApplyRange(){
-  const fi=+document.getElementById('mxFrom').value;
-  const ti=+document.getElementById('mxTo').value;
-  mxFromIdx=Math.min(fi,ti); mxToIdx=Math.max(fi,ti);
+  const fromEl=document.getElementById('mxFrom'), toEl=document.getElementById('mxTo');
+  if(fromEl&&toEl){const fi=+fromEl.value,ti=+toEl.value; mxFromIdx=Math.min(fi,ti); mxToIdx=Math.max(fi,ti);}
   mxPopulateDates(); mxRender();
 }
 function mxResetRange(){
@@ -5195,12 +5198,14 @@ dmLoad();
 ipmLoadStorage();
 
 // Patch view-specific reset functions to use calendar picker reset
-// mmResetRange is defined above
+mmResetRange = function(){ dpReset('mm'); };
+mmcReset = function(){ dpReset('mmc'); };
 mxResetRange = function(){ dpReset('mx'); };
 
 setTimeout(()=>{
   showView('mailmodo');
   mmPopulateDates(); mmcPopulateDates(); mxPopulateDates();
+  dpInit('mm'); dpInit('mmc'); dpInit('mx');
 }, 80);
 
 </script>
