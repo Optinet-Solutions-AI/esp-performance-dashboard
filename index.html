@@ -47,7 +47,7 @@
   body.light .mbb              { background:rgba(0,0,0,.08); }
   body.light body::before      { opacity:.08; }
 
-  /* Light mode: Mailmodo section overrides */
+  /* Light mode: Chrismodo section overrides */
   body.light #view-mailmodo,
   body.light #view-upload {
     --mm-white:#000000; --mm-offwhite:#111827; --mm-teal:#007a6a;
@@ -292,7 +292,7 @@
   body.light .esp-item-left      { color:#111827 !important; }
   body.light .esp-badge          { border: 1px solid rgba(0,0,0,.12); }
 
-  /* Mailmodo section — all text dark */
+  /* Chrismodo section — all text dark */
   body.light #view-mailmodo .page-title   { color:#111827 !important; }
   body.light #view-mailmodo .page-sub     { color:#111827 !important; }
   body.light #view-mailmodo .chart-title  { color:#111827 !important; font-weight:700 !important; }
@@ -513,7 +513,7 @@
     <div class="nav-label">Navigation</div>
     <button class="nav-item active" id="nav-mailmodo" onclick="showView('mailmodo')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
-      Mailmodo Review
+      Chrismodo Review
     </button>
     <button class="nav-item" id="nav-upload" onclick="showView('upload')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10V2M5 5l3-3 3 3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
@@ -708,7 +708,7 @@
   <!-- DAILY VIEW -->
   <div class="view" id="view-daily">
     <div class="topbar">
-      <div><div class="page-title">7-Day Report</div><div class="page-sub">Mailmodo · Feb 17–26, 2026</div></div>
+      <div><div class="page-title">7-Day Report</div><div class="page-sub">Chrismodo · Feb 17–26, 2026</div></div>
       <button class="btn btn-sm" onclick="showView('dashboard')">← Back</button>
     </div>
     <div class="chart-card" style="margin-bottom:20px;">
@@ -739,7 +739,7 @@
   <!-- MAILMODO DEEP DIVE VIEW -->
   <div class="view" id="view-mailmodo">
     <style>
-      /* ── Mailmodo-only high-contrast overrides ── */
+      /* ── Chrismodo-only high-contrast overrides ── */
       #view-mailmodo { --mm-white:#ffffff; --mm-offwhite:#f0f2f5; --mm-teal:#00ffd5; --mm-purple:#b39dff; --mm-yellow:#ffe066; --mm-orange:#ff9a5c; --mm-red:#ff6b77; --mm-muted:#d4dae6; }
 
       /* Base text in all mailmodo tables */
@@ -822,7 +822,7 @@
 
     <div class="topbar" style="flex-wrap:wrap;gap:12px;">
       <div>
-        <div class="page-title">Mailmodo · Review</div>
+        <div class="page-title">Chrismodo · Review</div>
         <div class="page-sub" id="mmPageSub">Feb 17–26, 2026 · 43,422 records</div>
       </div>
       <div class="topbar-actions" style="flex-wrap:wrap;gap:8px;">
@@ -1072,7 +1072,7 @@
 
     <div class="topbar" style="flex-wrap:wrap;gap:12px;">
       <div>
-        <div class="page-title">KPI Charts · Mailmodo</div>
+        <div class="page-title">KPI Charts · Chrismodo</div>
         <div class="page-sub" id="mmcPageSub">Feb 17 – Feb 26 2026 · by Email Provider</div>
       </div>
       <div class="topbar-actions" style="flex-wrap:wrap;gap:10px;">
@@ -1194,7 +1194,7 @@
         <div class="upload-label">ESP Provider</div>
         <select id="uploadEspSelect" class="upload-select" onchange="uploadEspChanged()">
           <option value="">— Choose an ESP —</option>
-          <option value="mailmodo">Mailmodo</option>
+          <option value="mailmodo">Chrismodo</option>
           <option value="hotsol">Hotsol</option>
           <option value="mms">MMS</option>
           <option value="kenscio">Kenscio</option>
@@ -1210,7 +1210,7 @@
     <!-- Step 2: Upload file -->
     <div class="upload-card" id="uploadStep2" style="opacity:.4;pointer-events:none;">
       <h3>Step 2 — Upload Activity File</h3>
-      <p>Drop your XLSX or CSV export from the ESP. The file must contain at minimum: <strong style="color:#fff">email, sent-time, delivery, opens, clicks, bounced, unsubscribed</strong> columns (Mailmodo format). Other ESP formats will be auto-detected.</p>
+      <p>Drop your XLSX or CSV export from the ESP. The file must contain at minimum: <strong style="color:#fff">email, sent-time, delivery, opens, clicks, bounced, unsubscribed</strong> columns (Chrismodo format). Other ESP formats will be auto-detected.</p>
 
       <div class="upload-dropzone" id="uploadDropzone">
         <input type="file" id="uploadFileInput" accept=".xlsx,.csv,.xls" onchange="uploadFileSelected(this)">
@@ -1783,7 +1783,7 @@ const esps = [
   {name:'MMS',          color:'#7c5cfc',sent:261686, delivered:261685,opens:40590,clicks:2365, bounced:4,     unsub:248},
   {name:'Kenscio',      color:'#ffd166',sent:470419, delivered:459221,opens:42468,clicks:1831, bounced:45350, unsub:47},
   {name:'Moosend',      color:'#00b8d9',sent:17557,  delivered:17557, opens:835,  clicks:10,   bounced:0,     unsub:76},
-  {name:'Mailmodo',     color:'#ff6b35',sent:346786, delivered:336142,opens:3801, clicks:805,  bounced:10644, unsub:107},
+  {name:'Chrismodo',     color:'#ff6b35',sent:346786, delivered:336142,opens:3801, clicks:805,  bounced:10644, unsub:107},
   {name:'Netcore',      color:'#ff4757',sent:778366, delivered:427099,opens:34970,clicks:208,  bounced:351567,unsub:71},
   {name:'Bulkresponse', color:'#a8e6cf',sent:14891,  delivered:14891, opens:3127, clicks:11,   bounced:0,     unsub:1},
   {name:'Ongage',       color:'#c67cff',sent:813966, delivered:305713,opens:13094,clicks:135,  bounced:0,     unsub:0},
@@ -3119,7 +3119,7 @@ function mmResetRange(){
   mmUpdateRangeLabel(); mmRenderAll();
 }
 
-function renderMailmodoView(){
+function renderChrismodoView(){
   mmFromIdx=0; mmToIdx=mmData.dates.length-1;
   mmPopulateDates(); mmUpdateRangeLabel(); mmRenderAll();
 }
@@ -3373,7 +3373,7 @@ let mxToIdx   = mmData.dates.length - 1;
 let mxTab     = 'domain'; // 'domain' | 'provider'
 
 const mxEspRegistry = {
-  Mailmodo: { color:'#7c5cfc', domains: ()=> mmData.domains, providers: ()=> mmData.providers }
+  Chrismodo: { color:'#7c5cfc', domains: ()=> mmData.domains, providers: ()=> mmData.providers }
 };
 
 function mxSetTab(tab){
@@ -4118,7 +4118,7 @@ function ipmToggleEsp(esp){
 
 // ESP colour map — sharp, distinct, high-contrast
 const ipmEspPalette = {
-  'Mailmodo' : { bg:'#7c3aed', text:'#ffffff' },
+  'Chrismodo' : { bg:'#7c3aed', text:'#ffffff' },
   'Netcore'  : { bg:'#0891b2', text:'#ffffff' },
   'Ongage'   : { bg:'#059669', text:'#ffffff' },
   'Kenscio'  : { bg:'#d97706', text:'#ffffff' },
@@ -4347,7 +4347,7 @@ showView = function(v){
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   const navEl = document.getElementById('nav-'+v);
   if(navEl) navEl.classList.add('active');
-  if(v==='mailmodo') setTimeout(renderMailmodoView, 50);
+  if(v==='mailmodo') setTimeout(renderChrismodoView, 50);
   if(v==='mmcharts') setTimeout(renderMMChartsView, 50);
   if(v==='matrix')   setTimeout(renderMatrixView,   50);
   if(v==='datamgmt') setTimeout(()=>{
@@ -4364,7 +4364,7 @@ let uploadEsp      = '';
 let uploadHistory  = [];
 
 const uploadEspNotes = {
-  mailmodo:     'Mailmodo format detected — columns: id, campaign-name, email, sent-time, opens-html, opens-amp, clicks-html, clicks-amp, unsubscribed, complaints, delivery, bounced',
+  mailmodo:     'Chrismodo format detected — columns: id, campaign-name, email, sent-time, opens-html, opens-amp, clicks-html, clicks-amp, unsubscribed, complaints, delivery, bounced',
   hotsol:       'Hotsol format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
   mms:          'MMS format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
   kenscio:      'Kenscio format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
@@ -4456,10 +4456,10 @@ function uploadProcess() {
       uploadLog(`✓ Columns detected: ${cols.slice(0,8).join(', ')}${cols.length>8?'…':''}`, 'ok');
 
       const isMmodo = cols.includes('campaign-name') || cols.includes('opens-html');
-      uploadLog(`✓ Format: ${isMmodo ? 'Mailmodo' : 'Generic ESP'}`, 'ok');
+      uploadLog(`✓ Format: ${isMmodo ? 'Chrismodo' : 'Generic ESP'}`, 'ok');
 
       // Route to correct parser
-      const result = isMmodo ? parseMailmodo(rows) : parseGenericESP(rows, uploadEsp);
+      const result = isMmodo ? parseChrismodo(rows) : parseGenericESP(rows, uploadEsp);
 
       if (!result || result.error) {
         uploadLog(`✗ Parse error: ${result?.error || 'unknown'}`, 'err');
@@ -4499,8 +4499,8 @@ function uploadProcess() {
   reader.readAsArrayBuffer(uploadFile);
 }
 
-/* ── Mailmodo parser ──────────────────────────────────── */
-function parseMailmodo(rows) {
+/* ── Chrismodo parser ──────────────────────────────────── */
+function parseChrismodo(rows) {
   // Group by date, then by email_provider and sending_domain
   const byDate = {};   // { "Mar 01": { providers: {gmail:{...}}, domains: {domain:{...}}, overall:{...} } }
   let skipped = 0;
@@ -4518,7 +4518,7 @@ function parseMailmodo(rows) {
     if (isNaN(d)) { skipped++; return; }
     const dateKey = d.toLocaleDateString('en-US', { month:'short', day:'2-digit' }).replace(',','').replace(' 0',' ');
 
-    // Extract fields — Mailmodo format
+    // Extract fields — Chrismodo format
     const email     = (r['email'] || '').toLowerCase();
     const delivered = r['delivery'] === true || r['delivery'] === 'true' || r['delivery'] === 1 ? 1 : 0;
     const opened    = ((+r['opens-html']||0) + (+r['opens-amp']||0)) > 0 ? 1 : 0;
