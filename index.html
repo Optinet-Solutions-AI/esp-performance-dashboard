@@ -333,6 +333,65 @@
   body.light #view-mmcharts .legend-item { color:#111827 !important; }
   body.light #view-mmcharts .kpi-view-btn { color:#111827 !important; }
 
+  /* Ongage section — same overrides as Mailmodo */
+  body.light #view-ongage {
+    --mm-white:#000000; --mm-offwhite:#111827; --mm-teal:#007a6a;
+    --mm-purple:#4a2fa0; --mm-yellow:#92700a; --mm-orange:#b84a1a;
+    --mm-red:#c0222e; --mm-muted:#374151;
+  }
+  body.light #view-ongage .chart-card       { background:#ffffff; }
+  body.light #view-ongage thead th          { color:#111827 !important; background:#f4f5f8; }
+  body.light #view-ongage td               { color:#111827 !important; }
+  body.light #view-ongage .kpi-card         { background:#ffffff; }
+  body.light #view-ongage .kpi-value        { color:#111827 !important; }
+  body.light #view-ongage .legend-item      { color:#c8cdd6 !important; }
+  body.light #view-ongage .chart-title      { color:#111827 !important; }
+  body.light #view-ongage .chart-sub        { color:#c8cdd6 !important; }
+  body.light #view-ongage .section-title    { color:#c8cdd6 !important; }
+  body.light #view-ongage .page-title       { color:#111827 !important; }
+  body.light #view-ongage .page-sub         { color:#c8cdd6 !important; }
+  body.light #view-ongage .mm-select        { background:#ffffff; border-color:#e0e0e0; color:#111827; }
+  body.light #view-ongage .mm-select option { background:#ffffff; color:#111827; }
+  body.light #view-ongage #ogGridBody td    { color:#111827 !important; }
+  body.light #view-ongage #ogGridHead th    { color:#111827 !important; }
+  body.light #view-ongage .mm-tab-btn       { color:#374151; }
+  body.light #view-ongage .page-title   { color:#111827 !important; }
+  body.light #view-ongage .page-sub     { color:#111827 !important; }
+  body.light #view-ongage .chart-title  { color:#111827 !important; font-weight:700 !important; }
+  body.light #view-ongage .chart-sub    { color:#111827 !important; }
+  body.light #view-ongage .section-title{ color:#111827 !important; }
+  body.light #view-ongage .kpi-label    { color:#111827 !important; }
+  body.light #view-ongage .kpi-value    { color:#111827 !important; }
+  body.light #view-ongage .kpi-delta    { color:#111827 !important; }
+  body.light #view-ongage .legend-item  { color:#111827 !important; }
+  body.light #view-ongage th            { color:#111827 !important; background:#e8eaef !important; font-weight:700 !important; }
+  body.light #view-ongage td            { color:#111827 !important; }
+  body.light #view-ongage .td-right     { color:#111827 !important; }
+  body.light #view-ongage #ogGridHead th{ color:#111827 !important; background:#e8eaef !important; font-weight:700 !important; }
+  body.light #view-ongage #ogGridBody td{ color:#111827 !important; }
+  body.light #view-ongage .mm-tab-btn   { color:#374151; }
+  body.light #view-ongage #ogEmbedViewLabel { color:#111827 !important; }
+  body.light #view-ongage [style*="color:#c8cdd6"]{ color:#111827 !important; }
+  body.light #view-ongage [style*="color:#d4dae6"]{ color:#111827 !important; }
+  body.light #view-ongage [style*="color:#b0b8c8"]{ color:#111827 !important; }
+  body.light #view-ongage [style*="color:#6b7280"]{ color:#111827 !important; }
+  /* Pie chart legends — Ongage */
+  body.light #ogPieSentLeg  *,
+  body.light #ogPieOpensLeg *,
+  body.light #ogPieClicksLeg * { color:#111827 !important; }
+  body.light #ogPieSentLeg  span[style*="font-weight:700"],
+  body.light #ogPieOpensLeg span[style*="font-weight:700"],
+  body.light #ogPieClicksLeg span[style*="font-weight:700"] { color:#111827 !important; }
+  body.light #view-ongage [style*="border:1px solid rgba(255,255,255"] { border-color:rgba(0,0,0,.18) !important; }
+
+  /* KPI Charts view — Ongage */
+  body.light #view-ogcharts .page-title  { color:#111827 !important; }
+  body.light #view-ogcharts .page-sub    { color:#111827 !important; }
+  body.light #view-ogcharts .chart-title { color:#111827 !important; font-weight:700 !important; }
+  body.light #view-ogcharts .chart-sub   { color:#111827 !important; }
+  body.light #view-ogcharts .legend-item { color:#111827 !important; }
+  body.light #view-ogcharts .kpi-view-btn { color:#111827 !important; }
+
   /* Upload view */
   body.light #view-upload .page-title   { color:#111827 !important; }
   body.light #view-upload .page-sub     { color:#111827 !important; }
@@ -1141,6 +1200,303 @@
   </div>
   <div id="mmTip"></div>
 
+  <!-- ONGAGE REVIEW VIEW — separate DOM, same structure as view-mailmodo -->
+  <div class="view" id="view-ongage">
+    <style>
+      /* ── Ongage-only high-contrast overrides ── */
+      #view-ongage { --mm-white:#ffffff; --mm-offwhite:#f0f2f5; --mm-teal:#00ffd5; --mm-purple:#b39dff; --mm-yellow:#ffe066; --mm-orange:#ff9a5c; --mm-red:#ff6b77; --mm-muted:#d4dae6; }
+
+      /* Base text in all ongage tables */
+      #view-ongage table td,
+      #view-ongage table th { color: var(--mm-offwhite); }
+
+      /* Date column */
+      #view-ongage td:first-child { color: var(--mm-white) !important; font-weight: 600; }
+
+      /* Provider / domain name cell */
+      #view-ongage .esp-name { color: var(--mm-white) !important; font-weight: 600; }
+
+      /* Raw count cells — white */
+      #view-ongage td.td-right { color: var(--mm-offwhite); }
+
+      /* Override every inline color used on metric cells */
+      #view-ongage [style*="color:#00e5c3"]  { color: var(--mm-teal)   !important; }
+      #view-ongage [style*="color:#7c5cfc"]  { color: var(--mm-purple) !important; }
+      #view-ongage [style*="color:#ffd166"]  { color: var(--mm-yellow) !important; }
+      #view-ongage [style*="color:#ff6b35"]  { color: var(--mm-orange) !important; }
+      #view-ongage [style*="color:#ff4757"]  { color: var(--mm-red)    !important; }
+      #view-ongage [style*="color:var(--muted)"] { color:#d4dae6 !important; }
+
+      /* KPI cards */
+      #view-ongage .kpi-label  { color: var(--mm-muted)   !important; }
+      #view-ongage .kpi-value  { color: var(--mm-white)   !important; }
+      #view-ongage .kpi-delta  { color: var(--mm-muted)   !important; }
+      #view-ongage .delta-up   { color: var(--mm-teal)    !important; }
+      #view-ongage .delta-down { color: var(--mm-red)     !important; }
+
+      /* Section & chart titles */
+      #view-ongage .chart-title  { color: var(--mm-white)  !important; }
+      #view-ongage .chart-sub    { color: var(--mm-muted)  !important; }
+      #view-ongage .section-title{ color: var(--mm-muted)  !important; letter-spacing:.1em; }
+      #view-ongage .page-title   { color: var(--mm-white)  !important; }
+      #view-ongage .page-sub     { color: var(--mm-muted)  !important; }
+
+      /* Table headers */
+      #view-ongage th { color:#d4dae6 !important; }
+      #view-ongage thead th { color: var(--mm-offwhite) !important; letter-spacing:.05em; }
+
+      /* Legend items */
+      #view-ongage .legend-item { color:#d4dae6 !important; }
+
+      /* Grid table — all cells bright */
+      #view-ongage #ogGridBody td { color: var(--mm-offwhite) !important; }
+      #view-ongage #ogGridHead th { color:#d4dae6 !important; }
+
+      /* Selected/highlighted row */
+      #view-ongage tr.sel td { background: rgba(0,255,213,.07) !important; }
+      #view-ongage tr.dr:hover td { background: rgba(255,255,255,.05) !important; }
+
+      /* Tab buttons */
+      #view-ongage .mm-tab-btn { font-size:12px; letter-spacing:.07em; }
+      #view-ongage .mm-tab-btn:hover { filter: brightness(1.15); }
+    </style>
+
+    <div class="topbar" style="flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="page-title">Ongage · Review</div>
+        <div class="page-sub" id="ogPageSub">Feb 17–26, 2026 · 43,422 records</div>
+      </div>
+      <div class="topbar-actions" style="flex-wrap:wrap;gap:8px;">
+        <div class="date-picker-wrap" style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:7px 14px;">
+          <span class="dp-label">From</span>
+          <button id="ogDpFromBtn" class="dp-input-btn" onclick="dpOpen('og','from',event)"><span id="ogDpFromTxt">— —</span> ▾</button>
+          <div id="ogDpFromPopup" class="dp-popup" style="display:none;"></div>
+          <span class="dp-label">To</span>
+          <button id="ogDpToBtn" class="dp-input-btn" onclick="dpOpen('og','to',event)"><span id="ogDpToTxt">— —</span> ▾</button>
+          <div id="ogDpToPopup" class="dp-popup" style="display:none;"></div>
+          <div style="width:1px;height:14px;background:var(--border2)"></div>
+          <select class="dp-granularity" id="ogGranularity" onchange="ogApplyRange()">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+          <div style="width:1px;height:14px;background:var(--border2)"></div>
+          <span class="dp-range-label" id="ogRangeLabel"></span>
+          <button class="dp-reset" onclick="dpReset('og')" title="Reset">×</button>
+        </div>
+        <button class="btn btn-sm" onclick="showView('dashboard')">← Back</button>
+      </div>
+    </div>
+
+    <!-- KPI row — rendered by JS, tooltips on hover only -->
+    <div id="ogRenderError" style="display:none;background:#ff4757;color:#fff;padding:12px 16px;border-radius:8px;font-family:var(--mono);font-size:11px;margin-bottom:16px;"></div>
+    <div class="kpi-grid" id="ogKpis" style="margin-bottom:24px;grid-template-columns:repeat(5,minmax(0,1fr));"></div>
+
+    <!-- Tab switcher -->
+    <div class="mm-tab-switcher-wrap" style="display:flex;gap:0;margin-bottom:20px;border-radius:10px;overflow:hidden;width:fit-content;">
+      <button id="ogTab-provider" class="mm-tab-btn" onclick="ogSetTab('provider')" style="background:#4a2fa0;color:#ffffff;">EMAIL PROVIDER</button>
+      <button id="ogTab-domain"   class="mm-tab-btn" onclick="ogSetTab('domain')"   style="background:#1e232b;color:#d4dae6;">SENDING DOMAIN</button>
+    </div>
+
+    <!-- 1. Volume — all providers -->
+    <div class="chart-card" style="margin-bottom:14px;">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title" id="ogVolTitle">Volume — all providers</div>
+          <div class="chart-sub">Sent · Delivered · Opens · Clicks</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="ogVolChart"></canvas></div>
+      <div class="legend-row" style="margin-top:12px;">
+        <div class="legend-item"><span class="legend-sq" style="background:#6b7280"></span>Sent</div>
+        <div class="legend-item"><span class="legend-sq" style="background:#7c5cfc"></span>Delivered</div>
+        <div class="legend-item"><span class="legend-sq" style="background:#00e5c3"></span>Opens</div>
+        <div class="legend-item"><span class="legend-sq" style="background:#ffd166"></span>Clicks</div>
+      </div>
+    </div>
+
+    <!-- 2. Rate trends — all providers -->
+    <div class="chart-card" style="margin-bottom:14px;">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title" id="ogTrendTitle">Rate trends — all providers</div>
+          <div class="chart-sub">Success Rate · Open Rate · CTR · Bounce Rate — click a table row to isolate</div>
+        </div>
+        <button class="btn btn-sm" onclick="ogResetTrend()">Reset</button>
+      </div>
+      <div class="chart-wrap" style="height:260px"><canvas id="ogTrendChart"></canvas></div>
+      <div class="legend-row" style="margin-top:12px;">
+        <div class="legend-item"><span class="legend-sq" style="background:#7c5cfc"></span>Success Rate</div>
+        <div class="legend-item"><span class="legend-sq" style="background:#00e5c3"></span>Open Rate</div>
+        <div class="legend-item"><span class="legend-sq" style="background:#ffd166"></span>CTR</div>
+        <div class="legend-item"><span class="legend-sq" style="background:#ff4757"></span>Bounce Rate</div>
+      </div>
+    </div>
+
+    <!-- 3. KPI Charts · Email Provider -->
+    <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#d4dae6;">KPI Charts · Email Provider</div>
+        <div style="font-family:var(--mono);font-size:9px;color:#c8cdd6;margin-top:3px;" id="ogEmbedViewLabel">↔ X-axis: Dates — each line = one provider</div>
+      </div>
+      <div class="kpi-view-toggle">
+        <button id="ogEmbedBtnDate"     class="kpi-view-btn active"   onclick="ogEmbedSetView('date')">BY DATE</button>
+        <button id="ogEmbedBtnProvider" class="kpi-view-btn inactive" onclick="ogEmbedSetView('provider')">BY PROVIDER</button>
+      </div>
+    </div>
+    <div class="kpi-charts-grid" style="margin-bottom:24px;">
+      <div class="chart-card">
+        <div class="chart-head"><div>
+          <div class="chart-title">Open Rate %</div>
+          <div class="chart-sub">Opens ÷ Delivered × 100</div>
+        </div></div>
+        <div class="chart-wrap" style="height:240px"><canvas id="ogEChart1"></canvas></div>
+        <div class="legend-row" id="ogELeg1" style="margin-top:10px;"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head"><div>
+          <div class="chart-title">CTR %</div>
+          <div class="chart-sub">Clicks ÷ Opens × 100</div>
+        </div></div>
+        <div class="chart-wrap" style="height:240px"><canvas id="ogEChart2"></canvas></div>
+        <div class="legend-row" id="ogELeg2" style="margin-top:10px;"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head"><div>
+          <div class="chart-title">Bounce Rate %</div>
+          <div class="chart-sub">Bounced ÷ Sent × 100</div>
+        </div></div>
+        <div class="chart-wrap" style="height:240px"><canvas id="ogEChart3"></canvas></div>
+        <div class="legend-row" id="ogELeg3" style="margin-top:10px;"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head"><div>
+          <div class="chart-title">Unsub Rate %</div>
+          <div class="chart-sub">Unsubscribed ÷ Opens × 100</div>
+        </div></div>
+        <div class="chart-wrap" style="height:240px"><canvas id="ogEChart4"></canvas></div>
+        <div class="legend-row" id="ogELeg4" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- 4. Email Provider summary table -->
+    <!-- Pie charts: Sent / Opens / Clicks distribution by provider -->
+    <div id="ogPieGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;">
+
+      <div class="chart-card" style="padding:22px 20px 20px;">
+        <div style="margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:600;color:#ffffff;letter-spacing:-.01em;">Sent Distribution</div>
+          <div style="font-size:11px;color:#d4dae6;margin-top:2px;font-family:var(--mono);">share of total emails sent</div>
+        </div>
+        <div style="position:relative;height:200px;margin:0 auto;max-width:200px;">
+          <canvas id="ogPieSent"></canvas>
+          <div id="ogPieSentCenter" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+            <div class="pie-center-val" style="font-family:var(--mono);font-size:18px;font-weight:700;"></div>
+            <div class="pie-center-sub">Total</div>
+          </div>
+        </div>
+        <div id="ogPieSentLeg" style="margin-top:16px;display:flex;flex-direction:column;gap:7px;"></div>
+      </div>
+
+      <div class="chart-card" style="padding:22px 20px 20px;">
+        <div style="margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:600;color:#ffffff;letter-spacing:-.01em;">Opens Distribution</div>
+          <div style="font-size:11px;color:#d4dae6;margin-top:2px;font-family:var(--mono);">share of total opens</div>
+        </div>
+        <div style="position:relative;height:200px;margin:0 auto;max-width:200px;">
+          <canvas id="ogPieOpens"></canvas>
+          <div id="ogPieOpensCenter" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+            <div class="pie-center-val" style="font-family:var(--mono);font-size:18px;font-weight:700;"></div>
+            <div class="pie-center-sub">Total</div>
+          </div>
+        </div>
+        <div id="ogPieOpensLeg" style="margin-top:16px;display:flex;flex-direction:column;gap:7px;"></div>
+      </div>
+
+      <div class="chart-card" style="padding:22px 20px 20px;">
+        <div style="margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:600;color:#ffffff;letter-spacing:-.01em;">Clicks Distribution</div>
+          <div style="font-size:11px;color:#d4dae6;margin-top:2px;font-family:var(--mono);">share of total clicks</div>
+        </div>
+        <div style="position:relative;height:200px;margin:0 auto;max-width:200px;">
+          <canvas id="ogPieClicks"></canvas>
+          <div id="ogPieClicksCenter" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+            <div class="pie-center-val" style="font-family:var(--mono);font-size:18px;font-weight:700;"></div>
+            <div class="pie-center-sub">Total</div>
+          </div>
+        </div>
+        <div id="ogPieClicksLeg" style="margin-top:16px;display:flex;flex-direction:column;gap:7px;"></div>
+      </div>
+
+    </div>
+
+    <div class="table-section" style="margin-bottom:14px;">
+      <div class="section-head">
+        <div class="section-title" id="ogTableTitle">Email Provider summary</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Provider / Domain</th>
+            <th class="right">Sent</th>
+            <th class="right">Delivered</th>
+            <th class="right">Opens</th>
+            <th class="right">Clicks</th>
+            <th class="right">Bounced</th>
+            <th class="right">Unsubs</th>
+            <th class="right">Success&nbsp;%</th>
+            <th class="right">Open&nbsp;%</th>
+            <th class="right">CTR&nbsp;%</th>
+            <th class="right">Bounce&nbsp;%</th>
+            <th class="right">Unsub&nbsp;%</th>
+          </tr></thead>
+          <tbody id="ogTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Per-day breakdown (expands when row clicked) -->
+    <div id="ogDayBreakdown" style="display:none;margin-bottom:24px;">
+      <div class="section-head">
+        <div class="section-title" id="ogDayBreakdownTitle">Daily breakdown</div>
+        <button class="btn btn-sm" onclick="ogCloseDayBreakdown()">Close ×</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Date</th>
+            <th class="right">Sent</th>
+            <th class="right">Delivered</th>
+            <th class="right">Opens</th>
+            <th class="right">Clicks</th>
+            <th class="right">Bounced</th>
+            <th class="right">Unsubs</th>
+            <th class="right">Success&nbsp;%</th>
+            <th class="right">Open&nbsp;%</th>
+            <th class="right">CTR&nbsp;%</th>
+            <th class="right">Bounce&nbsp;%</th>
+            <th class="right">Unsub&nbsp;%</th>
+          </tr></thead>
+          <tbody id="ogDayBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 5. Daily KPIs by Email Provider -->
+    <div class="table-section" style="margin-bottom:24px;">
+      <div class="section-head">
+        <div class="section-title" id="ogGridTitle">Daily KPIs by Email Provider — % per day · ordered by volume</div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table id="ogGridTable" style="width:100%;border-collapse:collapse;min-width:900px;">
+          <thead id="ogGridHead"></thead>
+          <tbody id="ogGridBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div id="ogTip"></div>
+
   <!-- KPI CHARTS VIEW -->
   <div class="view" id="view-mmcharts">
     <style>
@@ -1227,6 +1583,90 @@
         </div></div>
         <div class="chart-wrap" style="height:260px"><canvas id="mmcChart4"></canvas></div>
         <div class="legend-row" id="mmcLeg4" style="margin-top:10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI CHARTS VIEW — Ongage -->
+  <div class="view" id="view-ogcharts">
+    <style>
+      #view-ogcharts { --mm-white:#ffffff; --mm-offwhite:#f0f2f5; --mm-teal:#00ffd5; --mm-purple:#b39dff; --mm-yellow:#ffe066; --mm-orange:#ff9a5c; --mm-red:#ff6b77; --mm-muted:#d4dae6; }
+      #view-ogcharts .page-title { color:#fff; }
+      #view-ogcharts .page-sub   { color:#d4dae6; }
+      #view-ogcharts .chart-title{ color:#fff; }
+      #view-ogcharts .chart-sub  { color:#d4dae6; }
+    </style>
+
+    <div class="topbar" style="flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="page-title">KPI Charts · Ongage</div>
+        <div class="page-sub" id="ogcPageSub">Feb 17 – Feb 26 2026 · by Email Provider</div>
+      </div>
+      <div class="topbar-actions" style="flex-wrap:wrap;gap:10px;">
+        <div class="date-picker-wrap" style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:7px 14px;">
+          <span class="dp-label">From</span>
+          <button id="ogcDpFromBtn" class="dp-input-btn" onclick="dpOpen('ogc','from',event)"><span id="ogcDpFromTxt">— —</span> ▾</button>
+          <div id="ogcDpFromPopup" class="dp-popup" style="display:none;"></div>
+          <span class="dp-label">To</span>
+          <button id="ogcDpToBtn" class="dp-input-btn" onclick="dpOpen('ogc','to',event)"><span id="ogcDpToTxt">— —</span> ▾</button>
+          <div id="ogcDpToPopup" class="dp-popup" style="display:none;"></div>
+          <div style="width:1px;height:14px;background:var(--border2)"></div>
+          <select class="dp-granularity" id="ogcGranularity" onchange="ogcApplyRange()">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+          <div style="width:1px;height:14px;background:var(--border2)"></div>
+          <span class="dp-range-label" id="ogcRangeLabel"></span>
+          <button class="dp-reset" onclick="dpReset('ogc')" title="Reset">×</button>
+        </div>
+
+        <!-- View toggle -->
+        <div class="kpi-view-toggle">
+          <button id="ogcBtnDate"     class="kpi-view-btn active"   onclick="ogcSetView('date')">BY DATE</button>
+          <button id="ogcBtnProvider" class="kpi-view-btn inactive" onclick="ogcSetView('provider')">BY PROVIDER</button>
+        </div>
+
+        <button class="btn btn-sm" onclick="showView('ongage')">← Deep Dive</button>
+      </div>
+    </div>
+
+    <!-- Sub-label -->
+    <div id="ogcViewLabel" style="font-family:var(--mono);font-size:10px;color:#d4dae6;letter-spacing:.08em;margin-bottom:20px;"></div>
+
+    <!-- 4 KPI charts -->
+    <div class="kpi-charts-grid" id="ogcChartsGrid">
+      <div class="chart-card">
+        <div class="chart-head"><div>
+          <div class="chart-title">Open Rate %</div>
+          <div class="chart-sub" id="ogcSub1">Opens ÷ Delivered × 100</div>
+        </div></div>
+        <div class="chart-wrap" style="height:260px"><canvas id="ogcChart1"></canvas></div>
+        <div class="legend-row" id="ogcLeg1" style="margin-top:10px;"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head"><div>
+          <div class="chart-title">CTR %</div>
+          <div class="chart-sub" id="ogcSub2">Clicks ÷ Opens × 100</div>
+        </div></div>
+        <div class="chart-wrap" style="height:260px"><canvas id="ogcChart2"></canvas></div>
+        <div class="legend-row" id="ogcLeg2" style="margin-top:10px;"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head"><div>
+          <div class="chart-title">Bounce Rate %</div>
+          <div class="chart-sub" id="ogcSub3">Bounced ÷ Sent × 100</div>
+        </div></div>
+        <div class="chart-wrap" style="height:260px"><canvas id="ogcChart3"></canvas></div>
+        <div class="legend-row" id="ogcLeg3" style="margin-top:10px;"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head"><div>
+          <div class="chart-title">Unsub Rate %</div>
+          <div class="chart-sub" id="ogcSub4">Unsubscribed ÷ Opens × 100</div>
+        </div></div>
+        <div class="chart-wrap" style="height:260px"><canvas id="ogcChart4"></canvas></div>
+        <div class="legend-row" id="ogcLeg4" style="margin-top:10px;"></div>
       </div>
     </div>
   </div>
@@ -2470,6 +2910,12 @@ let mmFromIdx = 0;
 let mmToIdx = mmData.dates.length - 1;
 let mmSelectedRow = null;
 
+/* ── Namespace helpers — redirect DOM lookups to the active review view ── */
+let mmNs  = 'mm';   // 'mm' | 'og'
+let mmcNs = 'mmc';  // 'mmc' | 'ogc'
+function mmEl(suffix)  { return document.getElementById(mmNs  + suffix); }
+function mmcEl(suffix) { return document.getElementById(mmcNs + suffix); }
+
 function mmActiveDates() {
   return mmData.dates.slice(mmFromIdx, mmToIdx + 1);
 }
@@ -2631,7 +3077,7 @@ function mmRenderKpis(rows) {
   }), {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0});
   const R = rates(T);
   const bAlert = R.br > 10;
-  document.getElementById('mmKpis').innerHTML = `
+  mmEl('Kpis').innerHTML = `
     <div class="kpi-card" style="--card-accent:#6b7280"
          data-tip="${esc(tipSent(T.sent))}">
       <div class="kpi-label">Total Sent</div>
@@ -2686,9 +3132,9 @@ const mmLineOpts = (yLabel) => {
 };
 
 function mmRenderTrend(name) {
-  mmDC('mmTrendChart'); mmDC('mmVolChart');
+  mmDC(mmNs+'TrendChart'); mmDC(mmNs+'VolChart');
   const activeDates  = mmActiveDates();
-  const granularity  = mmGetGranularity('mm');
+  const granularity  = mmGetGranularity(mmNs);
   const groups       = dpGroupDates(activeDates, granularity);
   const src          = mmTab==='provider' ? mmData.providers : mmData.domains;
 
@@ -2711,8 +3157,8 @@ function mmRenderTrend(name) {
       sentData.push(s); delData.push(dv); openData.push(o); clickData.push(cl);
     });
     const entLabel = mmTab==='provider'?'providers':'sending domains';
-    document.getElementById('mmTrendTitle').textContent = `Rate trends — all ${entLabel}`;
-    document.getElementById('mmVolTitle').textContent   = `Volume — all ${entLabel}`;
+    mmEl('TrendTitle').textContent = `Rate trends — all ${entLabel}`;
+    mmEl('VolTitle').textContent   = `Volume — all ${entLabel}`;
   } else {
     const entity = mmTab==='provider' ? mmData.providers[name] : mmData.domains[name];
     if (!entity) { mmRenderTrend(null); return; }
@@ -2728,12 +3174,12 @@ function mmRenderTrend(name) {
       ctrData.push(+R.ctr.toFixed(2)); brData.push(+R.br.toFixed(2));
       sentData.push(s); delData.push(dv); openData.push(o); clickData.push(cl);
     });
-    document.getElementById('mmTrendTitle').textContent = `Rate trends — ${name}`;
-    document.getElementById('mmVolTitle').textContent   = `Volume — ${name}`;
+    mmEl('TrendTitle').textContent = `Rate trends — ${name}`;
+    mmEl('VolTitle').textContent   = `Volume — ${name}`;
   }
 
   // Rate chart
-  mmCharts['mmTrendChart'] = new Chart(document.getElementById('mmTrendChart'), {
+  mmCharts[mmNs+'TrendChart'] = new Chart(mmEl('TrendChart'), {
     type: 'line',
     data: { labels, datasets: [
       { label:'Success Rate', data:srData,  borderColor:'#7c5cfc', backgroundColor:'rgba(124,92,252,0.10)', fill:true, tension:0.35, pointRadius:5, pointHoverRadius:8, borderWidth:2 },
@@ -2745,7 +3191,7 @@ function mmRenderTrend(name) {
   });
 
   // Volume chart
-  mmCharts['mmVolChart'] = new Chart(document.getElementById('mmVolChart'), {
+  mmCharts[mmNs+'VolChart'] = new Chart(mmEl('VolChart'), {
     type: 'line',
     data: { labels, datasets: [
       { label:'Sent',      data:sentData,  borderColor:'#6b7280', backgroundColor:'rgba(107,114,128,0.06)', fill:true, tension:0.35, pointRadius:4, pointHoverRadius:7, borderWidth:2 },
@@ -2770,7 +3216,7 @@ function mmRenderTrend(name) {
    MAIN TABLE
    ═══════════════════════════════════════════════ */
 function mmRenderTable(rows) {
-  const tbody = document.getElementById('mmTableBody');
+  const tbody = mmEl('TableBody');
 
   // Data rows
   const dataHTML = rows.map(r => {
@@ -2840,9 +3286,9 @@ function mmSelectRow(name) {
   mmRenderTrend(name);
   const src = mmTab==='provider' ? mmData.providers[name] : mmData.domains[name];
   if (!src) return;
-  document.getElementById('mmDayBreakdownTitle').textContent = `Daily breakdown — ${name}`;
+  mmEl('DayBreakdownTitle').textContent = `Daily breakdown — ${name}`;
   const days = mmActiveDates().filter(d=>src.byDate[d]);
-  document.getElementById('mmDayBody').innerHTML = days.map(d=>{
+  mmEl('DayBody').innerHTML = days.map(d=>{
     const r = src.byDate[d];
     const R = rates({sent:r.sent,delivered:r.delivered,opened:r.opened,clicked:r.clicked,bounced:r.bounced,unsubscribed:r.unsubscribed||0});
     const bw   = R.br > 10;
@@ -2862,13 +3308,13 @@ function mmSelectRow(name) {
       <td class="td-right" style="color:${unsub>0?'#ff9a5c':'#b0b8c8'}" data-tip="${esc(tipUnsub(unsub,r.opened))}">${fmtPMM(R.ubr,3)}</td>
     </tr>`;
   }).join('');
-  document.getElementById('mmDayBreakdown').style.display='block';
-  document.getElementById('mmDayBreakdown').scrollIntoView({behavior:'smooth',block:'nearest'});
+  mmEl('DayBreakdown').style.display='block';
+  mmEl('DayBreakdown').scrollIntoView({behavior:'smooth',block:'nearest'});
   mmRenderTable(mmGetAllData());
 }
 
 function mmCloseDayBreakdown(){
-  document.getElementById('mmDayBreakdown').style.display='none';
+  mmEl('DayBreakdown').style.display='none';
   mmSelectedRow=null; mmRenderTable(mmGetAllData());
 }
 function mmResetTrend(){
@@ -2881,7 +3327,7 @@ function mmResetTrend(){
 function mmRenderGrid() {
   try {
   const activeDates  = mmActiveDates();
-  const granularity  = mmGetGranularity('mm');
+  const granularity  = mmGetGranularity(mmNs);
   const groups       = dpGroupDates(activeDates, granularity);  // [{label, dates}]
   const isProvider   = mmTab === 'provider';
   const src          = isProvider ? mmData.providers : mmData.domains;
@@ -2932,7 +3378,7 @@ function mmRenderGrid() {
   });
   headRow2 += '</tr>';
 
-  document.getElementById('mmGridHead').innerHTML = headRow1 + headRow2;
+  mmEl('GridHead').innerHTML = headRow1 + headRow2;
 
   // Pre-collect values per (entity × kpi) per group for conditional formatting
   const colValues = entities.map(name =>
@@ -3057,16 +3503,16 @@ function mmRenderGrid() {
   });
   bodyHTML += '</tr>';
 
-  document.getElementById('mmGridBody').innerHTML = bodyHTML;
+  mmEl('GridBody').innerHTML = bodyHTML;
 
   // Update title
   const yr = mmData.datesFull[mmFromIdx]?.year || 2026;
   const gridPeriod = activeDates.length ? `${activeDates[0]} – ${activeDates[activeDates.length-1]} ${yr}` : '';
-  document.getElementById('mmGridTitle').textContent =
+  mmEl('GridTitle').textContent =
     `${periodLabel} KPIs by ${entityLabel} · ${gridPeriod}`;
   } catch(err) {
     console.error('mmRenderGrid crash:', err.stack||err.message);
-    const b=document.getElementById('mmRenderError');
+    const b=mmEl('RenderError');
     if(b){b.textContent='Grid error: '+err.message;b.style.display='block';}
   }
 }
@@ -3133,15 +3579,15 @@ function mmAggGroup(group, src){
 let mmPieCharts = {};
 
 function mmRenderPies(rows) {
-  const pieGrid = document.getElementById('mmPieGrid');
+  const pieGrid = mmEl('PieGrid');
   if (!pieGrid) return;
   pieGrid.style.display = mmTab === 'provider' ? 'grid' : 'none';
   if (mmTab !== 'provider') return;
 
   const configs = [
-    { id:'mmPieSent',   centerId:'mmPieSentCenter',   legId:'mmPieSentLeg',   key:'sent',   accentColor:'#ffffff' },
-    { id:'mmPieOpens',  centerId:'mmPieOpensCenter',   legId:'mmPieOpensLeg',  key:'opened', accentColor:'#00ffd5' },
-    { id:'mmPieClicks', centerId:'mmPieClicksCenter',  legId:'mmPieClicksLeg', key:'clicked',accentColor:'#ffe066' },
+    { id:mmNs+'PieSent',   centerId:mmNs+'PieSentCenter',   legId:mmNs+'PieSentLeg',   key:'sent',   accentColor:'#ffffff' },
+    { id:mmNs+'PieOpens',  centerId:mmNs+'PieOpensCenter',   legId:mmNs+'PieOpensLeg',  key:'opened', accentColor:'#00ffd5' },
+    { id:mmNs+'PieClicks', centerId:mmNs+'PieClicksCenter',  legId:mmNs+'PieClicksLeg', key:'clicked',accentColor:'#ffe066' },
   ];
 
   // Filter out zero-value rows for cleaner pies
@@ -3243,13 +3689,13 @@ function mmRenderAll(){
   mmRenderTrend(null);
   mmRenderTable(rows);
   mmRenderPies(rows);
-  document.getElementById('mmGridTable').closest('.table-section').style.display = 'block';
+  mmEl('GridTable').closest('.table-section').style.display = 'block';
   mmRenderGrid();
   mmEmbedRenderAll();
   } catch(err) {
     console.error('mmRenderAll crash:', err.stack||err.message);
     // Show error inline instead of silent failure
-    const errBanner = document.getElementById('mmRenderError');
+    const errBanner = mmEl('RenderError');
     if(errBanner){ errBanner.textContent = '⚠ Render error: '+err.message; errBanner.style.display='block'; }
   }
 }
@@ -3259,17 +3705,18 @@ function mmRenderAll(){
    ═══════════════════════════════════════════════ */
 function mmSetTab(tab){
   mmTab=tab; mmSelectedRow=null;
-  const pBtn=document.getElementById('mmTab-provider'), dBtn=document.getElementById('mmTab-domain');
+  const pBtn=mmEl('Tab-provider'), dBtn=mmEl('Tab-domain');
   const light = document.body.classList.contains('light');
   const activeBg   = '#4a2fa0', activeCol  = '#ffffff';
   const inactiveBg = light ? '#e8eaef' : '#1e232b';
   const inactiveCol= light ? '#374151' : '#d4dae6';
   pBtn.style.background=tab==='provider'?activeBg:inactiveBg; pBtn.style.color=tab==='provider'?activeCol:inactiveCol;
   dBtn.style.background=tab==='domain'  ?activeBg:inactiveBg; dBtn.style.color=tab==='domain'  ?activeCol:inactiveCol;
-  document.getElementById('mmTableTitle').textContent = `${tab==='provider'?'Email Provider':'Sending Domain'} summary`;
-  document.getElementById('mmDayBreakdown').style.display='none';
+  mmEl('TableTitle').textContent = `${tab==='provider'?'Email Provider':'Sending Domain'} summary`;
+  mmEl('DayBreakdown').style.display='none';
   // Update KPI Charts section header
-  const kpiHdr = document.querySelector('#view-mailmodo .kpi-charts-grid')?.previousElementSibling;
+  const viewId = mmNs === 'og' ? '#view-ongage' : '#view-mailmodo';
+  const kpiHdr = document.querySelector(`${viewId} .kpi-charts-grid`)?.previousElementSibling;
   if(kpiHdr){
     const titleEl = kpiHdr.querySelector('div>div:first-child');
     if(titleEl) titleEl.textContent = `KPI Charts · ${tab==='provider'?'Email Provider':'Sending Domain'}`;
@@ -3284,18 +3731,18 @@ function mmGetYears(){ return [...new Set(mmData.datesFull.map(d=>d.year))]; }
 
 function mmUpdateRangeLabel(){
   const dates=mmActiveDates();
-  if(!dates.length){document.getElementById('mmRangeLabel').textContent='No data';return;}
+  if(!dates.length){mmEl('RangeLabel').textContent='No data';return;}
   const yr  = mmData.datesFull[mmFromIdx]?.year || 2026;
   const lbl = dates[0]===dates[dates.length-1] ? `${dates[0]} ${yr}` : `${dates[0]} – ${dates[dates.length-1]} ${yr}`;
-  document.getElementById('mmRangeLabel').textContent=`${lbl} · ${dates.length} day${dates.length>1?'s':''}`;
-  const sub=document.getElementById('mmPageSub');
+  mmEl('RangeLabel').textContent=`${lbl} · ${dates.length} day${dates.length>1?'s':''}`;
+  const sub=mmEl('PageSub');
   if(sub){ const tot=mmGetAllData().reduce((s,r)=>s+r.sent,0); sub.textContent=`${lbl} · ${tot.toLocaleString()} records`; }
 }
 
 function mmPopulateDates(){
   const fi=mmFromIdx, ti=mmToIdx;
-  const fromSel=document.getElementById('mmFromDate');
-  const toSel=document.getElementById('mmToDate');
+  const fromSel=mmEl('FromDate');
+  const toSel=mmEl('ToDate');
   if(!fromSel||!toSel) return;
   fromSel.innerHTML=mmData.dates.map((d,i)=>`<option value="${i}"${i===fi?' selected':''}>${d}</option>`).join('');
   toSel.innerHTML=mmData.dates.map((d,i)=>`<option value="${i}"${i===ti?' selected':''}>${d}</option>`).join('');
@@ -3304,21 +3751,22 @@ function mmPopulateDates(){
 }
 
 function mmApplyRange(){
-  const fromEl=document.getElementById('mmFromDate'), toEl=document.getElementById('mmToDate');
+  const fromEl=mmEl('FromDate'), toEl=mmEl('ToDate');
   if(fromEl&&toEl){const fi=+fromEl.value,ti=+toEl.value; mmFromIdx=Math.min(fi,ti); mmToIdx=Math.max(fi,ti);}
   mmPopulateDates(); mmSelectedRow=null;
-  document.getElementById('mmDayBreakdown').style.display='none';
+  mmEl('DayBreakdown').style.display='none';
   mmUpdateRangeLabel(); mmRenderAll();
 }
 
 function mmResetRange(){
   mmFromIdx=0; mmToIdx=mmData.dates.length-1;
   mmPopulateDates(); mmSelectedRow=null;
-  document.getElementById('mmDayBreakdown').style.display='none';
+  mmEl('DayBreakdown').style.display='none';
   mmUpdateRangeLabel(); mmRenderAll();
 }
 
 function renderMailmodoView(){
+  mmNs='mm';
   mmFromIdx=0; mmToIdx=mmData.dates.length-1;
   mmPopulateDates(); mmUpdateRangeLabel(); mmRenderAll();
 }
@@ -3344,7 +3792,7 @@ function mmEmbedRenderByDate(){
   const { names, colorMap, src } = mmEmbedGetEntities();
   const dates = mmActiveDates();
   mmcKpis.forEach(kpi=>{
-    const id=`mmEChart${kpi.id}`;
+    const id=`${mmNs}EChart${kpi.id}`;
     if(mmEmbedCharts[id]){mmEmbedCharts[id].destroy();delete mmEmbedCharts[id];}
     const datasets = names.map(name=>{
       const col = colorMap[name]||'#888';
@@ -3355,7 +3803,7 @@ function mmEmbedRenderByDate(){
       });
       return {label:name,data,borderColor:col,backgroundColor:col+'18',pointBackgroundColor:col,fill:false,tension:0.35,pointRadius:5,pointHoverRadius:8,borderWidth:2,spanGaps:false};
     });
-    const el=document.getElementById(id); if(!el) return;
+    const el=mmEl(`EChart${kpi.id}`); if(!el) return;
     mmEmbedCharts[id]=new Chart(el,{
       type:'line',data:{labels:dates,datasets},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
@@ -3364,7 +3812,7 @@ function mmEmbedRenderByDate(){
         scales:{x:{ticks:{color:getTc(),font:{size:10}},grid:{display:false},border:{display:false}},
                 y:{ticks:{color:getTc(),font:{size:9},callback:v=>v+'%'},grid:{color:getGc()},border:{display:false}}}}
     });
-    document.getElementById(`mmELeg${kpi.id}`).innerHTML=names.map(n=>{
+    mmEl(`ELeg${kpi.id}`).innerHTML=names.map(n=>{
       const col=colorMap[n]||'#888';
       return `<div class="legend-item" style="color:#d4dae6"><span class="legend-sq" style="background:${col}"></span>${n}</div>`;
     }).join('');
@@ -3375,11 +3823,11 @@ function mmEmbedRenderByProvider(){
   const { names, colorMap, src } = mmEmbedGetEntities();
   const dates = mmActiveDates();
   mmcKpis.forEach(kpi=>{
-    const id=`mmEChart${kpi.id}`;
+    const id=`${mmNs}EChart${kpi.id}`;
     if(mmEmbedCharts[id]){mmEmbedCharts[id].destroy();delete mmEmbedCharts[id];}
     const vals   = names.map(n=>{ const agg=mmAggDates(src[n].byDate,dates)||src[n].overall; return agg?kpi.fn(agg):0; });
     const colors = names.map(n=>colorMap[n]||'#888');
-    const el=document.getElementById(id); if(!el) return;
+    const el=mmEl(`EChart${kpi.id}`); if(!el) return;
     mmEmbedCharts[id]=new Chart(el,{
       type:'bar',
       data:{labels:names,datasets:[{label:kpi.label,data:vals,backgroundColor:colors.map(c=>c+'cc'),borderColor:colors,borderWidth:2,borderRadius:5}]},
@@ -3389,7 +3837,7 @@ function mmEmbedRenderByProvider(){
         scales:{x:{ticks:{color:getTc(),font:{size:10},maxRotation:25,autoSkip:false},grid:{display:false},border:{display:false}},
                 y:{ticks:{color:getTc(),font:{size:9},callback:v=>v+'%'},grid:{color:getGc()},border:{display:false}}}}
     });
-    document.getElementById(`mmELeg${kpi.id}`).innerHTML=names.map(n=>{
+    mmEl(`ELeg${kpi.id}`).innerHTML=names.map(n=>{
       const col=colorMap[n]||'#888';
       return `<div class="legend-item" style="color:#d4dae6"><span class="legend-sq" style="background:${col}"></span>${n}</div>`;
     }).join('');
@@ -3398,10 +3846,10 @@ function mmEmbedRenderByProvider(){
 
 function mmEmbedSetView(v){
   mmEmbedView=v;
-  document.getElementById('mmEmbedBtnDate').className     =`kpi-view-btn ${v==='date'    ?'active':'inactive'}`;
-  document.getElementById('mmEmbedBtnProvider').className =`kpi-view-btn ${v==='provider'?'active':'inactive'}`;
+  mmEl('EmbedBtnDate').className     =`kpi-view-btn ${v==='date'    ?'active':'inactive'}`;
+  mmEl('EmbedBtnProvider').className =`kpi-view-btn ${v==='provider'?'active':'inactive'}`;
   const entityWord = mmTab==='provider' ? 'provider' : 'domain';
-  const lbl=document.getElementById('mmEmbedViewLabel');
+  const lbl=mmEl('EmbedViewLabel');
   if(lbl) lbl.textContent = v==='date'
     ? `↔ X-axis: Dates — each line = one ${entityWord}`
     : `↔ X-axis: ${mmTab==='provider'?'Email Providers':'Sending Domains'} — each bar = period total`;
@@ -3414,12 +3862,13 @@ function mmEmbedRenderAll(){
   mmEmbedDestroyAll();
   // Update embed header label
   const entityWord = mmTab==='provider' ? 'provider' : 'domain';
-  const lbl=document.getElementById('mmEmbedViewLabel');
+  const lbl=mmEl('EmbedViewLabel');
   if(lbl) lbl.textContent = mmEmbedView==='date'
     ? `↔ X-axis: Dates — each line = one ${entityWord}`
     : `↔ X-axis: ${mmTab==='provider'?'Email Providers':'Sending Domains'} — each bar = period total`;
   // Update section header
-  const secHdr = document.querySelector('#view-mailmodo .kpi-charts-grid')?.previousElementSibling?.querySelector('div>div:first-child');
+  const viewId = mmNs === 'og' ? '#view-ongage' : '#view-mailmodo';
+  const secHdr = document.querySelector(`${viewId} .kpi-charts-grid`)?.previousElementSibling?.querySelector('div>div:first-child');
   if(secHdr) secHdr.textContent = `KPI Charts · ${mmTab==='provider'?'Email Provider':'Sending Domain'}`;
   if(mmEmbedView==='date') mmEmbedRenderByDate();
   else mmEmbedRenderByProvider();
@@ -3459,7 +3908,7 @@ function mmcRenderByDate(){
   const providers = mmcGetProviders();
   const dates     = mmcActiveDates();
   mmcKpis.forEach(kpi=>{
-    const id = `mmcChart${kpi.id}`;
+    const id = `${mmcNs}Chart${kpi.id}`;
     if(mmcCharts[id]){mmcCharts[id].destroy();delete mmcCharts[id];}
     const datasets = providers.map(name=>{
       const col = mmProviderColors[name]||'#888';
@@ -3470,7 +3919,7 @@ function mmcRenderByDate(){
       });
       return {label:name,data,borderColor:col,backgroundColor:col+'18',pointBackgroundColor:col,fill:false,tension:0.35,pointRadius:5,pointHoverRadius:8,borderWidth:2,spanGaps:false};
     });
-    mmcCharts[id] = new Chart(document.getElementById(id),{
+    mmcCharts[id] = new Chart(mmcEl(`Chart${kpi.id}`),{
       type:'line',
       data:{labels:dates,datasets},
       options:{
@@ -3484,7 +3933,7 @@ function mmcRenderByDate(){
         }
       }
     });
-    document.getElementById(`mmcLeg${kpi.id}`).innerHTML = providers.map(n=>{
+    mmcEl(`Leg${kpi.id}`).innerHTML = providers.map(n=>{
       const col=mmProviderColors[n]||'#888';
       return `<div class="legend-item" style="color:#d4dae6"><span class="legend-sq" style="background:${col}"></span>${n}</div>`;
     }).join('');
@@ -3495,11 +3944,11 @@ function mmcRenderByProvider(){
   const providers = mmcGetProviders();
   const dates     = mmcActiveDates();
   mmcKpis.forEach(kpi=>{
-    const id = `mmcChart${kpi.id}`;
+    const id = `${mmcNs}Chart${kpi.id}`;
     if(mmcCharts[id]){mmcCharts[id].destroy();delete mmcCharts[id];}
     const vals   = providers.map(n=>{ const agg=mmcRawForProvider(n,dates); return agg?kpi.fn(agg):0; });
     const colors = providers.map(n=>mmProviderColors[n]||'#888');
-    mmcCharts[id] = new Chart(document.getElementById(id),{
+    mmcCharts[id] = new Chart(mmcEl(`Chart${kpi.id}`),{
       type:'bar',
       data:{labels:providers,datasets:[{label:kpi.label,data:vals,backgroundColor:colors.map(c=>c+'cc'),borderColor:colors,borderWidth:2,borderRadius:5}]},
       options:{
@@ -3512,7 +3961,7 @@ function mmcRenderByProvider(){
         }
       }
     });
-    document.getElementById(`mmcLeg${kpi.id}`).innerHTML = providers.map(n=>{
+    mmcEl(`Leg${kpi.id}`).innerHTML = providers.map(n=>{
       const col=mmProviderColors[n]||'#888';
       return `<div class="legend-item" style="color:#d4dae6"><span class="legend-sq" style="background:${col}"></span>${n}</div>`;
     }).join('');
@@ -3524,9 +3973,9 @@ function mmcRenderAll(){
   const dates = mmcActiveDates();
   const yr    = mmData.datesFull[mmcFromIdx]?.year||2026;
   const lbl   = dates.length===1?`${dates[0]} ${yr}`:`${dates[0]} – ${dates[dates.length-1]} ${yr}`;
-  document.getElementById('mmcPageSub').textContent     = `${lbl} · by Email Provider`;
-  document.getElementById('mmcRangeLabel').textContent  = `${lbl} · ${dates.length} day${dates.length>1?'s':''}`;
-  document.getElementById('mmcViewLabel').textContent   = mmcView==='date'
+  mmcEl('PageSub').textContent     = `${lbl} · by Email Provider`;
+  mmcEl('RangeLabel').textContent  = `${lbl} · ${dates.length} day${dates.length>1?'s':''}`;
+  mmcEl('ViewLabel').textContent   = mmcView==='date'
     ? '↔  X-axis: Dates  ·  Each line = one Email Provider'
     : '↔  X-axis: Email Providers  ·  Each bar = period total';
   if(mmcView==='date') mmcRenderByDate();
@@ -3535,7 +3984,7 @@ function mmcRenderAll(){
 
 function mmcPopulateDates(){
   const fi=mmcFromIdx, ti=mmcToIdx;
-  const fs=document.getElementById('mmcFrom'), ts=document.getElementById('mmcTo');
+  const fs=mmcEl('From'), ts=mmcEl('To');
   if(!fs||!ts) return;
   fs.innerHTML=mmData.dates.map((d,i)=>`<option value="${i}"${i===fi?' selected':''}>${d}</option>`).join('');
   ts.innerHTML=mmData.dates.map((d,i)=>`<option value="${i}"${i===ti?' selected':''}>${d}</option>`).join('');
@@ -3543,7 +3992,7 @@ function mmcPopulateDates(){
   Array.from(ts.options).forEach(o=>{o.disabled=+o.value<fi;});
 }
 function mmcApplyRange(){
-  const fromEl=document.getElementById('mmcFrom'), toEl=document.getElementById('mmcTo');
+  const fromEl=mmcEl('From'), toEl=mmcEl('To');
   if(fromEl&&toEl){const fi=+fromEl.value,ti=+toEl.value; mmcFromIdx=Math.min(fi,ti); mmcToIdx=Math.max(fi,ti);}
   mmcPopulateDates(); mmcRenderAll();
 }
@@ -3553,11 +4002,12 @@ function mmcReset(){
 }
 function mmcSetView(v){
   mmcView=v;
-  document.getElementById('mmcBtnDate').className     =`kpi-view-btn ${v==='date'    ?'active':'inactive'}`;
-  document.getElementById('mmcBtnProvider').className =`kpi-view-btn ${v==='provider'?'active':'inactive'}`;
+  mmcEl('BtnDate').className     =`kpi-view-btn ${v==='date'    ?'active':'inactive'}`;
+  mmcEl('BtnProvider').className =`kpi-view-btn ${v==='provider'?'active':'inactive'}`;
   mmcRenderAll();
 }
 function renderMMChartsView(){
+  mmcNs='mmc';
   mmcFromIdx=0; mmcToIdx=mmData.dates.length-1;
   mmcPopulateDates(); mmcRenderAll();
 }
@@ -4545,7 +4995,9 @@ showView = function(v){
   const navEl = document.getElementById('nav-'+v);
   if(navEl) navEl.classList.add('active');
   if(v==='mailmodo') setTimeout(renderMailmodoView, 50);
+  if(v==='ongage')   setTimeout(()=>{ mmNs='og'; mmFromIdx=0; mmToIdx=mmData.dates.length-1; mmPopulateDates(); mmUpdateRangeLabel(); mmRenderAll(); }, 50);
   if(v==='mmcharts') setTimeout(renderMMChartsView, 50);
+  if(v==='ogcharts') setTimeout(()=>{ mmcNs='ogc'; mmcFromIdx=0; mmcToIdx=mmData.dates.length-1; mmcPopulateDates(); mmcRenderAll(); }, 50);
   if(v==='matrix')   setTimeout(renderMatrixView,   50);
   if(v==='datamgmt') setTimeout(()=>{
     if(dmData.length) { dmBuildFilters(); dmRenderAll(); dmShowDashboard(); }
@@ -5074,6 +5526,8 @@ const dpState = {
   mm:  { fromDate:null, toDate:null, curYear:2026, curMonth:1, mode:'day', which:'from' },
   mmc: { fromDate:null, toDate:null, curYear:2026, curMonth:1, mode:'day', which:'from' },
   mx:  { fromDate:null, toDate:null, curYear:2026, curMonth:1, mode:'day', which:'from' },
+  og:  { fromDate:null, toDate:null, curYear:2026, curMonth:1, mode:'day', which:'from' },
+  ogc: { fromDate:null, toDate:null, curYear:2026, curMonth:1, mode:'day', which:'from' },
 };
 
 // Data dates as Date objects (for dot indicators)
@@ -5094,7 +5548,7 @@ function dpOpen(ns, which, event){
   if(event) event.stopPropagation();
 
   // Close all other popups first
-  ['mm','mmc','mx'].forEach(n=>{
+  ['mm','mmc','mx','og','ogc'].forEach(n=>{
     ['From','To'].forEach(w=>{
       const p = document.getElementById(`${n}Dp${w.charAt(0).toUpperCase()+w.slice(1)}Popup`);
       if(p && !(n===ns && w.toLowerCase()===which)) p.style.display='none';
@@ -5274,12 +5728,20 @@ function dpApplyToView(ns){
   if(ti < 0) ti = mmData.dates.length - 1;
 
   if(ns==='mm'){
-    mmFromIdx=fi; mmToIdx=ti;
+    mmNs='mm'; mmFromIdx=fi; mmToIdx=ti;
     mmPopulateDates(); mmSelectedRow=null;
-    document.getElementById('mmDayBreakdown').style.display='none';
+    mmEl('DayBreakdown').style.display='none';
+    mmUpdateRangeLabel(); mmRenderAll();
+  } else if(ns==='og'){
+    mmNs='og'; mmFromIdx=fi; mmToIdx=ti;
+    mmPopulateDates(); mmSelectedRow=null;
+    mmEl('DayBreakdown').style.display='none';
     mmUpdateRangeLabel(); mmRenderAll();
   } else if(ns==='mmc'){
-    mmcFromIdx=fi; mmcToIdx=ti;
+    mmcNs='mmc'; mmcFromIdx=fi; mmcToIdx=ti;
+    mmcPopulateDates(); mmcRenderAll();
+  } else if(ns==='ogc'){
+    mmcNs='ogc'; mmcFromIdx=fi; mmcToIdx=ti;
     mmcPopulateDates(); mmcRenderAll();
   } else if(ns==='mx'){
     mxFromIdx=fi; mxToIdx=ti;
@@ -5318,8 +5780,10 @@ function dpReset(ns){
   s.toDate   = allDates[allDates.length-1]||null;
   document.getElementById(`${ns}DpFromTxt`).textContent = dpFmtShort(s.fromDate)||'— —';
   document.getElementById(`${ns}DpToTxt`).textContent   = dpFmtShort(s.toDate)||'— —';
-  if(ns==='mm'){  mmFromIdx=0;  mmToIdx=mmData.dates.length-1;  mmPopulateDates(); mmUpdateRangeLabel(); mmRenderAll(); }
-  if(ns==='mmc'){ mmcFromIdx=0; mmcToIdx=mmData.dates.length-1; mmcPopulateDates(); mmcRenderAll(); }
+  if(ns==='mm'){  mmNs='mm';  mmFromIdx=0;  mmToIdx=mmData.dates.length-1;  mmPopulateDates(); mmUpdateRangeLabel(); mmRenderAll(); }
+  if(ns==='og'){  mmNs='og';  mmFromIdx=0;  mmToIdx=mmData.dates.length-1;  mmPopulateDates(); mmUpdateRangeLabel(); mmRenderAll(); }
+  if(ns==='mmc'){ mmcNs='mmc'; mmcFromIdx=0; mmcToIdx=mmData.dates.length-1; mmcPopulateDates(); mmcRenderAll(); }
+  if(ns==='ogc'){ mmcNs='ogc'; mmcFromIdx=0; mmcToIdx=mmData.dates.length-1; mmcPopulateDates(); mmcRenderAll(); }
   if(ns==='mx'){  mxFromIdx=0;  mxToIdx=mmData.dates.length-1;  mxRender(); }
   dpUpdateRangeLabel(ns, 0, mmData.dates.length-1, s.fromDate, s.toDate);
 }
@@ -5453,7 +5917,7 @@ let _activeReviewCtx = 'mailmodo'; // 'mailmodo' | 'ongage'
 let _savedMmCtx = null;
 let _ogCtx = {
   data: ogData, fromIdx: 0, toIdx: 0, tab: 'provider', selRow: null,
-  embedView: 'date',
+  embedView: 'date', ns: 'og',
   dp: { fromDate:null, toDate:null, curYear: new Date().getFullYear(), curMonth:0, mode:'day', which:'from' }
 };
 
@@ -5461,7 +5925,8 @@ function _captureCtx() {
   return {
     data: mmData, fromIdx: mmFromIdx, toIdx: mmToIdx, tab: mmTab,
     selRow: mmSelectedRow, embedView: mmEmbedView,
-    dp: Object.assign({}, dpState.mm)
+    ns: mmNs,
+    dp: Object.assign({}, dpState[mmNs] || dpState.mm)
   };
 }
 function _applyCtx(ctx) {
@@ -5470,8 +5935,9 @@ function _applyCtx(ctx) {
   Object.values(mmEmbedCharts).forEach(c=>{ try{c.destroy();}catch(e){} });
   mmData = ctx.data; mmFromIdx = ctx.fromIdx; mmToIdx = ctx.toIdx;
   mmTab = ctx.tab; mmSelectedRow = ctx.selRow; mmEmbedView = ctx.embedView;
+  mmNs = ctx.ns || 'mm';
   mmCharts = {}; mmEmbedCharts = {};
-  Object.assign(dpState.mm, ctx.dp);
+  Object.assign(dpState[mmNs] || dpState.mm, ctx.dp);
 }
 
 function _expandProvidersNav() {
@@ -5489,6 +5955,7 @@ function showMailmodoReview() {
     _applyCtx(_savedMmCtx);
     _activeReviewCtx = 'mailmodo';
   }
+  mmNs = 'mm';
   document.querySelector('#view-mailmodo .page-title').textContent = 'Mailmodo · Review';
   showView('mailmodo');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -5503,14 +5970,26 @@ function showOngageReview() {
     _applyCtx(_ogCtx);
     _activeReviewCtx = 'ongage';
   }
-  document.querySelector('#view-mailmodo .page-title').textContent = 'Ongage · Review';
-  showView('mailmodo');
+  mmNs = 'og';
+  document.querySelector('#view-ongage .page-title').textContent = 'Ongage · Review';
+  showView('ongage');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('nav-ongage').classList.add('active');
   _expandProvidersNav();
-  dpInit('mm'); mmUpdateRangeLabel(); mmRenderAll();
+  dpInit('og'); mmUpdateRangeLabel(); mmRenderAll();
 }
 /* ═══════════════════════════════════════════════════════════ */
+
+/* Ongage-specific wrapper functions — set mmNs='og' then delegate to mm* functions */
+function ogApplyRange()       { mmNs='og'; mmApplyRange(); }
+function ogSetTab(t)          { mmNs='og'; mmSetTab(t); }
+function ogEmbedSetView(v)    { mmNs='og'; mmEmbedSetView(v); }
+function ogResetTrend()       { mmNs='og'; mmResetTrend(); }
+function ogCloseDayBreakdown(){ mmNs='og'; mmCloseDayBreakdown(); }
+
+/* ogc wrapper — for the KPI Charts view of Ongage */
+function ogcApplyRange(){ mmcNs='ogc'; mmcApplyRange(); }
+function ogcSetView(v)  { mmcNs='ogc'; mmcSetView(v); }
 
 // Patch view-specific reset functions to use calendar picker reset
 mmResetRange = function(){ dpReset('mm'); };
@@ -5518,8 +5997,10 @@ mmcReset = function(){ dpReset('mmc'); };
 mxResetRange = function(){ dpReset('mx'); };
 
 setTimeout(()=>{
+  mmNs='mm'; mmcNs='mmc';
   mmPopulateDates(); mmcPopulateDates(); mxPopulateDates();
   dpInit('mm'); dpInit('mmc'); dpInit('mx');
+  dpInit('og'); dpInit('ogc');
   // Snapshot initial Mailmodo context so Ongage can restore it
   _savedMmCtx = _captureCtx();
   showView('home');
