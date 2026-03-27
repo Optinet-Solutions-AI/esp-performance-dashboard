@@ -4815,14 +4815,16 @@ function parseChrismodo(rows) {
     } else if (dt instanceof Date) {
       d = dt;
     } else {
-      // String — extract date part only, handle "YYYY-MM-DD HH:MM:SS" and ISO variants
+      // String — extract date part only
+      // Mailmodo sent-time is dd/mm/yyyy or yyyy-mm-dd (with optional time)
       const s = String(dt).trim();
-      const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-      const usMatch  = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);   // yyyy-mm-dd
+      const dmyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);  // dd/mm/yyyy
       if (isoMatch) {
         d = new Date(+isoMatch[1], +isoMatch[2] - 1, +isoMatch[3]);
-      } else if (usMatch) {
-        d = new Date(+usMatch[3], +usMatch[1] - 1, +usMatch[2]);
+      } else if (dmyMatch) {
+        // dd/mm/yyyy — day is group 1, month is group 2
+        d = new Date(+dmyMatch[3], +dmyMatch[2] - 1, +dmyMatch[1]);
       } else {
         d = new Date(s);
       }
