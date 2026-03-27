@@ -4805,31 +4805,37 @@ function parseChrismodo(rows) {
     const r = {};
     Object.entries(row).forEach(([k,v]) => { r[k.toLowerCase().replace(/ /g,'-')] = v; });
 
-    // Extract date from sent-time column (primary), fallback to date/senttime
+    // Extract date from sent-time column — format: "dd/mm/yyyy HH:MM:SS"
+    // e.g. "25/03/2026 07:11:00"  →  day=25, month=03, year=2026 (time ignored)
     let dt = r['sent-time'] ?? r['date'] ?? r['senttime'];
     if (dt === null || dt === undefined || dt === '') { skipped++; return; }
-    let d;
+    let day, month, year;
     if (typeof dt === 'number') {
-      // Excel serial date
-      d = new Date(Math.round((dt - 25569) * 86400 * 1000));
+      // Excel serial date — convert then extract local date parts
+      const tmp = new Date(Math.round((dt - 25569) * 86400 * 1000));
+      day = tmp.getDate(); month = tmp.getMonth() + 1; year = tmp.getFullYear();
     } else if (dt instanceof Date) {
-      d = dt;
+      // Date object from XLSX cellDates — use local date parts to avoid UTC shift
+      day = dt.getDate(); month = dt.getMonth() + 1; year = dt.getFullYear();
     } else {
-      // String — extract date part only
-      // Mailmodo sent-time is dd/mm/yyyy or yyyy-mm-dd (with optional time)
       const s = String(dt).trim();
-      const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);   // yyyy-mm-dd
-      const dmyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);  // dd/mm/yyyy
-      if (isoMatch) {
-        d = new Date(+isoMatch[1], +isoMatch[2] - 1, +isoMatch[3]);
-      } else if (dmyMatch) {
-        // dd/mm/yyyy — day is group 1, month is group 2
-        d = new Date(+dmyMatch[3], +dmyMatch[2] - 1, +dmyMatch[1]);
+      // Try dd/mm/yyyy (Mailmodo format): "25/03/2026" or "25/03/2026 07:11:00"
+      const dmyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      // Try yyyy-mm-dd (ISO): "2026-03-25" or "2026-03-25T07:11:00"
+      const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (dmyMatch) {
+        day = +dmyMatch[1]; month = +dmyMatch[2]; year = +dmyMatch[3];
+      } else if (isoMatch) {
+        year = +isoMatch[1]; month = +isoMatch[2]; day = +isoMatch[3];
       } else {
-        d = new Date(s);
+        const tmp = new Date(s);
+        if (isNaN(tmp.getTime())) { skipped++; return; }
+        day = tmp.getDate(); month = tmp.getMonth() + 1; year = tmp.getFullYear();
       }
     }
-    if (!d || isNaN(d.getTime())) { skipped++; return; }
+    if (!day || !month || !year) { skipped++; return; }
+    const d = new Date(year, month - 1, day);
+    if (isNaN(d.getTime())) { skipped++; return; }
     const dateKey = d.toLocaleDateString('en-US', { month:'short', day:'2-digit' }).replace(',','').replace(' 0',' ');
 
     // Extract fields — Chrismodo format
