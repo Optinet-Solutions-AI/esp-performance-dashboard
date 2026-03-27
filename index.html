@@ -131,6 +131,8 @@
   .nav-item:hover{background:var(--surface2);color:var(--text);}
   .nav-item.active{background:rgba(0,229,195,.08);color:var(--accent);}
   .nav-item svg{width:15px;height:15px;flex-shrink:0;}
+  .nav-group-arrow{font-size:10px;transition:transform .2s;display:inline-block;}
+  .nav-item.nav-sub{padding-left:28px;font-size:12px;}
   .esp-list{padding:0 12px;margin-top:16px;}
   .esp-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;cursor:pointer;margin-bottom:2px;transition:all .15s;border:1px solid transparent;}
   .esp-item:hover{background:var(--surface2);}
@@ -505,16 +507,42 @@
 <div class="layout">
 
 <aside class="sidebar">
-  <div class="logo" onclick="showView('mailmodo')">
+  <div class="logo" onclick="showView('home')">
     <div class="logo-tag">Email Ops</div>
     <div class="logo-title">ESP Control</div>
   </div>
   <div class="nav-section">
     <div class="nav-label">Navigation</div>
+<<<<<<< HEAD
     <button class="nav-item active" id="nav-mailmodo" onclick="showView('mailmodo')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
       Chrismodo Review
+=======
+    <button class="nav-item" id="nav-home" onclick="showView('home')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14a1 1 0 01-1 1H3a1 1 0 01-1-1V6.5z"/><path d="M6 15V9h4v6"/></svg>
+      Overview
+>>>>>>> caa7eff89548659df45611b8b957cb7f4aeb9e14
     </button>
+    <!-- Email Providers collapsible group -->
+    <div id="nav-group-providers">
+      <button class="nav-item" onclick="toggleProvidersList()" style="justify-content:space-between;">
+        <span style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="3" rx="1"/><path d="M3 7h10M3 7l-1 6h10l-1-6"/><path d="M6 10h4"/></svg>
+          Email Providers
+        </span>
+        <span id="providersArrow" class="nav-group-arrow">▼</span>
+      </button>
+      <div id="providersNavList">
+        <button class="nav-item nav-sub" id="nav-mailmodo" onclick="showMailmodoReview()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
+          Mailmodo Review
+        </button>
+        <button class="nav-item nav-sub" id="nav-ongage" onclick="showOngageReview()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
+          Ongage Review
+        </button>
+      </div>
+    </div>
     <button class="nav-item" id="nav-upload" onclick="showView('upload')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10V2M5 5l3-3 3 3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
       Upload Report
@@ -554,7 +582,7 @@
 <main class="main">
 
   <!-- DASHBOARD VIEW -->
-  <div class="view active" id="view-dashboard">
+  <div class="view" id="view-dashboard">
     <div class="topbar">
       <div>
         <div class="page-title">Performance Overview</div>
@@ -670,6 +698,69 @@
           <tbody id="espTableBody"></tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- HOME VIEW -->
+  <div class="view" id="view-home">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Overview</div>
+        <div class="page-sub" id="homeSub">All providers · All time</div>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px;">
+      <div class="kpi-card" style="--card-accent:#00e5c3">
+        <div class="kpi-label">Total Reports</div>
+        <div class="kpi-value" id="homeKpiReports">—</div>
+        <div class="kpi-delta delta-neutral" id="homeKpiReportsSub"></div>
+      </div>
+      <div class="kpi-card" style="--card-accent:#7c5cfc">
+        <div class="kpi-label">Total Providers</div>
+        <div class="kpi-value" id="homeKpiProviders">—</div>
+        <div class="kpi-delta delta-neutral" id="homeKpiProvidersSub"></div>
+      </div>
+      <div class="kpi-card" style="--card-accent:#ffd166">
+        <div class="kpi-label">Total Reviews</div>
+        <div class="kpi-value" id="homeKpiReviews">2</div>
+        <div class="kpi-delta delta-neutral">Mailmodo · Ongage</div>
+      </div>
+      <div class="kpi-card" style="--card-accent:#ff6b6b">
+        <div class="kpi-label">Latest Upload</div>
+        <div class="kpi-value" id="homeKpiLatest" style="font-size:16px;">—</div>
+        <div class="kpi-delta delta-neutral" id="homeKpiLatestSub"></div>
+      </div>
+    </div>
+
+    <!-- Volume Chart + Category Breakdown -->
+    <div class="charts-row" style="margin-bottom:24px;">
+      <div class="chart-card" style="flex:2;">
+        <div class="chart-head">
+          <div><div class="chart-title">Monthly Send Volume</div><div class="chart-sub">Mailmodo + Ongage combined</div></div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="homeVolumeChart"></canvas></div>
+      </div>
+      <div class="chart-card" style="flex:1;">
+        <div class="chart-head">
+          <div><div class="chart-title">Category Breakdown</div><div class="chart-sub">By total volume</div></div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="homeCatChart"></canvas></div>
+        <div class="legend-row" id="homeCatLegend"></div>
+      </div>
+    </div>
+
+    <!-- Email Providers -->
+    <div class="table-section" style="margin-bottom:24px;">
+      <div class="section-head"><div class="section-title">Email Providers</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;" id="homeProviderCards"></div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="table-section">
+      <div class="section-head"><div class="section-title">Recent Activity</div></div>
+      <div id="homeActivityList" style="margin-top:8px;"></div>
     </div>
   </div>
 
@@ -828,9 +919,11 @@
       <div class="topbar-actions" style="flex-wrap:wrap;gap:8px;">
         <div class="date-picker-wrap" style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:7px 14px;">
           <span class="dp-label">From</span>
-          <select id="mmFromDate" onchange="mmApplyRange()" class="mm-select"></select>
+          <button id="mmDpFromBtn" class="dp-input-btn" onclick="dpOpen('mm','from',event)"><span id="mmDpFromTxt">— —</span> ▾</button>
+          <div id="mmDpFromPopup" class="dp-popup" style="display:none;"></div>
           <span class="dp-label">To</span>
-          <select id="mmToDate" onchange="mmApplyRange()" class="mm-select"></select>
+          <button id="mmDpToBtn" class="dp-input-btn" onclick="dpOpen('mm','to',event)"><span id="mmDpToTxt">— —</span> ▾</button>
+          <div id="mmDpToPopup" class="dp-popup" style="display:none;"></div>
           <div style="width:1px;height:14px;background:var(--border2)"></div>
           <select class="dp-granularity" id="mmGranularity" onchange="mmApplyRange()">
             <option value="daily">Daily</option>
@@ -839,7 +932,7 @@
           </select>
           <div style="width:1px;height:14px;background:var(--border2)"></div>
           <span class="dp-range-label" id="mmRangeLabel"></span>
-          <button class="dp-reset" onclick="mmResetRange()" title="Reset">×</button>
+          <button class="dp-reset" onclick="dpReset('mm')" title="Reset">×</button>
         </div>
         <button class="btn btn-sm" onclick="showView('dashboard')">← Back</button>
       </div>
@@ -849,17 +942,12 @@
     <div id="mmRenderError" style="display:none;background:#ff4757;color:#fff;padding:12px 16px;border-radius:8px;font-family:var(--mono);font-size:11px;margin-bottom:16px;"></div>
     <div class="kpi-grid" id="mmKpis" style="margin-bottom:24px;grid-template-columns:repeat(5,minmax(0,1fr));"></div>
 
-    <!-- Tab switcher -->
-    <div class="mm-tab-switcher-wrap" style="display:flex;gap:0;margin-bottom:20px;border-radius:10px;overflow:hidden;width:fit-content;">
-      <button id="mmTab-provider" class="mm-tab-btn" onclick="mmSetTab('provider')" style="background:#4a2fa0;color:#ffffff;">EMAIL PROVIDER</button>
-      <button id="mmTab-domain"   class="mm-tab-btn" onclick="mmSetTab('domain')"   style="background:#1e232b;color:#d4dae6;">SENDING DOMAIN</button>
-    </div>
 
     <!-- 1. Volume — all providers -->
     <div class="chart-card" style="margin-bottom:14px;">
       <div class="chart-head">
         <div>
-          <div class="chart-title" id="mmVolTitle">Volume — all providers</div>
+          <div class="chart-title" id="mmVolTitle">Volume — all IPs</div>
           <div class="chart-sub">Sent · Delivered · Opens · Clicks</div>
         </div>
       </div>
@@ -876,7 +964,7 @@
     <div class="chart-card" style="margin-bottom:14px;">
       <div class="chart-head">
         <div>
-          <div class="chart-title" id="mmTrendTitle">Rate trends — all providers</div>
+          <div class="chart-title" id="mmTrendTitle">Rate trends — all IPs</div>
           <div class="chart-sub">Success Rate · Open Rate · CTR · Bounce Rate — click a table row to isolate</div>
         </div>
         <button class="btn btn-sm" onclick="mmResetTrend()">Reset</button>
@@ -893,12 +981,12 @@
     <!-- 3. KPI Charts · Email Provider -->
     <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div>
-        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#d4dae6;">KPI Charts · Email Provider</div>
-        <div style="font-family:var(--mono);font-size:9px;color:#c8cdd6;margin-top:3px;" id="mmEmbedViewLabel">↔ X-axis: Dates — each line = one provider</div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#d4dae6;">KPI Charts · IP Address</div>
+        <div style="font-family:var(--mono);font-size:9px;color:#c8cdd6;margin-top:3px;" id="mmEmbedViewLabel">↔ X-axis: Dates — each line = one IP</div>
       </div>
       <div class="kpi-view-toggle">
         <button id="mmEmbedBtnDate"     class="kpi-view-btn active"   onclick="mmEmbedSetView('date')">BY DATE</button>
-        <button id="mmEmbedBtnProvider" class="kpi-view-btn inactive" onclick="mmEmbedSetView('provider')">BY PROVIDER</button>
+        <button id="mmEmbedBtnProvider" class="kpi-view-btn inactive" onclick="mmEmbedSetView('provider')">BY IP</button>
       </div>
     </div>
     <div class="kpi-charts-grid" style="margin-bottom:24px;">
@@ -989,7 +1077,7 @@
 
     <div class="table-section" style="margin-bottom:14px;">
       <div class="section-head">
-        <div class="section-title" id="mmTableTitle">Email Provider summary</div>
+        <div class="section-title" id="mmTableTitle">IP Address summary</div>
       </div>
       <div class="table-wrap">
         <table>
@@ -1078,9 +1166,11 @@
       <div class="topbar-actions" style="flex-wrap:wrap;gap:10px;">
         <div class="date-picker-wrap" style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:7px 14px;">
           <span class="dp-label">From</span>
-          <select id="mmcFrom" onchange="mmcApplyRange()" class="mm-select"></select>
+          <button id="mmcDpFromBtn" class="dp-input-btn" onclick="dpOpen('mmc','from',event)"><span id="mmcDpFromTxt">— —</span> ▾</button>
+          <div id="mmcDpFromPopup" class="dp-popup" style="display:none;"></div>
           <span class="dp-label">To</span>
-          <select id="mmcTo" onchange="mmcApplyRange()" class="mm-select"></select>
+          <button id="mmcDpToBtn" class="dp-input-btn" onclick="dpOpen('mmc','to',event)"><span id="mmcDpToTxt">— —</span> ▾</button>
+          <div id="mmcDpToPopup" class="dp-popup" style="display:none;"></div>
           <div style="width:1px;height:14px;background:var(--border2)"></div>
           <select class="dp-granularity" id="mmcGranularity" onchange="mmcApplyRange()">
             <option value="daily">Daily</option>
@@ -1089,7 +1179,7 @@
           </select>
           <div style="width:1px;height:14px;background:var(--border2)"></div>
           <span class="dp-range-label" id="mmcRangeLabel"></span>
-          <button class="dp-reset" onclick="mmcReset()" title="Reset">×</button>
+          <button class="dp-reset" onclick="dpReset('mmc')" title="Reset">×</button>
         </div>
 
         <!-- View toggle -->
@@ -1183,14 +1273,22 @@
         <div class="page-title">Upload Report</div>
         <div class="page-sub">Add new daily sendout data — select ESP then upload the activity file</div>
       </div>
-      <button class="btn btn-sm" onclick="showView('mailmodo')">← Back to Review</button>
+      <button class="btn btn-sm" id="uploadBackBtn" onclick="uploadGoBack()">← Back to Review</button>
     </div>
 
-    <!-- Step 1: Choose ESP -->
+    <!-- Step 1: Choose Category + ESP -->
     <div class="upload-card">
-      <h3>Step 1 — Select ESP</h3>
-      <p>Choose which ESP this file belongs to. The data will be merged into that ESP's section in the dashboard.</p>
+      <h3>Step 1 — Select Category &amp; ESP</h3>
+      <p>Choose the review this data belongs to, then select the ESP. Data will be merged into that review's dataset.</p>
       <div class="upload-field">
+        <div class="upload-label">Review Category</div>
+        <select id="uploadCategorySelect" class="upload-select" onchange="uploadCategoryChanged()">
+          <option value="">— Choose category —</option>
+          <option value="mailmodo">Mailmodo Review</option>
+          <option value="ongage">Ongage Review</option>
+        </select>
+      </div>
+      <div class="upload-field" id="uploadEspField" style="opacity:.4;pointer-events:none;">
         <div class="upload-label">ESP Provider</div>
         <select id="uploadEspSelect" class="upload-select" onchange="uploadEspChanged()">
           <option value="">— Choose an ESP —</option>
@@ -1356,19 +1454,21 @@
       </div>
       <div class="topbar-actions" style="flex-wrap:wrap;gap:8px;">
         <div class="date-picker-wrap" style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:7px 14px;">
-          <span class="dp-label" style="color:#ffffff !important;">From</span>
-          <select id="mxFrom" onchange="mxApplyRange()" class="mm-select" style="color:#ffffff;"></select>
-          <span class="dp-label" style="color:#ffffff !important;">To</span>
-          <select id="mxTo" onchange="mxApplyRange()" class="mm-select" style="color:#ffffff;"></select>
+          <span class="dp-label">From</span>
+          <button id="mxDpFromBtn" class="dp-input-btn" onclick="dpOpen('mx','from',event)"><span id="mxDpFromTxt">— —</span> ▾</button>
+          <div id="mxDpFromPopup" class="dp-popup" style="display:none;"></div>
+          <span class="dp-label">To</span>
+          <button id="mxDpToBtn" class="dp-input-btn" onclick="dpOpen('mx','to',event)"><span id="mxDpToTxt">— —</span> ▾</button>
+          <div id="mxDpToPopup" class="dp-popup" style="display:none;"></div>
           <div style="width:1px;height:14px;background:var(--border2)"></div>
-          <select class="dp-granularity" id="mxGranularity" onchange="mxApplyRange()" style="color:#ffffff;">
+          <select class="dp-granularity" id="mxGranularity" onchange="mxApplyRange()">
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
           </select>
           <div style="width:1px;height:14px;background:var(--border2)"></div>
-          <span class="dp-range-label" id="mxRangeLabel" style="color:#ffffff !important;"></span>
-          <button class="dp-reset" onclick="mxResetRange()" title="Reset" style="color:#ffffff;">×</button>
+          <span class="dp-range-label" id="mxRangeLabel"></span>
+          <button class="dp-reset" onclick="mxResetRange()" title="Reset">×</button>
         </div>
       </div>
     </div>
@@ -1829,6 +1929,107 @@ function showView(name){
   if(ne)ne.classList.add('active');
   if(name==='performance')renderPerfView();
   if(name==='daily')renderDailyView();
+  if(name==='home')renderHomeView();
+}
+
+/* HOME VIEW */
+let _homeVolumeChart = null, _homeCatChart = null;
+function renderHomeView() {
+  // ── KPI: Total Reports ──────────────────────────────────
+  const mmDates = mmData.dates || [];
+  const ogDates = _ogCtx.data.dates || [];
+  const totalReports = mmDates.length + ogDates.length;
+  document.getElementById('homeKpiReports').textContent = totalReports || '—';
+  document.getElementById('homeKpiReportsSub').textContent = mmDates.length + ' Mailmodo · ' + ogDates.length + ' Ongage';
+
+  // ── KPI: Total Providers ────────────────────────────────
+  const mmProvs = Object.keys(mmData.providers || {});
+  const ogProvs = Object.keys(_ogCtx.data.providers || {});
+  const allProvs = new Set([...mmProvs, ...ogProvs]);
+  document.getElementById('homeKpiProviders').textContent = allProvs.size || '—';
+  document.getElementById('homeKpiProvidersSub').textContent = mmProvs.length + ' MM · ' + ogProvs.length + ' OG';
+
+  // ── KPI: Latest Upload ──────────────────────────────────
+  if (uploadHistory.length > 0) {
+    const h = uploadHistory[0];
+    document.getElementById('homeKpiLatest').textContent = h.esp.toUpperCase();
+    document.getElementById('homeKpiLatestSub').textContent = h.file.length > 22 ? h.file.slice(0,22)+'…' : h.file;
+  }
+
+  // ── Volume Chart: monthly buckets from mmData + ogData ──
+  const monthTotals = {};
+  function accumulateMonths(data) {
+    (data.dates||[]).forEach(d => {
+      const key = d.slice(0,6); // "Jan 20" style — use first 3 chars for month label
+      const m = d.replace(/\s+\d+$/,''); // e.g. "Jan" from "Jan 01"
+      monthTotals[m] = (monthTotals[m]||0) + (data.overallByDate[d]?.sent||0);
+    });
+  }
+  accumulateMonths(mmData);
+  accumulateMonths(_ogCtx.data);
+  const months = Object.keys(monthTotals);
+  const volumes = months.map(m=>monthTotals[m]);
+
+  if (_homeVolumeChart) { _homeVolumeChart.destroy(); _homeVolumeChart = null; }
+  const vCtx = document.getElementById('homeVolumeChart').getContext('2d');
+  _homeVolumeChart = new Chart(vCtx, {
+    type:'bar',
+    data:{ labels: months.length ? months : ['No data'], datasets:[{
+      label:'Sent', data: volumes.length ? volumes : [0],
+      backgroundColor:'rgba(0,229,195,0.7)', borderRadius:4
+    }]},
+    options:{...cOpts, scales:{
+      x:{ticks:{color:tc,font:{size:9}},grid:{display:false}},
+      y:{ticks:{color:tc,font:{size:9},callback:v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v},grid:{color:gc},border:{display:false}}
+    }}
+  });
+
+  // ── Category Breakdown doughnut ─────────────────────────
+  const mmSent = mmDates.reduce((s,d)=>s+(mmData.overallByDate[d]?.sent||0),0);
+  const ogSent = ogDates.reduce((s,d)=>s+(_ogCtx.data.overallByDate[d]?.sent||0),0);
+  if (_homeCatChart) { _homeCatChart.destroy(); _homeCatChart = null; }
+  const cCtx = document.getElementById('homeCatChart').getContext('2d');
+  _homeCatChart = new Chart(cCtx, {
+    type:'doughnut',
+    data:{ labels:['Mailmodo','Ongage'], datasets:[{
+      data:[mmSent||0, ogSent||0],
+      backgroundColor:['rgba(124,92,252,0.8)','rgba(255,209,102,0.8)'],
+      borderWidth:0, hoverOffset:6
+    }]},
+    options:{...cOpts,cutout:'65%',plugins:{...cOpts.plugins,legend:{display:false}}}
+  });
+  const fmt = v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v||'0';
+  document.getElementById('homeCatLegend').innerHTML =
+    `<div class="legend-item"><span class="legend-sq" style="background:rgba(124,92,252,0.8)"></span>Mailmodo ${fmt(mmSent)}</div>` +
+    `<div class="legend-item"><span class="legend-sq" style="background:rgba(255,209,102,0.8)"></span>Ongage ${fmt(ogSent)}</div>`;
+
+  // ── Provider Cards ──────────────────────────────────────
+  document.getElementById('homeProviderCards').innerHTML = `
+    <div class="kpi-card" style="--card-accent:#7c5cfc;cursor:pointer;" onclick="showMailmodoReview()">
+      <div class="kpi-label">Mailmodo</div>
+      <div class="kpi-value" style="font-size:18px;">${mmProvs.length || '—'}</div>
+      <div class="kpi-delta delta-neutral">${mmDates.length} date${mmDates.length!==1?'s':''} · Click to review →</div>
+    </div>
+    <div class="kpi-card" style="--card-accent:#ffd166;cursor:pointer;" onclick="showOngageReview()">
+      <div class="kpi-label">Ongage</div>
+      <div class="kpi-value" style="font-size:18px;">${ogProvs.length || '—'}</div>
+      <div class="kpi-delta delta-neutral">${ogDates.length} date${ogDates.length!==1?'s':''} · Click to review →</div>
+    </div>`;
+
+  // ── Recent Activity ─────────────────────────────────────
+  const actEl = document.getElementById('homeActivityList');
+  if (uploadHistory.length === 0) {
+    actEl.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0;">No uploads yet — use Upload Report to get started.</div>';
+  } else {
+    actEl.innerHTML = uploadHistory.slice(0,5).map(h=>`
+      <div class="upload-history-row">
+        <div>
+          <div style="font-weight:600;color:#fff;font-size:12px;">${h.file}</div>
+          <div style="font-size:11px;color:#d4dae6;margin-top:2px;font-family:var(--mono)">${h.esp.toUpperCase()} · ${h.rows.toLocaleString()} rows · ${h.dates.length} dates · ${h.time}</div>
+        </div>
+        <span class="upload-badge ${h.newDates>0?'badge-success':'badge-partial'}">${h.newDates>0?'+'+h.newDates+' new':'updated'}</span>
+      </div>`).join('');
+  }
 }
 
 /* SIDEBAR */
@@ -2265,7 +2466,7 @@ function mxBuildProviderDomains(){
   mmData.providerDomains = pd;
 }
 mxBuildProviderDomains();
-let mmTab = 'provider';
+let mmTab = 'ip';
 let mmFromIdx = 0;
 let mmToIdx = mmData.dates.length - 1;
 let mmSelectedRow = null;
@@ -2310,11 +2511,92 @@ const mmDomainColors = {
   'couponsdailypromo.com':'#ff9a5c','dailypromosdeal.com':'#60d4f0','dealdivaz.com':'#ff6b77',
   'promoalertz.com':'#c5f27a','promocouponsdaily.com':'#f9a8e8'
 };
+const mmIpColorPalette = ['#00ffd5','#b39dff','#ffe066','#ff9a5c','#ff6b77','#60d4f0','#c5f27a','#f9a8e8','#ff7b6b','#a78bff','#ffcc44','#c4a8ff'];
 
-function mmGetColor(name){ return mmTab==='provider' ? (mmProviderColors[name]||'#888') : (mmDomainColors[name]||'#888'); }
+let _mmIpCache = null;
+
+function mmGetCurrentEspName() {
+  if (typeof _activeReviewCtx !== 'undefined' && _activeReviewCtx === 'ongage') return 'Ongage';
+  return 'Chrismodo';
+}
+
+function mmBuildIpDataSource() {
+  const espName = mmGetCurrentEspName();
+  const ipMap = mxGetIpMap(espName); // { ip: [domain,...] }
+  const result = {};
+  const assignedDomains = new Set();
+  const FIELDS = ['sent','delivered','opened','clicked','bounced','unsubscribed','complained'];
+
+  Object.entries(ipMap).forEach(([ip, domains]) => {
+    const byDate = {};
+    domains.forEach(domain => {
+      assignedDomains.add(domain);
+      const domData = mmData.domains[domain];
+      if (!domData) return;
+      Object.entries(domData.byDate).forEach(([date, stats]) => {
+        if (!byDate[date]) byDate[date] = {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0,complained:0};
+        FIELDS.forEach(k => { byDate[date][k] += stats[k]||0; });
+      });
+    });
+    const overall = {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0,complained:0};
+    Object.values(byDate).forEach(d => FIELDS.forEach(k => { overall[k] += d[k]||0; }));
+    if (overall.sent > 0) {
+      overall.successRate  = overall.delivered/overall.sent*100;
+      overall.deliveryRate = overall.delivered/overall.sent*100;
+      overall.openRate     = overall.delivered>0 ? overall.opened/overall.delivered*100 : 0;
+      overall.clickRate    = overall.opened>0 ? overall.clicked/overall.opened*100 : 0;
+      overall.bounceRate   = overall.bounced/overall.sent*100;
+      overall.unsubRate    = overall.opened>0 ? overall.unsubscribed/overall.opened*100 : 0;
+    }
+    result[ip] = { overall, byDate };
+  });
+
+  // Unmatched domains → 'IP NOT FOUND'
+  const notFoundByDate = {};
+  Object.entries(mmData.domains).forEach(([domain, domData]) => {
+    if (assignedDomains.has(domain)) return;
+    Object.entries(domData.byDate).forEach(([date, stats]) => {
+      if (!notFoundByDate[date]) notFoundByDate[date] = {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0,complained:0};
+      FIELDS.forEach(k => { notFoundByDate[date][k] += stats[k]||0; });
+    });
+  });
+  const nfOverall = {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0,complained:0};
+  Object.values(notFoundByDate).forEach(d => FIELDS.forEach(k => { nfOverall[k] += d[k]||0; }));
+  if (nfOverall.sent > 0) {
+    nfOverall.successRate  = nfOverall.delivered/nfOverall.sent*100;
+    nfOverall.deliveryRate = nfOverall.delivered/nfOverall.sent*100;
+    nfOverall.openRate     = nfOverall.delivered>0 ? nfOverall.opened/nfOverall.delivered*100 : 0;
+    nfOverall.clickRate    = nfOverall.opened>0 ? nfOverall.clicked/nfOverall.opened*100 : 0;
+    nfOverall.bounceRate   = nfOverall.bounced/nfOverall.sent*100;
+    nfOverall.unsubRate    = nfOverall.opened>0 ? nfOverall.unsubscribed/nfOverall.opened*100 : 0;
+    result['IP NOT FOUND'] = { overall: nfOverall, byDate: notFoundByDate };
+  }
+
+  const sortedIps = Object.keys(result).sort((a,b) => {
+    if (a==='IP NOT FOUND') return 1;
+    if (b==='IP NOT FOUND') return -1;
+    return a.localeCompare(b, undefined, {numeric:true});
+  });
+  const colorMap = {};
+  sortedIps.forEach((ip, i) => { colorMap[ip] = mmIpColorPalette[i % mmIpColorPalette.length]; });
+
+  _mmIpCache = { src: result, colorMap, sortedIps };
+  return _mmIpCache;
+}
+
+function mmGetIpSource() {
+  return mmBuildIpDataSource();
+}
+
+function mmGetColor(name) {
+  if (!_mmIpCache) mmGetIpSource();
+  return _mmIpCache.colorMap[name] || '#888';
+}
 
 function mmGetData(name) {
-  const src = mmTab==='provider' ? mmData.providers[name] : mmData.domains[name];
+  if (!_mmIpCache) mmGetIpSource();
+  const src = _mmIpCache.src[name];
+  if (!src) return null;
   const dates = mmActiveDates();
   const result = (dates.length === mmData.dates.length) ? {...src.overall} : mmAggDates(src.byDate, dates);
   if (result && result.unsubscribed === undefined) result.unsubscribed = 0;
@@ -2322,10 +2604,13 @@ function mmGetData(name) {
 }
 
 function mmGetAllData() {
-  const src = mmTab==='provider' ? mmData.providers : mmData.domains;
-  return Object.entries(src).map(([name, d]) => {
-    const row = mmGetData(name);
-    return row ? {name, ...row} : null;
+  const { src, sortedIps } = mmGetIpSource();
+  const dates = mmActiveDates();
+  return sortedIps.map(ip => {
+    const row = (dates.length === mmData.dates.length) ? {...src[ip].overall} : mmAggDates(src[ip].byDate, dates);
+    if (!row || !row.sent) return null;
+    if (row.unsubscribed === undefined) row.unsubscribed = 0;
+    return { name: ip, ...row };
   }).filter(Boolean);
 }
 
@@ -2490,7 +2775,7 @@ function mmRenderTrend(name) {
   const activeDates  = mmActiveDates();
   const granularity  = mmGetGranularity('mm');
   const groups       = dpGroupDates(activeDates, granularity);
-  const src          = mmTab==='provider' ? mmData.providers : mmData.domains;
+  const { src: ipSrc } = mmGetIpSource();
 
   let labels, srData=[], orData=[], ctrData=[], brData=[];
   let sentData=[], delData=[], openData=[], clickData=[];
@@ -2500,7 +2785,7 @@ function mmRenderTrend(name) {
     groups.forEach(g => {
       let s=0,dv=0,o=0,cl=0,b=0;
       g.dates.forEach(d => {
-        Object.values(src).forEach(en => {
+        Object.values(ipSrc).forEach(en => {
           const r = en.byDate[d]; if(!r) return;
           s+=r.sent; dv+=r.delivered; o+=r.opened; cl+=r.clicked; b+=r.bounced;
         });
@@ -2510,11 +2795,10 @@ function mmRenderTrend(name) {
       ctrData.push(+R.ctr.toFixed(2)); brData.push(+R.br.toFixed(2));
       sentData.push(s); delData.push(dv); openData.push(o); clickData.push(cl);
     });
-    const entLabel = mmTab==='provider'?'providers':'sending domains';
-    document.getElementById('mmTrendTitle').textContent = `Rate trends — all ${entLabel}`;
-    document.getElementById('mmVolTitle').textContent   = `Volume — all ${entLabel}`;
+    document.getElementById('mmTrendTitle').textContent = 'Rate trends — all IPs';
+    document.getElementById('mmVolTitle').textContent   = 'Volume — all IPs';
   } else {
-    const entity = mmTab==='provider' ? mmData.providers[name] : mmData.domains[name];
+    const entity = ipSrc[name];
     if (!entity) { mmRenderTrend(null); return; }
     labels = groups.map(g => g.label);
     groups.forEach(g => {
@@ -2638,7 +2922,7 @@ function mmRenderTable(rows) {
 function mmSelectRow(name) {
   mmSelectedRow = name;
   mmRenderTrend(name);
-  const src = mmTab==='provider' ? mmData.providers[name] : mmData.domains[name];
+  const src = mmGetIpSource().src[name];
   if (!src) return;
   document.getElementById('mmDayBreakdownTitle').textContent = `Daily breakdown — ${name}`;
   const days = mmActiveDates().filter(d=>src.byDate[d]);
@@ -2683,16 +2967,14 @@ function mmRenderGrid() {
   const activeDates  = mmActiveDates();
   const granularity  = mmGetGranularity('mm');
   const groups       = dpGroupDates(activeDates, granularity);  // [{label, dates}]
-  const isProvider   = mmTab === 'provider';
-  const src          = isProvider ? mmData.providers : mmData.domains;
-  const colorMap     = isProvider ? mmProviderColors  : mmDomainColors;
-  const entityLabel  = isProvider ? 'Email Provider'  : 'Sending Domain';
+  const { src, colorMap, sortedIps } = mmGetIpSource();
+  const entityLabel  = 'IP Address';
   const periodLabel  = granularity.charAt(0).toUpperCase() + granularity.slice(1);
 
-  // Sort by total sent volume descending
-  const entities = Object.entries(src)
-    .map(([name, d]) => {
-      const agg = mmAggDates(d.byDate, activeDates) || d.overall;
+  // Sort by total sent volume descending (already sorted by IP but re-sort by volume)
+  const entities = sortedIps
+    .map(name => {
+      const agg = mmAggDates(src[name].byDate, activeDates) || src[name].overall;
       return { name, sent: agg ? agg.sent : 0 };
     })
     .sort((a, b) => b.sent - a.sent)
@@ -2706,7 +2988,7 @@ function mmRenderGrid() {
     { key: 'ubr', label: 'Unsub%',   color: '#ff9a5c', fn:(r)=>{ const R=rates(r); return +R.ubr.toFixed(3); }, tip: (R,r) => tipUnsub(r.unsubscribed||0, r.opened) },
   ];
 
-  const getColor  = name => colorMap[name] || '#888';
+  const getColor  = name => colorMap[name] || mmIpColorPalette[0];
   const thStyle   = (col) => `padding:8px 6px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:${col};text-align:right;border-bottom:1px solid ${document.body.classList.contains('light')?'rgba(0,0,0,.1)':'rgba(255,255,255,.08)'};white-space:nowrap;user-select:none;`;
   const tdBaseStyle = `padding:9px 6px;font-family:var(--mono);font-size:11px;text-align:right;border-bottom:1px solid ${document.body.classList.contains('light')?'rgba(0,0,0,.07)':'rgba(255,255,255,.04)'};`;
 
@@ -2935,8 +3217,7 @@ let mmPieCharts = {};
 function mmRenderPies(rows) {
   const pieGrid = document.getElementById('mmPieGrid');
   if (!pieGrid) return;
-  pieGrid.style.display = mmTab === 'provider' ? 'grid' : 'none';
-  if (mmTab !== 'provider') return;
+  pieGrid.style.display = 'grid';
 
   const configs = [
     { id:'mmPieSent',   centerId:'mmPieSentCenter',   legId:'mmPieSentLeg',   key:'sent',   accentColor:'#ffffff' },
@@ -2947,7 +3228,7 @@ function mmRenderPies(rows) {
   // Filter out zero-value rows for cleaner pies
   const activeRows = rows.filter(r => r.sent > 0);
   const labels  = activeRows.map(r => r.name);
-  const colors  = activeRows.map(r => mmProviderColors[r.name] || '#888');
+  const colors  = activeRows.map(r => mmGetColor(r.name));
 
   configs.forEach(cfg => {
     if (mmPieCharts[cfg.id]) { mmPieCharts[cfg.id].destroy(); delete mmPieCharts[cfg.id]; }
@@ -3058,21 +3339,14 @@ function mmRenderAll(){
    TAB SWITCHER
    ═══════════════════════════════════════════════ */
 function mmSetTab(tab){
-  mmTab=tab; mmSelectedRow=null;
-  const pBtn=document.getElementById('mmTab-provider'), dBtn=document.getElementById('mmTab-domain');
-  const light = document.body.classList.contains('light');
-  const activeBg   = '#4a2fa0', activeCol  = '#ffffff';
-  const inactiveBg = light ? '#e8eaef' : '#1e232b';
-  const inactiveCol= light ? '#374151' : '#d4dae6';
-  pBtn.style.background=tab==='provider'?activeBg:inactiveBg; pBtn.style.color=tab==='provider'?activeCol:inactiveCol;
-  dBtn.style.background=tab==='domain'  ?activeBg:inactiveBg; dBtn.style.color=tab==='domain'  ?activeCol:inactiveCol;
-  document.getElementById('mmTableTitle').textContent = `${tab==='provider'?'Email Provider':'Sending Domain'} summary`;
+  // Tab switcher removed — always in IP mode
+  mmTab = 'ip'; mmSelectedRow = null;
+  document.getElementById('mmTableTitle').textContent = 'IP Address summary';
   document.getElementById('mmDayBreakdown').style.display='none';
-  // Update KPI Charts section header
   const kpiHdr = document.querySelector('#view-mailmodo .kpi-charts-grid')?.previousElementSibling;
   if(kpiHdr){
     const titleEl = kpiHdr.querySelector('div>div:first-child');
-    if(titleEl) titleEl.textContent = `KPI Charts · ${tab==='provider'?'Email Provider':'Sending Domain'}`;
+    if(titleEl) titleEl.textContent = 'KPI Charts · IP Address';
   }
   mmRenderAll();
 }
@@ -3104,9 +3378,8 @@ function mmPopulateDates(){
 }
 
 function mmApplyRange(){
-  const fi=+document.getElementById('mmFromDate').value;
-  const ti=+document.getElementById('mmToDate').value;
-  mmFromIdx=Math.min(fi,ti); mmToIdx=Math.max(fi,ti);
+  const fromEl=document.getElementById('mmFromDate'), toEl=document.getElementById('mmToDate');
+  if(fromEl&&toEl){const fi=+fromEl.value,ti=+toEl.value; mmFromIdx=Math.min(fi,ti); mmToIdx=Math.max(fi,ti);}
   mmPopulateDates(); mmSelectedRow=null;
   document.getElementById('mmDayBreakdown').style.display='none';
   mmUpdateRangeLabel(); mmRenderAll();
@@ -3133,12 +3406,8 @@ function mmEmbedDestroyAll(){
 }
 
 function mmEmbedGetEntities(){
-  const src      = mmTab==='provider' ? mmData.providers : mmData.domains;
-  const colorMap = mmTab==='provider' ? mmProviderColors : mmDomainColors;
-  const sorted   = Object.entries(src)
-    .sort((a,b)=>b[1].overall.sent - a[1].overall.sent)
-    .map(([n])=>n);
-  return { names: sorted, colorMap, src };
+  const { src, colorMap, sortedIps } = mmGetIpSource();
+  return { names: sortedIps, colorMap, src };
 }
 
 function mmEmbedRenderByDate(){
@@ -3201,11 +3470,10 @@ function mmEmbedSetView(v){
   mmEmbedView=v;
   document.getElementById('mmEmbedBtnDate').className     =`kpi-view-btn ${v==='date'    ?'active':'inactive'}`;
   document.getElementById('mmEmbedBtnProvider').className =`kpi-view-btn ${v==='provider'?'active':'inactive'}`;
-  const entityWord = mmTab==='provider' ? 'provider' : 'domain';
   const lbl=document.getElementById('mmEmbedViewLabel');
   if(lbl) lbl.textContent = v==='date'
-    ? `↔ X-axis: Dates — each line = one ${entityWord}`
-    : `↔ X-axis: ${mmTab==='provider'?'Email Providers':'Sending Domains'} — each bar = period total`;
+    ? '↔ X-axis: Dates — each line = one IP'
+    : '↔ X-axis: IP Addresses — each bar = period total';
   mmEmbedDestroyAll();
   if(v==='date') mmEmbedRenderByDate();
   else mmEmbedRenderByProvider();
@@ -3214,14 +3482,13 @@ function mmEmbedSetView(v){
 function mmEmbedRenderAll(){
   mmEmbedDestroyAll();
   // Update embed header label
-  const entityWord = mmTab==='provider' ? 'provider' : 'domain';
   const lbl=document.getElementById('mmEmbedViewLabel');
   if(lbl) lbl.textContent = mmEmbedView==='date'
-    ? `↔ X-axis: Dates — each line = one ${entityWord}`
-    : `↔ X-axis: ${mmTab==='provider'?'Email Providers':'Sending Domains'} — each bar = period total`;
+    ? '↔ X-axis: Dates — each line = one IP'
+    : '↔ X-axis: IP Addresses — each bar = period total';
   // Update section header
   const secHdr = document.querySelector('#view-mailmodo .kpi-charts-grid')?.previousElementSibling?.querySelector('div>div:first-child');
-  if(secHdr) secHdr.textContent = `KPI Charts · ${mmTab==='provider'?'Email Provider':'Sending Domain'}`;
+  if(secHdr) secHdr.textContent = 'KPI Charts · IP Address';
   if(mmEmbedView==='date') mmEmbedRenderByDate();
   else mmEmbedRenderByProvider();
 }
@@ -3344,9 +3611,8 @@ function mmcPopulateDates(){
   Array.from(ts.options).forEach(o=>{o.disabled=+o.value<fi;});
 }
 function mmcApplyRange(){
-  const fi=+document.getElementById('mmcFrom').value;
-  const ti=+document.getElementById('mmcTo').value;
-  mmcFromIdx=Math.min(fi,ti); mmcToIdx=Math.max(fi,ti);
+  const fromEl=document.getElementById('mmcFrom'), toEl=document.getElementById('mmcTo');
+  if(fromEl&&toEl){const fi=+fromEl.value,ti=+toEl.value; mmcFromIdx=Math.min(fi,ti); mmcToIdx=Math.max(fi,ti);}
   mmcPopulateDates(); mmcRenderAll();
 }
 function mmcReset(){
@@ -3658,9 +3924,8 @@ function mxPopulateDates(){
   Array.from(ts.options).forEach(o=>{o.disabled=+o.value<fi;});
 }
 function mxApplyRange(){
-  const fi=+document.getElementById('mxFrom').value;
-  const ti=+document.getElementById('mxTo').value;
-  mxFromIdx=Math.min(fi,ti); mxToIdx=Math.max(fi,ti);
+  const fromEl=document.getElementById('mxFrom'), toEl=document.getElementById('mxTo');
+  if(fromEl&&toEl){const fi=+fromEl.value,ti=+toEl.value; mxFromIdx=Math.min(fi,ti); mxToIdx=Math.max(fi,ti);}
   mxPopulateDates(); mxRender();
 }
 function mxResetRange(){
@@ -4361,6 +4626,7 @@ showView = function(v){
    ═══════════════════════════════════════════════════════════ */
 let uploadFile     = null;
 let uploadEsp      = '';
+let uploadCategory = ''; // 'mailmodo' | 'ongage'
 let uploadHistory  = [];
 
 const uploadEspNotes = {
@@ -4388,6 +4654,24 @@ function uploadClearLog() {
   log.classList.remove('visible');
 }
 
+function uploadCategoryChanged() {
+  uploadCategory = document.getElementById('uploadCategorySelect').value;
+  const espField = document.getElementById('uploadEspField');
+  if (uploadCategory) {
+    espField.style.opacity = '1';
+    espField.style.pointerEvents = 'all';
+    // Reset ESP selection when category changes
+    document.getElementById('uploadEspSelect').value = '';
+    uploadEsp = '';
+    document.getElementById('uploadEspNote').style.display = 'none';
+    document.getElementById('uploadStep2').style.opacity = '.4';
+    document.getElementById('uploadStep2').style.pointerEvents = 'none';
+  } else {
+    espField.style.opacity = '.4';
+    espField.style.pointerEvents = 'none';
+  }
+}
+
 function uploadEspChanged() {
   uploadEsp = document.getElementById('uploadEspSelect').value;
   const note = document.getElementById('uploadEspNote');
@@ -4402,6 +4686,11 @@ function uploadEspChanged() {
     step2.style.opacity = '.4';
     step2.style.pointerEvents = 'none';
   }
+}
+
+function uploadGoBack() {
+  if (uploadCategory === 'ongage') showOngageReview();
+  else showMailmodoReview();
 }
 
 function uploadFileSelected(input) {
@@ -4431,7 +4720,7 @@ function uploadFileSelected(input) {
 
 /* ── Parse the uploaded file ─────────────────────────── */
 function uploadProcess() {
-  if (!uploadFile || !uploadEsp) return;
+  if (!uploadFile || !uploadEsp || !uploadCategory) return;
   uploadClearLog();
   uploadLog(`⏳ Parsing "${uploadFile.name}"…`);
 
@@ -4468,8 +4757,26 @@ function uploadProcess() {
 
       uploadLog(`✓ Parsed ${result.totalRows.toLocaleString()} records across ${result.dates.length} dates: ${result.dates.join(', ')}`, 'ok');
 
-      // Merge into mmData
-      mergeIntoMmData(result, uploadEsp);
+      // Merge into the selected review category's data store
+      if (uploadCategory === 'ongage') {
+        // Merge directly into ogData without touching Mailmodo state or localStorage
+        const _s = mmData, _f = mmFromIdx, _t = mmToIdx;
+        mmData = ogData; mmFromIdx = _ogCtx.fromIdx; mmToIdx = _ogCtx.toIdx;
+        _origMerge(result, uploadEsp);
+        _ogCtx.fromIdx = mmFromIdx; _ogCtx.toIdx = mmToIdx;
+        mmData = _s; mmFromIdx = _f; mmToIdx = _t;
+      } else {
+        // Merge into Mailmodo data (mmData or saved Mailmodo ctx if currently in Ongage)
+        if (_activeReviewCtx === 'ongage' && _savedMmCtx) {
+          const _s = mmData, _f = mmFromIdx, _t = mmToIdx;
+          mmData = _savedMmCtx.data; mmFromIdx = _savedMmCtx.fromIdx; mmToIdx = _savedMmCtx.toIdx;
+          mergeIntoMmData(result, uploadEsp); // includes persistSave
+          _savedMmCtx.fromIdx = mmFromIdx; _savedMmCtx.toIdx = mmToIdx;
+          mmData = _s; mmFromIdx = _f; mmToIdx = _t;
+        } else {
+          mergeIntoMmData(result, uploadEsp);
+        }
+      }
 
       uploadLog(`\n✅ Merge complete! Dashboard updated.`, 'ok');
       uploadLog(`   New dates added: ${result.newDates.length > 0 ? result.newDates.join(', ') : 'none (existing dates updated)'}`, 'ok');
@@ -4732,6 +5039,7 @@ function toggleTheme() {
   if (typeof mmRenderAll === 'function') {
     setTimeout(()=>{
       try { mmRenderAll(); } catch(e){}
+      if (document.getElementById('view-home').classList.contains('active')) renderHomeView();
     }, 50);
   }
 }
@@ -5113,6 +5421,14 @@ function toggleEspList(){
   arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
+function toggleProvidersList(){
+  const list  = document.getElementById('providersNavList');
+  const arrow = document.getElementById('providersArrow');
+  const open  = list.style.display !== 'none';
+  list.style.display  = open ? 'none' : '';
+  arrow.style.transform = open ? 'rotate(-90deg)' : 'rotate(0deg)';
+}
+
 /* ═══════════════════════════════════════════════════════════
    PERSISTENCE — localStorage save/load
    Saves uploaded data so it survives page refresh.
@@ -5194,13 +5510,87 @@ dmLoad();
 // Auto-restore IP Matrix data
 ipmLoadStorage();
 
+/* ═══════════════════════════════════════════════════════════
+   ONGAGE REVIEW — context-swap: reuses all mm* render functions
+   by temporarily redirecting mmData + state to Ongage data.
+   ═══════════════════════════════════════════════════════════ */
+const ogData = {
+  dates:[], datesFull:[], providers:{}, domains:{}, overallByDate:{}, providerDomains:{}
+};
+let _activeReviewCtx = 'mailmodo'; // 'mailmodo' | 'ongage'
+let _savedMmCtx = null;
+let _ogCtx = {
+  data: ogData, fromIdx: 0, toIdx: 0, tab: 'ip', selRow: null,
+  embedView: 'date',
+  dp: { fromDate:null, toDate:null, curYear: new Date().getFullYear(), curMonth:0, mode:'day', which:'from' }
+};
+
+function _captureCtx() {
+  return {
+    data: mmData, fromIdx: mmFromIdx, toIdx: mmToIdx, tab: mmTab,
+    selRow: mmSelectedRow, embedView: mmEmbedView,
+    dp: Object.assign({}, dpState.mm)
+  };
+}
+function _applyCtx(ctx) {
+  // Destroy live charts so canvas elements are freed
+  Object.values(mmCharts).forEach(c=>{ try{c.destroy();}catch(e){} });
+  Object.values(mmEmbedCharts).forEach(c=>{ try{c.destroy();}catch(e){} });
+  mmData = ctx.data; mmFromIdx = ctx.fromIdx; mmToIdx = ctx.toIdx;
+  mmTab = ctx.tab; mmSelectedRow = ctx.selRow; mmEmbedView = ctx.embedView;
+  mmCharts = {}; mmEmbedCharts = {};
+  Object.assign(dpState.mm, ctx.dp);
+}
+
+function _expandProvidersNav() {
+  const list = document.getElementById('providersNavList');
+  const arrow = document.getElementById('providersArrow');
+  if (list && list.style.display === 'none') {
+    list.style.display = '';
+    if (arrow) arrow.style.transform = 'rotate(0deg)';
+  }
+}
+
+function showMailmodoReview() {
+  if (_activeReviewCtx === 'ongage') {
+    _ogCtx = _captureCtx();
+    _applyCtx(_savedMmCtx);
+    _activeReviewCtx = 'mailmodo';
+  }
+  document.querySelector('#view-mailmodo .page-title').textContent = 'Mailmodo · Review';
+  showView('mailmodo');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('nav-mailmodo').classList.add('active');
+  _expandProvidersNav();
+  dpInit('mm'); mmUpdateRangeLabel(); mmRenderAll();
+}
+
+function showOngageReview() {
+  if (_activeReviewCtx !== 'ongage') {
+    _savedMmCtx = _captureCtx();
+    _applyCtx(_ogCtx);
+    _activeReviewCtx = 'ongage';
+  }
+  document.querySelector('#view-mailmodo .page-title').textContent = 'Ongage · Review';
+  showView('mailmodo');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('nav-ongage').classList.add('active');
+  _expandProvidersNav();
+  dpInit('mm'); mmUpdateRangeLabel(); mmRenderAll();
+}
+/* ═══════════════════════════════════════════════════════════ */
+
 // Patch view-specific reset functions to use calendar picker reset
-// mmResetRange is defined above
+mmResetRange = function(){ dpReset('mm'); };
+mmcReset = function(){ dpReset('mmc'); };
 mxResetRange = function(){ dpReset('mx'); };
 
 setTimeout(()=>{
-  showView('mailmodo');
   mmPopulateDates(); mmcPopulateDates(); mxPopulateDates();
+  dpInit('mm'); dpInit('mmc'); dpInit('mx');
+  // Snapshot initial Mailmodo context so Ongage can restore it
+  _savedMmCtx = _captureCtx();
+  showView('home');
 }, 80);
 
 </script>
