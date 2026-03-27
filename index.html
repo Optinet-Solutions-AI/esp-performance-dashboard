@@ -572,10 +572,6 @@
   </div>
   <div class="nav-section">
     <div class="nav-label">Navigation</div>
-    <button class="nav-item" id="nav-home" onclick="showView('home')">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14a1 1 0 01-1 1H3a1 1 0 01-1-1V6.5z"/><path d="M6 15V9h4v6"/></svg>
-      Overview
-    </button>
     <!-- Email Providers collapsible group -->
     <div id="nav-group-providers">
       <button class="nav-item" onclick="toggleProvidersList()" style="justify-content:space-between;">
@@ -991,21 +987,24 @@
       </div>
     </div>
 
+    <!-- No-data placeholder (shown when review has no uploaded data yet) -->
+    <div id="mmNoData" style="display:none;text-align:center;padding:80px 24px;">
+      <div style="font-size:48px;margin-bottom:20px;">📭</div>
+      <div style="font-size:18px;font-weight:600;color:#ffffff;margin-bottom:8px;">No data yet</div>
+      <div style="font-size:13px;color:#c8cdd6;margin-bottom:24px;font-family:var(--mono);">Upload an activity file to see statistics for this ESP.</div>
+      <button class="btn" onclick="showView('upload')" style="background:#4a2fa0;color:#fff;border:none;border-radius:9px;padding:11px 28px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.06em;cursor:pointer;">Go to Upload Report →</button>
+    </div>
+
     <!-- KPI row — rendered by JS, tooltips on hover only -->
     <div id="mmRenderError" style="display:none;background:#ff4757;color:#fff;padding:12px 16px;border-radius:8px;font-family:var(--mono);font-size:11px;margin-bottom:16px;"></div>
     <div class="kpi-grid" id="mmKpis" style="margin-bottom:24px;grid-template-columns:repeat(5,minmax(0,1fr));"></div>
 
-    <!-- Tab switcher -->
-    <div class="mm-tab-switcher-wrap" style="display:flex;gap:0;margin-bottom:20px;border-radius:10px;overflow:hidden;width:fit-content;">
-      <button id="mmTab-provider" class="mm-tab-btn" onclick="mmSetTab('provider')" style="background:#4a2fa0;color:#ffffff;">EMAIL PROVIDER</button>
-      <button id="mmTab-domain"   class="mm-tab-btn" onclick="mmSetTab('domain')"   style="background:#1e232b;color:#d4dae6;">SENDING DOMAIN</button>
-    </div>
 
     <!-- 1. Volume — all providers -->
     <div class="chart-card" style="margin-bottom:14px;">
       <div class="chart-head">
         <div>
-          <div class="chart-title" id="mmVolTitle">Volume — all providers</div>
+          <div class="chart-title" id="mmVolTitle">Volume — all IPs</div>
           <div class="chart-sub">Sent · Delivered · Opens · Clicks</div>
         </div>
       </div>
@@ -1022,7 +1021,7 @@
     <div class="chart-card" style="margin-bottom:14px;">
       <div class="chart-head">
         <div>
-          <div class="chart-title" id="mmTrendTitle">Rate trends — all providers</div>
+          <div class="chart-title" id="mmTrendTitle">Rate trends — all IPs</div>
           <div class="chart-sub">Success Rate · Open Rate · CTR · Bounce Rate — click a table row to isolate</div>
         </div>
         <button class="btn btn-sm" onclick="mmResetTrend()">Reset</button>
@@ -1039,12 +1038,12 @@
     <!-- 3. KPI Charts · Email Provider -->
     <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div>
-        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#d4dae6;">KPI Charts · Email Provider</div>
-        <div style="font-family:var(--mono);font-size:9px;color:#c8cdd6;margin-top:3px;" id="mmEmbedViewLabel">↔ X-axis: Dates — each line = one provider</div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#d4dae6;">KPI Charts · IP Address</div>
+        <div style="font-family:var(--mono);font-size:9px;color:#c8cdd6;margin-top:3px;" id="mmEmbedViewLabel">↔ X-axis: Dates — each line = one IP</div>
       </div>
       <div class="kpi-view-toggle">
         <button id="mmEmbedBtnDate"     class="kpi-view-btn active"   onclick="mmEmbedSetView('date')">BY DATE</button>
-        <button id="mmEmbedBtnProvider" class="kpi-view-btn inactive" onclick="mmEmbedSetView('provider')">BY PROVIDER</button>
+        <button id="mmEmbedBtnProvider" class="kpi-view-btn inactive" onclick="mmEmbedSetView('provider')">BY IP</button>
       </div>
     </div>
     <div class="kpi-charts-grid" style="margin-bottom:24px;">
@@ -1135,7 +1134,7 @@
 
     <div class="table-section" style="margin-bottom:14px;">
       <div class="section-head">
-        <div class="section-title" id="mmTableTitle">Email Provider summary</div>
+        <div class="section-title" id="mmTableTitle">IP Address summary</div>
       </div>
       <div class="table-wrap">
         <table>
@@ -1715,30 +1714,14 @@
       <button class="btn btn-sm" id="uploadBackBtn" onclick="uploadGoBack()">← Back to Review</button>
     </div>
 
-    <!-- Step 1: Choose Category + ESP -->
+    <!-- Step 1: Choose ESP -->
     <div class="upload-card">
-      <h3>Step 1 — Select Category &amp; ESP</h3>
-      <p>Choose the review this data belongs to, then select the ESP. Data will be merged into that review's dataset.</p>
-      <div class="upload-field">
-        <div class="upload-label">Review Category</div>
-        <select id="uploadCategorySelect" class="upload-select" onchange="uploadCategoryChanged()">
-          <option value="">— Choose category —</option>
-          <option value="mailmodo">Mailmodo Review</option>
-          <option value="ongage">Ongage Review</option>
-        </select>
-      </div>
-      <div class="upload-field" id="uploadEspField" style="opacity:.4;pointer-events:none;">
-        <div class="upload-label">ESP Provider</div>
+      <h3>Step 1 — Select ESP</h3>
+      <p>Choose the ESP this data belongs to. The file will be merged into that ESP's dataset and all related dashboards will update automatically.</p>
+      <div class="upload-field" id="uploadEspField">
+        <div class="upload-label">ESP</div>
         <select id="uploadEspSelect" class="upload-select" onchange="uploadEspChanged()">
           <option value="">— Choose an ESP —</option>
-          <option value="mailmodo">Mailmodo</option>
-          <option value="hotsol">Hotsol</option>
-          <option value="mms">MMS</option>
-          <option value="kenscio">Kenscio</option>
-          <option value="moosend">Moosend</option>
-          <option value="netcore">Netcore</option>
-          <option value="bulkresponse">Bulkresponse</option>
-          <option value="ongage">Ongage</option>
         </select>
       </div>
       <div id="uploadEspNote" style="font-family:var(--mono);font-size:10px;color:#c8cdd6;display:none;"></div>
@@ -2789,7 +2772,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 /* =========================================================
    MAILMODO DEEP DIVE DATA
    ========================================================= */
-const mmData = {
+let mmData = {
   dates: ["Feb 17","Feb 20","Feb 21","Feb 23","Feb 24","Feb 25","Feb 26"],
   datesFull: [
     {label:"Feb 17", year:2026},{label:"Feb 20", year:2026},{label:"Feb 21", year:2026},
@@ -2905,7 +2888,7 @@ function mxBuildProviderDomains(){
   mmData.providerDomains = pd;
 }
 mxBuildProviderDomains();
-let mmTab = 'provider';
+let mmTab = 'ip';
 let mmFromIdx = 0;
 let mmToIdx = mmData.dates.length - 1;
 let mmSelectedRow = null;
@@ -2956,11 +2939,92 @@ const mmDomainColors = {
   'couponsdailypromo.com':'#ff9a5c','dailypromosdeal.com':'#60d4f0','dealdivaz.com':'#ff6b77',
   'promoalertz.com':'#c5f27a','promocouponsdaily.com':'#f9a8e8'
 };
+const mmIpColorPalette = ['#00ffd5','#b39dff','#ffe066','#ff9a5c','#ff6b77','#60d4f0','#c5f27a','#f9a8e8','#ff7b6b','#a78bff','#ffcc44','#c4a8ff'];
 
-function mmGetColor(name){ return mmTab==='provider' ? (mmProviderColors[name]||'#888') : (mmDomainColors[name]||'#888'); }
+let _mmIpCache = null;
+
+function mmGetCurrentEspName() {
+  if (typeof _activeReviewCtx !== 'undefined' && _activeReviewCtx === 'ongage') return 'Ongage';
+  return 'Mailmodo';
+}
+
+function mmBuildIpDataSource() {
+  const espName = mmGetCurrentEspName();
+  const ipMap = mxGetIpMap(espName); // { ip: [domain,...] }
+  const result = {};
+  const assignedDomains = new Set();
+  const FIELDS = ['sent','delivered','opened','clicked','bounced','unsubscribed','complained'];
+
+  Object.entries(ipMap).forEach(([ip, domains]) => {
+    const byDate = {};
+    domains.forEach(domain => {
+      assignedDomains.add(domain);
+      const domData = mmData.domains[domain];
+      if (!domData) return;
+      Object.entries(domData.byDate).forEach(([date, stats]) => {
+        if (!byDate[date]) byDate[date] = {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0,complained:0};
+        FIELDS.forEach(k => { byDate[date][k] += stats[k]||0; });
+      });
+    });
+    const overall = {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0,complained:0};
+    Object.values(byDate).forEach(d => FIELDS.forEach(k => { overall[k] += d[k]||0; }));
+    if (overall.sent > 0) {
+      overall.successRate  = overall.delivered/overall.sent*100;
+      overall.deliveryRate = overall.delivered/overall.sent*100;
+      overall.openRate     = overall.delivered>0 ? overall.opened/overall.delivered*100 : 0;
+      overall.clickRate    = overall.opened>0 ? overall.clicked/overall.opened*100 : 0;
+      overall.bounceRate   = overall.bounced/overall.sent*100;
+      overall.unsubRate    = overall.opened>0 ? overall.unsubscribed/overall.opened*100 : 0;
+    }
+    result[ip] = { overall, byDate };
+  });
+
+  // Unmatched domains → 'IP NOT FOUND'
+  const notFoundByDate = {};
+  Object.entries(mmData.domains).forEach(([domain, domData]) => {
+    if (assignedDomains.has(domain)) return;
+    Object.entries(domData.byDate).forEach(([date, stats]) => {
+      if (!notFoundByDate[date]) notFoundByDate[date] = {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0,complained:0};
+      FIELDS.forEach(k => { notFoundByDate[date][k] += stats[k]||0; });
+    });
+  });
+  const nfOverall = {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0,complained:0};
+  Object.values(notFoundByDate).forEach(d => FIELDS.forEach(k => { nfOverall[k] += d[k]||0; }));
+  if (nfOverall.sent > 0) {
+    nfOverall.successRate  = nfOverall.delivered/nfOverall.sent*100;
+    nfOverall.deliveryRate = nfOverall.delivered/nfOverall.sent*100;
+    nfOverall.openRate     = nfOverall.delivered>0 ? nfOverall.opened/nfOverall.delivered*100 : 0;
+    nfOverall.clickRate    = nfOverall.opened>0 ? nfOverall.clicked/nfOverall.opened*100 : 0;
+    nfOverall.bounceRate   = nfOverall.bounced/nfOverall.sent*100;
+    nfOverall.unsubRate    = nfOverall.opened>0 ? nfOverall.unsubscribed/nfOverall.opened*100 : 0;
+    result['IP NOT FOUND'] = { overall: nfOverall, byDate: notFoundByDate };
+  }
+
+  const sortedIps = Object.keys(result).sort((a,b) => {
+    if (a==='IP NOT FOUND') return 1;
+    if (b==='IP NOT FOUND') return -1;
+    return a.localeCompare(b, undefined, {numeric:true});
+  });
+  const colorMap = {};
+  sortedIps.forEach((ip, i) => { colorMap[ip] = mmIpColorPalette[i % mmIpColorPalette.length]; });
+
+  _mmIpCache = { src: result, colorMap, sortedIps };
+  return _mmIpCache;
+}
+
+function mmGetIpSource() {
+  return mmBuildIpDataSource();
+}
+
+function mmGetColor(name) {
+  if (!_mmIpCache) mmGetIpSource();
+  return _mmIpCache.colorMap[name] || '#888';
+}
 
 function mmGetData(name) {
-  const src = mmTab==='provider' ? mmData.providers[name] : mmData.domains[name];
+  if (!_mmIpCache) mmGetIpSource();
+  const src = _mmIpCache.src[name];
+  if (!src) return null;
   const dates = mmActiveDates();
   const result = (dates.length === mmData.dates.length) ? {...src.overall} : mmAggDates(src.byDate, dates);
   if (result && result.unsubscribed === undefined) result.unsubscribed = 0;
@@ -2968,10 +3032,13 @@ function mmGetData(name) {
 }
 
 function mmGetAllData() {
-  const src = mmTab==='provider' ? mmData.providers : mmData.domains;
-  return Object.entries(src).map(([name, d]) => {
-    const row = mmGetData(name);
-    return row ? {name, ...row} : null;
+  const { src, sortedIps } = mmGetIpSource();
+  const dates = mmActiveDates();
+  return sortedIps.map(ip => {
+    const row = (dates.length === mmData.dates.length) ? {...src[ip].overall} : mmAggDates(src[ip].byDate, dates);
+    if (!row || !row.sent) return null;
+    if (row.unsubscribed === undefined) row.unsubscribed = 0;
+    return { name: ip, ...row };
   }).filter(Boolean);
 }
 
@@ -3136,7 +3203,7 @@ function mmRenderTrend(name) {
   const activeDates  = mmActiveDates();
   const granularity  = mmGetGranularity(mmNs);
   const groups       = dpGroupDates(activeDates, granularity);
-  const src          = mmTab==='provider' ? mmData.providers : mmData.domains;
+  const { src: ipSrc } = mmGetIpSource();
 
   let labels, srData=[], orData=[], ctrData=[], brData=[];
   let sentData=[], delData=[], openData=[], clickData=[];
@@ -3146,7 +3213,7 @@ function mmRenderTrend(name) {
     groups.forEach(g => {
       let s=0,dv=0,o=0,cl=0,b=0;
       g.dates.forEach(d => {
-        Object.values(src).forEach(en => {
+        Object.values(ipSrc).forEach(en => {
           const r = en.byDate[d]; if(!r) return;
           s+=r.sent; dv+=r.delivered; o+=r.opened; cl+=r.clicked; b+=r.bounced;
         });
@@ -3156,11 +3223,10 @@ function mmRenderTrend(name) {
       ctrData.push(+R.ctr.toFixed(2)); brData.push(+R.br.toFixed(2));
       sentData.push(s); delData.push(dv); openData.push(o); clickData.push(cl);
     });
-    const entLabel = mmTab==='provider'?'providers':'sending domains';
-    mmEl('TrendTitle').textContent = `Rate trends — all ${entLabel}`;
-    mmEl('VolTitle').textContent   = `Volume — all ${entLabel}`;
+    document.getElementById('mmTrendTitle').textContent = 'Rate trends — all IPs';
+    document.getElementById('mmVolTitle').textContent   = 'Volume — all IPs';
   } else {
-    const entity = mmTab==='provider' ? mmData.providers[name] : mmData.domains[name];
+    const entity = ipSrc[name];
     if (!entity) { mmRenderTrend(null); return; }
     labels = groups.map(g => g.label);
     groups.forEach(g => {
@@ -3284,7 +3350,7 @@ function mmRenderTable(rows) {
 function mmSelectRow(name) {
   mmSelectedRow = name;
   mmRenderTrend(name);
-  const src = mmTab==='provider' ? mmData.providers[name] : mmData.domains[name];
+  const src = mmGetIpSource().src[name];
   if (!src) return;
   mmEl('DayBreakdownTitle').textContent = `Daily breakdown — ${name}`;
   const days = mmActiveDates().filter(d=>src.byDate[d]);
@@ -3329,16 +3395,14 @@ function mmRenderGrid() {
   const activeDates  = mmActiveDates();
   const granularity  = mmGetGranularity(mmNs);
   const groups       = dpGroupDates(activeDates, granularity);  // [{label, dates}]
-  const isProvider   = mmTab === 'provider';
-  const src          = isProvider ? mmData.providers : mmData.domains;
-  const colorMap     = isProvider ? mmProviderColors  : mmDomainColors;
-  const entityLabel  = isProvider ? 'Email Provider'  : 'Sending Domain';
+  const { src, colorMap, sortedIps } = mmGetIpSource();
+  const entityLabel  = 'IP Address';
   const periodLabel  = granularity.charAt(0).toUpperCase() + granularity.slice(1);
 
-  // Sort by total sent volume descending
-  const entities = Object.entries(src)
-    .map(([name, d]) => {
-      const agg = mmAggDates(d.byDate, activeDates) || d.overall;
+  // Sort by total sent volume descending (already sorted by IP but re-sort by volume)
+  const entities = sortedIps
+    .map(name => {
+      const agg = mmAggDates(src[name].byDate, activeDates) || src[name].overall;
       return { name, sent: agg ? agg.sent : 0 };
     })
     .sort((a, b) => b.sent - a.sent)
@@ -3352,7 +3416,7 @@ function mmRenderGrid() {
     { key: 'ubr', label: 'Unsub%',   color: '#ff9a5c', fn:(r)=>{ const R=rates(r); return +R.ubr.toFixed(3); }, tip: (R,r) => tipUnsub(r.unsubscribed||0, r.opened) },
   ];
 
-  const getColor  = name => colorMap[name] || '#888';
+  const getColor  = name => colorMap[name] || mmIpColorPalette[0];
   const thStyle   = (col) => `padding:8px 6px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:${col};text-align:right;border-bottom:1px solid ${document.body.classList.contains('light')?'rgba(0,0,0,.1)':'rgba(255,255,255,.08)'};white-space:nowrap;user-select:none;`;
   const tdBaseStyle = `padding:9px 6px;font-family:var(--mono);font-size:11px;text-align:right;border-bottom:1px solid ${document.body.classList.contains('light')?'rgba(0,0,0,.07)':'rgba(255,255,255,.04)'};`;
 
@@ -3581,8 +3645,7 @@ let mmPieCharts = {};
 function mmRenderPies(rows) {
   const pieGrid = mmEl('PieGrid');
   if (!pieGrid) return;
-  pieGrid.style.display = mmTab === 'provider' ? 'grid' : 'none';
-  if (mmTab !== 'provider') return;
+  pieGrid.style.display = 'grid';
 
   const configs = [
     { id:mmNs+'PieSent',   centerId:mmNs+'PieSentCenter',   legId:mmNs+'PieSentLeg',   key:'sent',   accentColor:'#ffffff' },
@@ -3593,7 +3656,7 @@ function mmRenderPies(rows) {
   // Filter out zero-value rows for cleaner pies
   const activeRows = rows.filter(r => r.sent > 0);
   const labels  = activeRows.map(r => r.name);
-  const colors  = activeRows.map(r => mmProviderColors[r.name] || '#888');
+  const colors  = activeRows.map(r => mmGetColor(r.name));
 
   configs.forEach(cfg => {
     if (mmPieCharts[cfg.id]) { mmPieCharts[cfg.id].destroy(); delete mmPieCharts[cfg.id]; }
@@ -3683,6 +3746,16 @@ function mmRenderPies(rows) {
 }
 
 function mmRenderAll(){
+  const noData = document.getElementById('mmNoData');
+  const hasData = mmData.dates && mmData.dates.length > 0;
+
+  // Toggle no-data placeholder vs live content
+  if (noData) noData.style.display = hasData ? 'none' : 'block';
+  const contentEls = ['mmKpis','mmVolChart','mmTrendChart','mmPieGrid','mmGridTable'].map(id=>document.getElementById(id)?.closest('.chart-card, .kpi-grid, .table-section') || document.getElementById(id));
+  contentEls.forEach(el=>{ if(el) el.style.display = hasData ? '' : 'none'; });
+
+  if (!hasData) return;
+
   try {
   const rows = mmGetAllData();
   mmRenderKpis(rows);
@@ -3694,8 +3767,7 @@ function mmRenderAll(){
   mmEmbedRenderAll();
   } catch(err) {
     console.error('mmRenderAll crash:', err.stack||err.message);
-    // Show error inline instead of silent failure
-    const errBanner = mmEl('RenderError');
+    const errBanner = document.getElementById('mmRenderError');
     if(errBanner){ errBanner.textContent = '⚠ Render error: '+err.message; errBanner.style.display='block'; }
   }
 }
@@ -3704,22 +3776,14 @@ function mmRenderAll(){
    TAB SWITCHER
    ═══════════════════════════════════════════════ */
 function mmSetTab(tab){
-  mmTab=tab; mmSelectedRow=null;
-  const pBtn=mmEl('Tab-provider'), dBtn=mmEl('Tab-domain');
-  const light = document.body.classList.contains('light');
-  const activeBg   = '#4a2fa0', activeCol  = '#ffffff';
-  const inactiveBg = light ? '#e8eaef' : '#1e232b';
-  const inactiveCol= light ? '#374151' : '#d4dae6';
-  pBtn.style.background=tab==='provider'?activeBg:inactiveBg; pBtn.style.color=tab==='provider'?activeCol:inactiveCol;
-  dBtn.style.background=tab==='domain'  ?activeBg:inactiveBg; dBtn.style.color=tab==='domain'  ?activeCol:inactiveCol;
-  mmEl('TableTitle').textContent = `${tab==='provider'?'Email Provider':'Sending Domain'} summary`;
-  mmEl('DayBreakdown').style.display='none';
-  // Update KPI Charts section header
-  const viewId = mmNs === 'og' ? '#view-ongage' : '#view-mailmodo';
-  const kpiHdr = document.querySelector(`${viewId} .kpi-charts-grid`)?.previousElementSibling;
+  // Tab switcher removed — always in IP mode
+  mmTab = 'ip'; mmSelectedRow = null;
+  document.getElementById('mmTableTitle').textContent = 'IP Address summary';
+  document.getElementById('mmDayBreakdown').style.display='none';
+  const kpiHdr = document.querySelector('#view-mailmodo .kpi-charts-grid')?.previousElementSibling;
   if(kpiHdr){
     const titleEl = kpiHdr.querySelector('div>div:first-child');
-    if(titleEl) titleEl.textContent = `KPI Charts · ${tab==='provider'?'Email Provider':'Sending Domain'}`;
+    if(titleEl) titleEl.textContent = 'KPI Charts · IP Address';
   }
   mmRenderAll();
 }
@@ -3780,12 +3844,8 @@ function mmEmbedDestroyAll(){
 }
 
 function mmEmbedGetEntities(){
-  const src      = mmTab==='provider' ? mmData.providers : mmData.domains;
-  const colorMap = mmTab==='provider' ? mmProviderColors : mmDomainColors;
-  const sorted   = Object.entries(src)
-    .sort((a,b)=>b[1].overall.sent - a[1].overall.sent)
-    .map(([n])=>n);
-  return { names: sorted, colorMap, src };
+  const { src, colorMap, sortedIps } = mmGetIpSource();
+  return { names: sortedIps, colorMap, src };
 }
 
 function mmEmbedRenderByDate(){
@@ -3846,13 +3906,12 @@ function mmEmbedRenderByProvider(){
 
 function mmEmbedSetView(v){
   mmEmbedView=v;
-  mmEl('EmbedBtnDate').className     =`kpi-view-btn ${v==='date'    ?'active':'inactive'}`;
-  mmEl('EmbedBtnProvider').className =`kpi-view-btn ${v==='provider'?'active':'inactive'}`;
-  const entityWord = mmTab==='provider' ? 'provider' : 'domain';
-  const lbl=mmEl('EmbedViewLabel');
+  document.getElementById('mmEmbedBtnDate').className     =`kpi-view-btn ${v==='date'    ?'active':'inactive'}`;
+  document.getElementById('mmEmbedBtnProvider').className =`kpi-view-btn ${v==='provider'?'active':'inactive'}`;
+  const lbl=document.getElementById('mmEmbedViewLabel');
   if(lbl) lbl.textContent = v==='date'
-    ? `↔ X-axis: Dates — each line = one ${entityWord}`
-    : `↔ X-axis: ${mmTab==='provider'?'Email Providers':'Sending Domains'} — each bar = period total`;
+    ? '↔ X-axis: Dates — each line = one IP'
+    : '↔ X-axis: IP Addresses — each bar = period total';
   mmEmbedDestroyAll();
   if(v==='date') mmEmbedRenderByDate();
   else mmEmbedRenderByProvider();
@@ -3861,15 +3920,13 @@ function mmEmbedSetView(v){
 function mmEmbedRenderAll(){
   mmEmbedDestroyAll();
   // Update embed header label
-  const entityWord = mmTab==='provider' ? 'provider' : 'domain';
-  const lbl=mmEl('EmbedViewLabel');
+  const lbl=document.getElementById('mmEmbedViewLabel');
   if(lbl) lbl.textContent = mmEmbedView==='date'
-    ? `↔ X-axis: Dates — each line = one ${entityWord}`
-    : `↔ X-axis: ${mmTab==='provider'?'Email Providers':'Sending Domains'} — each bar = period total`;
+    ? '↔ X-axis: Dates — each line = one IP'
+    : '↔ X-axis: IP Addresses — each bar = period total';
   // Update section header
-  const viewId = mmNs === 'og' ? '#view-ongage' : '#view-mailmodo';
-  const secHdr = document.querySelector(`${viewId} .kpi-charts-grid`)?.previousElementSibling?.querySelector('div>div:first-child');
-  if(secHdr) secHdr.textContent = `KPI Charts · ${mmTab==='provider'?'Email Provider':'Sending Domain'}`;
+  const secHdr = document.querySelector('#view-mailmodo .kpi-charts-grid')?.previousElementSibling?.querySelector('div>div:first-child');
+  if(secHdr) secHdr.textContent = 'KPI Charts · IP Address';
   if(mmEmbedView==='date') mmEmbedRenderByDate();
   else mmEmbedRenderByProvider();
 }
@@ -4790,6 +4847,7 @@ function ipmEspColor(esp){
 // ── Persist ───────────────────────────────────────────────
 function ipmSave(){
   try{ localStorage.setItem('espDashboard_ipmData_v1', JSON.stringify(ipmData)); }catch(e){}
+  uploadPopulateEspDropdown();
 }
 function ipmLoadStorage(){
   try{
@@ -5010,11 +5068,12 @@ showView = function(v){
    ═══════════════════════════════════════════════════════════ */
 let uploadFile     = null;
 let uploadEsp      = '';
-let uploadCategory = ''; // 'mailmodo' | 'ongage'
+let uploadCategory = ''; // derived automatically from ESP
 let uploadHistory  = [];
 
 const uploadEspNotes = {
-  mailmodo:     'Mailmodo format detected — columns: id, campaign-name, email, sent-time, opens-html, opens-amp, clicks-html, clicks-amp, unsubscribed, complaints, delivery, bounced',
+  chrismodo:    'Mailmodo format — columns: id, campaign-name, email, sent-time, opens-html, opens-amp, clicks-html, clicks-amp, unsubscribed, complaints, delivery, bounced',
+  mailmodo:     'Mailmodo format — columns: id, campaign-name, email, sent-time, opens-html, opens-amp, clicks-html, clicks-amp, unsubscribed, complaints, delivery, bounced',
   hotsol:       'Hotsol format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
   mms:          'MMS format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
   kenscio:      'Kenscio format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
@@ -5023,6 +5082,24 @@ const uploadEspNotes = {
   bulkresponse: 'Bulkresponse format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
   ongage:       'Ongage format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
 };
+
+// Fallback ESP list when IP Matrix is empty
+const uploadEspFallback = ['Mailmodo','Ongage','Hotsol','MMS','Kenscio','Moosend','Netcore','Bulkresponse'];
+
+function uploadGetCategory(espValue) {
+  return espValue.toLowerCase() === 'ongage' ? 'ongage' : 'mailmodo';
+}
+
+function uploadPopulateEspDropdown() {
+  const sel = document.getElementById('uploadEspSelect');
+  if (!sel) return;
+  // Collect unique ESP names from ipmData, preserving casing
+  const fromIpm = [...new Set((typeof ipmData !== 'undefined' ? ipmData : []).map(r => r.esp).filter(Boolean))];
+  const list = fromIpm.length ? fromIpm : uploadEspFallback;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Choose an ESP —</option>'
+    + list.map(name => `<option value="${name.toLowerCase()}"${name.toLowerCase()===current?' selected':''}>${name}</option>`).join('');
+}
 
 function uploadLog(msg, type='') {
   const log = document.getElementById('uploadLog');
@@ -5038,30 +5115,14 @@ function uploadClearLog() {
   log.classList.remove('visible');
 }
 
-function uploadCategoryChanged() {
-  uploadCategory = document.getElementById('uploadCategorySelect').value;
-  const espField = document.getElementById('uploadEspField');
-  if (uploadCategory) {
-    espField.style.opacity = '1';
-    espField.style.pointerEvents = 'all';
-    // Reset ESP selection when category changes
-    document.getElementById('uploadEspSelect').value = '';
-    uploadEsp = '';
-    document.getElementById('uploadEspNote').style.display = 'none';
-    document.getElementById('uploadStep2').style.opacity = '.4';
-    document.getElementById('uploadStep2').style.pointerEvents = 'none';
-  } else {
-    espField.style.opacity = '.4';
-    espField.style.pointerEvents = 'none';
-  }
-}
-
 function uploadEspChanged() {
   uploadEsp = document.getElementById('uploadEspSelect').value;
-  const note = document.getElementById('uploadEspNote');
+  uploadCategory = uploadEsp ? uploadGetCategory(uploadEsp) : '';
+  const note  = document.getElementById('uploadEspNote');
   const step2 = document.getElementById('uploadStep2');
   if (uploadEsp) {
-    note.textContent = uploadEspNotes[uploadEsp] || '';
+    const noteText = uploadEspNotes[uploadEsp] || 'Generic ESP format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed';
+    note.textContent = noteText;
     note.style.display = 'block';
     step2.style.opacity = '1';
     step2.style.pointerEvents = 'all';
@@ -5116,9 +5177,12 @@ function uploadProcess() {
   reader.onload = function(e) {
     try {
       const data  = new Uint8Array(e.target.result);
-      const wb    = XLSX.read(data, { type: 'array', cellDates: true });
+      // For CSV files keep dates as raw strings so our dd/mm/yyyy parser handles them;
+      // for XLSX files keep cellDates:true so Excel serial numbers become Date objects.
+      const isCSV = uploadFile.name.toLowerCase().endsWith('.csv');
+      const wb    = XLSX.read(data, { type: 'array', cellDates: !isCSV, raw: isCSV });
       const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows  = XLSX.utils.sheet_to_json(sheet, { defval: null });
+      const rows  = XLSX.utils.sheet_to_json(sheet, { defval: null, raw: isCSV });
 
       uploadLog(`✓ File read — ${rows.length.toLocaleString()} rows, sheet: "${wb.SheetNames[0]}"`, 'ok');
 
@@ -5164,7 +5228,13 @@ function uploadProcess() {
 
       uploadLog(`\n✅ Merge complete! Dashboard updated.`, 'ok');
       uploadLog(`   New dates added: ${result.newDates.length > 0 ? result.newDates.join(', ') : 'none (existing dates updated)'}`, 'ok');
-      if (result.skipped > 0) uploadLog(`   ⚠ ${result.skipped} rows skipped (missing date or email)`, 'warn');
+      if (result.skipped > 0) {
+        const parts = [];
+        if (result.skipDate)  parts.push(`${result.skipDate} missing/invalid date`);
+        if (result.skipEmail) parts.push(`${result.skipEmail} missing email`);
+        const detail = parts.length ? ` (${parts.join(', ')})` : '';
+        uploadLog(`   ⚠ ${result.skipped} rows skipped${detail}`, 'warn');
+      }
       uploadLog(`\n📥 Click "Download Updated Dashboard" below to save permanently.`, 'ok');
 
       // Show Step 4
@@ -5194,19 +5264,44 @@ function uploadProcess() {
 function parseMailmodo(rows) {
   // Group by date, then by email_provider and sending_domain
   const byDate = {};   // { "Mar 01": { providers: {gmail:{...}}, domains: {domain:{...}}, overall:{...} } }
-  let skipped = 0;
+  let skipped = 0, skipDate = 0, skipEmail = 0;
 
   rows.forEach(row => {
     // Normalise keys to lowercase
     const r = {};
     Object.entries(row).forEach(([k,v]) => { r[k.toLowerCase().replace(/ /g,'-')] = v; });
 
-    // Extract date
-    let dt = r['sent-time'] || r['date'] || r['senttime'];
-    if (!dt) { skipped++; return; }
-    if (typeof dt === 'number') dt = new Date(Math.round((dt - 25569)*86400*1000));
-    const d = dt instanceof Date ? dt : new Date(dt);
-    if (isNaN(d)) { skipped++; return; }
+    // Extract date from sent-time column — format: "dd/mm/yyyy HH:MM:SS"
+    // e.g. "25/03/2026 07:11:00"  →  day=25, month=03, year=2026 (time ignored)
+    let dt = r['sent-time'] ?? r['date'] ?? r['senttime'];
+    if (dt === null || dt === undefined || dt === '') { skipped++; skipDate++; return; }
+    let day, month, year;
+    if (typeof dt === 'number') {
+      // Excel serial date — convert then extract local date parts
+      const tmp = new Date(Math.round((dt - 25569) * 86400 * 1000));
+      day = tmp.getDate(); month = tmp.getMonth() + 1; year = tmp.getFullYear();
+    } else if (dt instanceof Date) {
+      // Date object from XLSX cellDates — use local date parts to avoid UTC shift
+      day = dt.getDate(); month = dt.getMonth() + 1; year = dt.getFullYear();
+    } else {
+      const s = String(dt).trim();
+      // Try dd/mm/yyyy (Mailmodo format): "25/03/2026" or "25/03/2026 07:11:00"
+      const dmyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      // Try yyyy-mm-dd (ISO): "2026-03-25" or "2026-03-25T07:11:00"
+      const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (dmyMatch) {
+        day = +dmyMatch[1]; month = +dmyMatch[2]; year = +dmyMatch[3];
+      } else if (isoMatch) {
+        year = +isoMatch[1]; month = +isoMatch[2]; day = +isoMatch[3];
+      } else {
+        const tmp = new Date(s);
+        if (isNaN(tmp.getTime())) { skipped++; return; }
+        day = tmp.getDate(); month = tmp.getMonth() + 1; year = tmp.getFullYear();
+      }
+    }
+    if (!day || !month || !year) { skipped++; skipDate++; return; }
+    const d = new Date(year, month - 1, day);
+    if (isNaN(d.getTime())) { skipped++; skipDate++; return; }
     const dateKey = d.toLocaleDateString('en-US', { month:'short', day:'2-digit' }).replace(',','').replace(' 0',' ');
 
     // Extract fields — Mailmodo format
@@ -5219,7 +5314,7 @@ function parseMailmodo(rows) {
 
     // Extract provider from email
     const provider = email.includes('@') ? email.split('@')[1] : null;
-    if (!provider) { skipped++; return; }
+    if (!provider) { skipped++; skipEmail++; return; }
 
     // Extract sending domain from campaign-name
     const campaign = r['campaign-name'] || '';
@@ -5254,7 +5349,7 @@ function parseMailmodo(rows) {
   });
 
   const dates = Object.keys(byDate).sort((a,b)=>new Date('2026 '+a)-new Date('2026 '+b));
-  return { byDate, dates, totalRows: rows.length, skipped, newDates: [], format: 'mailmodo' };
+  return { byDate, dates, totalRows: rows.length, skipped, skipDate, skipEmail, newDates: [], format: 'mailmodo' };
 }
 
 /* ── Generic ESP parser ───────────────────────────────── */
@@ -5264,13 +5359,14 @@ function parseGenericESP(rows, espName) {
   const keys   = Object.keys(sample).map(k=>k.toLowerCase());
 
   const findCol = (...candidates) => candidates.find(c => keys.includes(c)) || null;
-  const dateCol  = findCol('date','sent-time','senttime','send_date','senddate','datetime');
-  const delivCol = findCol('delivered','delivery','success','status');
-  const openCol  = findCol('opens','open','opens-html','opens_html','total_opens');
-  const clickCol = findCol('clicks','click','total_clicks');
-  const bounceCol= findCol('bounced','bounce','hard_bounce','hardbounce');
-  const unsubCol = findCol('unsubscribed','unsub','unsubscribe');
-  const emailCol = findCol('email','email_address','recipient');
+  const dateCol   = findCol('action_timestamp_rounded','date','sent-time','senttime','send_date','senddate','datetime','timestamp');
+  const delivCol  = findCol('delivered','delivery','success','status');
+  const openCol   = findCol('opens','open','opens-html','opens_html','total_opens');
+  const clickCol  = findCol('clicks','click','total_clicks');
+  const bounceCol = findCol('bounced','bounce','hard_bounce','hardbounce');
+  const unsubCol  = findCol('unsubscribed','unsub','unsubscribe');
+  const emailCol  = findCol('email','email_address','recipient');
+  const domainCol = findCol('mailing_name','from_domain','from-domain','sending_domain','domain');
 
   if (!dateCol) return { error: `Could not find a date column. Found: ${Object.keys(sample).join(', ')}` };
 
@@ -5282,10 +5378,24 @@ function parseGenericESP(rows, espName) {
     Object.entries(row).forEach(([k,v]) => { r[k.toLowerCase()] = v; });
 
     let dt = r[dateCol];
-    if (!dt) { skipped++; return; }
-    if (typeof dt === 'number') dt = new Date(Math.round((dt - 25569)*86400*1000));
-    const d = dt instanceof Date ? dt : new Date(dt);
-    if (isNaN(d)) { skipped++; return; }
+    if (dt === null || dt === undefined || dt === '') { skipped++; return; }
+    let day, month, year;
+    if (typeof dt === 'number') {
+      const tmp = new Date(Math.round((dt - 25569) * 86400 * 1000));
+      day = tmp.getDate(); month = tmp.getMonth() + 1; year = tmp.getFullYear();
+    } else if (dt instanceof Date) {
+      day = dt.getDate(); month = dt.getMonth() + 1; year = dt.getFullYear();
+    } else {
+      const s = String(dt).trim();
+      const dmyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);   // dd/mm/yyyy
+      const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);     // yyyy-mm-dd
+      if (dmyMatch)      { day = +dmyMatch[1]; month = +dmyMatch[2]; year = +dmyMatch[3]; }
+      else if (isoMatch) { year = +isoMatch[1]; month = +isoMatch[2]; day = +isoMatch[3]; }
+      else { const tmp = new Date(s); if (isNaN(tmp.getTime())) { skipped++; return; } day = tmp.getDate(); month = tmp.getMonth()+1; year = tmp.getFullYear(); }
+    }
+    if (!day || !month || !year) { skipped++; return; }
+    const d = new Date(year, month - 1, day);
+    if (isNaN(d.getTime())) { skipped++; return; }
     const dateKey = d.toLocaleDateString('en-US', { month:'short', day:'2-digit' }).replace(',','').replace(' 0',' ');
 
     const delivered = delivCol ? (r[delivCol]===true||r[delivCol]==='true'||+r[delivCol]>0 ? 1 : 0) : 0;
@@ -5295,6 +5405,7 @@ function parseGenericESP(rows, espName) {
     const unsub     = unsubCol ? (r[unsubCol]===true||r[unsubCol]==='true'||+r[unsubCol]>0 ? 1 : 0) : 0;
     const email     = emailCol ? (r[emailCol]||'').toLowerCase() : '';
     const provider  = email.includes('@') ? email.split('@')[1] : 'unknown';
+    const domain    = domainCol ? (r[domainCol]||'').toString().trim().toLowerCase() : null;
 
     if (!byDate[dateKey]) byDate[dateKey] = { rows:0, providers:{}, domains:{} };
     const dt2 = byDate[dateKey];
@@ -5303,6 +5414,12 @@ function parseGenericESP(rows, espName) {
     if (!dt2.providers[provider]) dt2.providers[provider] = {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0};
     const p = dt2.providers[provider];
     p.sent++; p.delivered+=delivered; p.opened+=opened; p.clicked+=clicked; p.bounced+=bounced; p.unsubscribed+=unsub;
+
+    if (domain) {
+      if (!dt2.domains[domain]) dt2.domains[domain] = {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0};
+      const dm = dt2.domains[domain];
+      dm.sent++; dm.delivered+=delivered; dm.opened+=opened; dm.clicked+=clicked; dm.bounced+=bounced; dm.unsubscribed+=unsub;
+    }
   });
 
   const dates = Object.keys(byDate).sort((a,b)=>new Date('2026 '+a)-new Date('2026 '+b));
@@ -5449,10 +5566,10 @@ function exportUpdatedDashboard() {
     .then(r => r.text())
     .then(html => {
       // Build the new mmData block — serialize live data
-      const newBlock = `const mmData = ${JSON.stringify(mmData, null, 2)};`;
+      const newBlock = `let mmData = ${JSON.stringify(mmData, null, 2)};`;
 
       // Find and replace the old mmData block
-      let replaced = html.replace(/const mmData = \{[\s\S]*?\n\};/, newBlock);
+      let replaced = html.replace(/let mmData = \{[\s\S]*?\n\};/, newBlock);
 
       // Also embed DM data permanently
       if(dmData.length){
@@ -5495,8 +5612,8 @@ function exportUpdatedDashboardFallback() {
   // When opened as a local file, fetch(self) is blocked — use the document's own outerHTML
   // then patch the mmData variable inside it
   const html = document.documentElement.outerHTML;
-  const newBlock = `const mmData = ${JSON.stringify(mmData, null, 2)};`;
-  let replaced = html.replace(/const mmData = \{[\s\S]*?\n\};/, newBlock);
+  const newBlock = `let mmData = ${JSON.stringify(mmData, null, 2)};`;
+  let replaced = html.replace(/let mmData = \{[\s\S]*?\n\};/, newBlock);
   if(dmData.length){
     const dmRaw = JSON.stringify(dmData.map(r=>r._raw));
     replaced = replaced.replace('const dmSeedData = [];', 'const dmSeedData = ' + dmRaw + ';');
@@ -5798,7 +5915,7 @@ function dpInit(ns){
     document.getElementById(`${ns}DpFromTxt`).textContent=dpFmtShort(s.fromDate);
     document.getElementById(`${ns}DpToTxt`).textContent=dpFmtShort(s.toDate);
   }
-  dpUpdateRangeLabel(ns,0,mmData.dates.length-1);
+  if(mmData.dates.length) dpUpdateRangeLabel(ns,0,mmData.dates.length-1);
 }
 
 // Close popups when clicking outside
@@ -5916,8 +6033,8 @@ const ogData = {
 let _activeReviewCtx = 'mailmodo'; // 'mailmodo' | 'ongage'
 let _savedMmCtx = null;
 let _ogCtx = {
-  data: ogData, fromIdx: 0, toIdx: 0, tab: 'provider', selRow: null,
-  embedView: 'date', ns: 'og',
+  data: ogData, fromIdx: 0, toIdx: 0, tab: 'ip', selRow: null,
+  embedView: 'date',
   dp: { fromDate:null, toDate:null, curYear: new Date().getFullYear(), curMonth:0, mode:'day', which:'from' }
 };
 
@@ -6000,7 +6117,7 @@ setTimeout(()=>{
   mmNs='mm'; mmcNs='mmc';
   mmPopulateDates(); mmcPopulateDates(); mxPopulateDates();
   dpInit('mm'); dpInit('mmc'); dpInit('mx');
-  dpInit('og'); dpInit('ogc');
+  uploadPopulateEspDropdown();
   // Snapshot initial Mailmodo context so Ongage can restore it
   _savedMmCtx = _captureCtx();
   showView('home');
