@@ -131,6 +131,10 @@
   .nav-item:hover{background:var(--surface2);color:var(--text);}
   .nav-item.active{background:rgba(0,229,195,.08);color:var(--accent);}
   .nav-item svg{width:15px;height:15px;flex-shrink:0;}
+  .nav-group-header{display:flex;align-items:center;justify-content:space-between;padding:8px 20px 6px;cursor:pointer;color:#c8cdd6;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;user-select:none;}
+  .nav-group-header:hover{color:var(--text);}
+  .nav-group-arrow{font-size:10px;transition:transform .2s;display:inline-block;}
+  .nav-item.nav-sub{padding-left:28px;font-size:12px;}
   .esp-list{padding:0 12px;margin-top:16px;}
   .esp-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;cursor:pointer;margin-bottom:2px;transition:all .15s;border:1px solid transparent;}
   .esp-item:hover{background:var(--surface2);}
@@ -511,14 +515,23 @@
   </div>
   <div class="nav-section">
     <div class="nav-label">Navigation</div>
-    <button class="nav-item active" id="nav-mailmodo" onclick="showMailmodoReview()">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
-      Mailmodo Review
-    </button>
-    <button class="nav-item" id="nav-ongage" onclick="showOngageReview()">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
-      Ongage Review
-    </button>
+    <!-- Email Providers collapsible group -->
+    <div id="nav-group-providers">
+      <div class="nav-group-header" onclick="toggleProvidersList()">
+        <span>Email Providers</span>
+        <span id="providersArrow" class="nav-group-arrow">▼</span>
+      </div>
+      <div id="providersNavList">
+        <button class="nav-item nav-sub active" id="nav-mailmodo" onclick="showMailmodoReview()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
+          Mailmodo Review
+        </button>
+        <button class="nav-item nav-sub" id="nav-ongage" onclick="showOngageReview()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
+          Ongage Review
+        </button>
+      </div>
+    </div>
     <button class="nav-item" id="nav-upload" onclick="showView('upload')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10V2M5 5l3-3 3 3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
       Upload Report
@@ -1191,14 +1204,22 @@
         <div class="page-title">Upload Report</div>
         <div class="page-sub">Add new daily sendout data — select ESP then upload the activity file</div>
       </div>
-      <button class="btn btn-sm" onclick="showView('mailmodo')">← Back to Review</button>
+      <button class="btn btn-sm" id="uploadBackBtn" onclick="uploadGoBack()">← Back to Review</button>
     </div>
 
-    <!-- Step 1: Choose ESP -->
+    <!-- Step 1: Choose Category + ESP -->
     <div class="upload-card">
-      <h3>Step 1 — Select ESP</h3>
-      <p>Choose which ESP this file belongs to. The data will be merged into that ESP's section in the dashboard.</p>
+      <h3>Step 1 — Select Category &amp; ESP</h3>
+      <p>Choose the review this data belongs to, then select the ESP. Data will be merged into that review's dataset.</p>
       <div class="upload-field">
+        <div class="upload-label">Review Category</div>
+        <select id="uploadCategorySelect" class="upload-select" onchange="uploadCategoryChanged()">
+          <option value="">— Choose category —</option>
+          <option value="mailmodo">Mailmodo Review</option>
+          <option value="ongage">Ongage Review</option>
+        </select>
+      </div>
+      <div class="upload-field" id="uploadEspField" style="opacity:.4;pointer-events:none;">
         <div class="upload-label">ESP Provider</div>
         <select id="uploadEspSelect" class="upload-select" onchange="uploadEspChanged()">
           <option value="">— Choose an ESP —</option>
@@ -4368,6 +4389,7 @@ showView = function(v){
    ═══════════════════════════════════════════════════════════ */
 let uploadFile     = null;
 let uploadEsp      = '';
+let uploadCategory = ''; // 'mailmodo' | 'ongage'
 let uploadHistory  = [];
 
 const uploadEspNotes = {
@@ -4395,6 +4417,24 @@ function uploadClearLog() {
   log.classList.remove('visible');
 }
 
+function uploadCategoryChanged() {
+  uploadCategory = document.getElementById('uploadCategorySelect').value;
+  const espField = document.getElementById('uploadEspField');
+  if (uploadCategory) {
+    espField.style.opacity = '1';
+    espField.style.pointerEvents = 'all';
+    // Reset ESP selection when category changes
+    document.getElementById('uploadEspSelect').value = '';
+    uploadEsp = '';
+    document.getElementById('uploadEspNote').style.display = 'none';
+    document.getElementById('uploadStep2').style.opacity = '.4';
+    document.getElementById('uploadStep2').style.pointerEvents = 'none';
+  } else {
+    espField.style.opacity = '.4';
+    espField.style.pointerEvents = 'none';
+  }
+}
+
 function uploadEspChanged() {
   uploadEsp = document.getElementById('uploadEspSelect').value;
   const note = document.getElementById('uploadEspNote');
@@ -4409,6 +4449,11 @@ function uploadEspChanged() {
     step2.style.opacity = '.4';
     step2.style.pointerEvents = 'none';
   }
+}
+
+function uploadGoBack() {
+  if (uploadCategory === 'ongage') showOngageReview();
+  else showMailmodoReview();
 }
 
 function uploadFileSelected(input) {
@@ -4438,7 +4483,7 @@ function uploadFileSelected(input) {
 
 /* ── Parse the uploaded file ─────────────────────────── */
 function uploadProcess() {
-  if (!uploadFile || !uploadEsp) return;
+  if (!uploadFile || !uploadEsp || !uploadCategory) return;
   uploadClearLog();
   uploadLog(`⏳ Parsing "${uploadFile.name}"…`);
 
@@ -4475,8 +4520,26 @@ function uploadProcess() {
 
       uploadLog(`✓ Parsed ${result.totalRows.toLocaleString()} records across ${result.dates.length} dates: ${result.dates.join(', ')}`, 'ok');
 
-      // Merge into mmData
-      mergeIntoMmData(result, uploadEsp);
+      // Merge into the selected review category's data store
+      if (uploadCategory === 'ongage') {
+        // Merge directly into ogData without touching Mailmodo state or localStorage
+        const _s = mmData, _f = mmFromIdx, _t = mmToIdx;
+        mmData = ogData; mmFromIdx = _ogCtx.fromIdx; mmToIdx = _ogCtx.toIdx;
+        _origMerge(result, uploadEsp);
+        _ogCtx.fromIdx = mmFromIdx; _ogCtx.toIdx = mmToIdx;
+        mmData = _s; mmFromIdx = _f; mmToIdx = _t;
+      } else {
+        // Merge into Mailmodo data (mmData or saved Mailmodo ctx if currently in Ongage)
+        if (_activeReviewCtx === 'ongage' && _savedMmCtx) {
+          const _s = mmData, _f = mmFromIdx, _t = mmToIdx;
+          mmData = _savedMmCtx.data; mmFromIdx = _savedMmCtx.fromIdx; mmToIdx = _savedMmCtx.toIdx;
+          mergeIntoMmData(result, uploadEsp); // includes persistSave
+          _savedMmCtx.fromIdx = mmFromIdx; _savedMmCtx.toIdx = mmToIdx;
+          mmData = _s; mmFromIdx = _f; mmToIdx = _t;
+        } else {
+          mergeIntoMmData(result, uploadEsp);
+        }
+      }
 
       uploadLog(`\n✅ Merge complete! Dashboard updated.`, 'ok');
       uploadLog(`   New dates added: ${result.newDates.length > 0 ? result.newDates.join(', ') : 'none (existing dates updated)'}`, 'ok');
@@ -5120,6 +5183,14 @@ function toggleEspList(){
   arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
+function toggleProvidersList(){
+  const list  = document.getElementById('providersNavList');
+  const arrow = document.getElementById('providersArrow');
+  const open  = list.style.display !== 'none';
+  list.style.display  = open ? 'none' : '';
+  arrow.style.transform = open ? 'rotate(-90deg)' : 'rotate(0deg)';
+}
+
 /* ═══════════════════════════════════════════════════════════
    PERSISTENCE — localStorage save/load
    Saves uploaded data so it survives page refresh.
@@ -5233,6 +5304,15 @@ function _applyCtx(ctx) {
   Object.assign(dpState.mm, ctx.dp);
 }
 
+function _expandProvidersNav() {
+  const list = document.getElementById('providersNavList');
+  const arrow = document.getElementById('providersArrow');
+  if (list && list.style.display === 'none') {
+    list.style.display = '';
+    if (arrow) arrow.style.transform = 'rotate(0deg)';
+  }
+}
+
 function showMailmodoReview() {
   if (_activeReviewCtx === 'ongage') {
     _ogCtx = _captureCtx();
@@ -5243,6 +5323,7 @@ function showMailmodoReview() {
   showView('mailmodo');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('nav-mailmodo').classList.add('active');
+  _expandProvidersNav();
   dpInit('mm'); mmUpdateRangeLabel(); mmRenderAll();
 }
 
@@ -5256,6 +5337,7 @@ function showOngageReview() {
   showView('mailmodo');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('nav-ongage').classList.add('active');
+  _expandProvidersNav();
   dpInit('mm'); mmUpdateRangeLabel(); mmRenderAll();
 }
 /* ═══════════════════════════════════════════════════════════ */

@@ -135,6 +135,8 @@ Label always reflects **current** active mode.
 - [x] IP registry view
 
 ### Recent Changes
+- *March 2026:* Added **"Email Providers" nav dropdown** — collapsible group in sidebar containing Mailmodo Review and Ongage Review items.
+- *March 2026:* **Upload category routing** — upload Step 1 now has a "Review Category" selector (Mailmodo/Ongage). Ongage uploads use `_origMerge` directly into `ogData`; Mailmodo uploads use the standard `mergeIntoMmData` (with `persistSave`). `uploadGoBack()` navigates to the correct review after upload.
 - *March 2026:* Added **Ongage Review** page — reuses `view-mailmodo` HTML and all `mm*` render functions via a data context swap (`_captureCtx`/`_applyCtx`). `ogData` holds separate Ongage data; `showOngageReview()`/`showMailmodoReview()` switch context. No render logic duplicated.
 - *March 2026:* Replaced date filter `<select>` dropdowns with calendar picker buttons across mm/mmc/mx views — uses existing `dpState`/`dpOpen`/`dpRenderPopup` engine; IDs follow `${ns}DpFrom/ToBtn/Popup/Txt` pattern.
 - *March 2026:* Fixed theme toggle label mismatch — label now shows current active mode.
