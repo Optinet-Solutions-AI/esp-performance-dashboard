@@ -5286,8 +5286,8 @@ function parseMailmodo(rows) {
       day = dt.getDate(); month = dt.getMonth() + 1; year = dt.getFullYear();
     } else {
       const s = String(dt).trim();
-      // Try dd/mm/yyyy (Mailmodo format): "25/03/2026" or "25/03/2026 07:11:00"
-      const dmyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      // Try dd/mm/yyyy or dd-mm-yyyy (Mailmodo format): "25/03/2026" or "25-03-2026"
+      const dmyMatch = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
       // Try yyyy-mm-dd (ISO): "2026-03-25" or "2026-03-25T07:11:00"
       const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
       if (dmyMatch) {
@@ -5388,7 +5388,7 @@ function parseGenericESP(rows, espName) {
       day = dt.getDate(); month = dt.getMonth() + 1; year = dt.getFullYear();
     } else {
       const s = String(dt).trim();
-      const dmyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);   // dd/mm/yyyy
+      const dmyMatch = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);   // dd/mm/yyyy or dd-mm-yyyy
       const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);     // yyyy-mm-dd
       if (dmyMatch)      { day = +dmyMatch[1]; month = +dmyMatch[2]; year = +dmyMatch[3]; }
       else if (isoMatch) { year = +isoMatch[1]; month = +isoMatch[2]; day = +isoMatch[3]; }
