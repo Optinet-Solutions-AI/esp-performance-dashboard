@@ -928,6 +928,14 @@
       </div>
     </div>
 
+    <!-- No-data placeholder (shown when review has no uploaded data yet) -->
+    <div id="mmNoData" style="display:none;text-align:center;padding:80px 24px;">
+      <div style="font-size:48px;margin-bottom:20px;">📭</div>
+      <div style="font-size:18px;font-weight:600;color:#ffffff;margin-bottom:8px;">No data yet</div>
+      <div style="font-size:13px;color:#c8cdd6;margin-bottom:24px;font-family:var(--mono);">Upload an activity file to see statistics for this ESP.</div>
+      <button class="btn" onclick="showView('upload')" style="background:#4a2fa0;color:#fff;border:none;border-radius:9px;padding:11px 28px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.06em;cursor:pointer;">Go to Upload Report →</button>
+    </div>
+
     <!-- KPI row — rendered by JS, tooltips on hover only -->
     <div id="mmRenderError" style="display:none;background:#ff4757;color:#fff;padding:12px 16px;border-radius:8px;font-family:var(--mono);font-size:11px;margin-bottom:16px;"></div>
     <div class="kpi-grid" id="mmKpis" style="margin-bottom:24px;grid-template-columns:repeat(5,minmax(0,1fr));"></div>
@@ -3292,6 +3300,16 @@ function mmRenderPies(rows) {
 }
 
 function mmRenderAll(){
+  const noData = document.getElementById('mmNoData');
+  const hasData = mmData.dates && mmData.dates.length > 0;
+
+  // Toggle no-data placeholder vs live content
+  if (noData) noData.style.display = hasData ? 'none' : 'block';
+  const contentEls = ['mmKpis','mmVolChart','mmTrendChart','mmPieGrid','mmGridTable'].map(id=>document.getElementById(id)?.closest('.chart-card, .kpi-grid, .table-section') || document.getElementById(id));
+  contentEls.forEach(el=>{ if(el) el.style.display = hasData ? '' : 'none'; });
+
+  if (!hasData) return;
+
   try {
   const rows = mmGetAllData();
   mmRenderKpis(rows);
@@ -3303,7 +3321,6 @@ function mmRenderAll(){
   mmEmbedRenderAll();
   } catch(err) {
     console.error('mmRenderAll crash:', err.stack||err.message);
-    // Show error inline instead of silent failure
     const errBanner = document.getElementById('mmRenderError');
     if(errBanner){ errBanner.textContent = '⚠ Render error: '+err.message; errBanner.style.display='block'; }
   }
@@ -5414,7 +5431,7 @@ function dpInit(ns){
     document.getElementById(`${ns}DpFromTxt`).textContent=dpFmtShort(s.fromDate);
     document.getElementById(`${ns}DpToTxt`).textContent=dpFmtShort(s.toDate);
   }
-  dpUpdateRangeLabel(ns,0,mmData.dates.length-1);
+  if(mmData.dates.length) dpUpdateRangeLabel(ns,0,mmData.dates.length-1);
 }
 
 // Close popups when clicking outside
