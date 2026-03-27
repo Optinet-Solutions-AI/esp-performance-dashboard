@@ -4805,12 +4805,29 @@ function parseChrismodo(rows) {
     const r = {};
     Object.entries(row).forEach(([k,v]) => { r[k.toLowerCase().replace(/ /g,'-')] = v; });
 
-    // Extract date
-    let dt = r['sent-time'] || r['date'] || r['senttime'];
-    if (!dt) { skipped++; return; }
-    if (typeof dt === 'number') dt = new Date(Math.round((dt - 25569)*86400*1000));
-    const d = dt instanceof Date ? dt : new Date(dt);
-    if (isNaN(d)) { skipped++; return; }
+    // Extract date from sent-time column (primary), fallback to date/senttime
+    let dt = r['sent-time'] ?? r['date'] ?? r['senttime'];
+    if (dt === null || dt === undefined || dt === '') { skipped++; return; }
+    let d;
+    if (typeof dt === 'number') {
+      // Excel serial date
+      d = new Date(Math.round((dt - 25569) * 86400 * 1000));
+    } else if (dt instanceof Date) {
+      d = dt;
+    } else {
+      // String — extract date part only, handle "YYYY-MM-DD HH:MM:SS" and ISO variants
+      const s = String(dt).trim();
+      const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      const usMatch  = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (isoMatch) {
+        d = new Date(+isoMatch[1], +isoMatch[2] - 1, +isoMatch[3]);
+      } else if (usMatch) {
+        d = new Date(+usMatch[3], +usMatch[1] - 1, +usMatch[2]);
+      } else {
+        d = new Date(s);
+      }
+    }
+    if (!d || isNaN(d.getTime())) { skipped++; return; }
     const dateKey = d.toLocaleDateString('en-US', { month:'short', day:'2-digit' }).replace(',','').replace(' 0',' ');
 
     // Extract fields — Chrismodo format
