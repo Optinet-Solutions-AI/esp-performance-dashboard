@@ -1276,30 +1276,14 @@
       <button class="btn btn-sm" id="uploadBackBtn" onclick="uploadGoBack()">← Back to Review</button>
     </div>
 
-    <!-- Step 1: Choose Category + ESP -->
+    <!-- Step 1: Choose ESP -->
     <div class="upload-card">
-      <h3>Step 1 — Select Category &amp; ESP</h3>
-      <p>Choose the review this data belongs to, then select the ESP. Data will be merged into that review's dataset.</p>
-      <div class="upload-field">
-        <div class="upload-label">Review Category</div>
-        <select id="uploadCategorySelect" class="upload-select" onchange="uploadCategoryChanged()">
-          <option value="">— Choose category —</option>
-          <option value="mailmodo">Mailmodo Review</option>
-          <option value="ongage">Ongage Review</option>
-        </select>
-      </div>
-      <div class="upload-field" id="uploadEspField" style="opacity:.4;pointer-events:none;">
-        <div class="upload-label">ESP Provider</div>
+      <h3>Step 1 — Select ESP</h3>
+      <p>Choose the ESP this data belongs to. The file will be merged into that ESP's dataset and all related dashboards will update automatically.</p>
+      <div class="upload-field" id="uploadEspField">
+        <div class="upload-label">ESP</div>
         <select id="uploadEspSelect" class="upload-select" onchange="uploadEspChanged()">
           <option value="">— Choose an ESP —</option>
-          <option value="mailmodo">Chrismodo</option>
-          <option value="hotsol">Hotsol</option>
-          <option value="mms">MMS</option>
-          <option value="kenscio">Kenscio</option>
-          <option value="moosend">Moosend</option>
-          <option value="netcore">Netcore</option>
-          <option value="bulkresponse">Bulkresponse</option>
-          <option value="ongage">Ongage</option>
         </select>
       </div>
       <div id="uploadEspNote" style="font-family:var(--mono);font-size:10px;color:#c8cdd6;display:none;"></div>
@@ -4408,6 +4392,7 @@ function ipmEspColor(esp){
 // ── Persist ───────────────────────────────────────────────
 function ipmSave(){
   try{ localStorage.setItem('espDashboard_ipmData_v1', JSON.stringify(ipmData)); }catch(e){}
+  uploadPopulateEspDropdown();
 }
 function ipmLoadStorage(){
   try{
@@ -4626,11 +4611,12 @@ showView = function(v){
    ═══════════════════════════════════════════════════════════ */
 let uploadFile     = null;
 let uploadEsp      = '';
-let uploadCategory = ''; // 'mailmodo' | 'ongage'
+let uploadCategory = ''; // derived automatically from ESP
 let uploadHistory  = [];
 
 const uploadEspNotes = {
-  mailmodo:     'Chrismodo format detected — columns: id, campaign-name, email, sent-time, opens-html, opens-amp, clicks-html, clicks-amp, unsubscribed, complaints, delivery, bounced',
+  chrismodo:    'Chrismodo format — columns: id, campaign-name, email, sent-time, opens-html, opens-amp, clicks-html, clicks-amp, unsubscribed, complaints, delivery, bounced',
+  mailmodo:     'Chrismodo format — columns: id, campaign-name, email, sent-time, opens-html, opens-amp, clicks-html, clicks-amp, unsubscribed, complaints, delivery, bounced',
   hotsol:       'Hotsol format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
   mms:          'MMS format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
   kenscio:      'Kenscio format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
@@ -4639,6 +4625,24 @@ const uploadEspNotes = {
   bulkresponse: 'Bulkresponse format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
   ongage:       'Ongage format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed',
 };
+
+// Fallback ESP list when IP Matrix is empty
+const uploadEspFallback = ['Chrismodo','Ongage','Hotsol','MMS','Kenscio','Moosend','Netcore','Bulkresponse'];
+
+function uploadGetCategory(espValue) {
+  return espValue.toLowerCase() === 'ongage' ? 'ongage' : 'mailmodo';
+}
+
+function uploadPopulateEspDropdown() {
+  const sel = document.getElementById('uploadEspSelect');
+  if (!sel) return;
+  // Collect unique ESP names from ipmData, preserving casing
+  const fromIpm = [...new Set((typeof ipmData !== 'undefined' ? ipmData : []).map(r => r.esp).filter(Boolean))];
+  const list = fromIpm.length ? fromIpm : uploadEspFallback;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Choose an ESP —</option>'
+    + list.map(name => `<option value="${name.toLowerCase()}"${name.toLowerCase()===current?' selected':''}>${name}</option>`).join('');
+}
 
 function uploadLog(msg, type='') {
   const log = document.getElementById('uploadLog');
@@ -4654,30 +4658,14 @@ function uploadClearLog() {
   log.classList.remove('visible');
 }
 
-function uploadCategoryChanged() {
-  uploadCategory = document.getElementById('uploadCategorySelect').value;
-  const espField = document.getElementById('uploadEspField');
-  if (uploadCategory) {
-    espField.style.opacity = '1';
-    espField.style.pointerEvents = 'all';
-    // Reset ESP selection when category changes
-    document.getElementById('uploadEspSelect').value = '';
-    uploadEsp = '';
-    document.getElementById('uploadEspNote').style.display = 'none';
-    document.getElementById('uploadStep2').style.opacity = '.4';
-    document.getElementById('uploadStep2').style.pointerEvents = 'none';
-  } else {
-    espField.style.opacity = '.4';
-    espField.style.pointerEvents = 'none';
-  }
-}
-
 function uploadEspChanged() {
   uploadEsp = document.getElementById('uploadEspSelect').value;
-  const note = document.getElementById('uploadEspNote');
+  uploadCategory = uploadEsp ? uploadGetCategory(uploadEsp) : '';
+  const note  = document.getElementById('uploadEspNote');
   const step2 = document.getElementById('uploadStep2');
   if (uploadEsp) {
-    note.textContent = uploadEspNotes[uploadEsp] || '';
+    const noteText = uploadEspNotes[uploadEsp] || 'Generic ESP format — ensure file contains: email, date, delivered, opens, clicks, bounced, unsubscribed';
+    note.textContent = noteText;
     note.style.display = 'block';
     step2.style.opacity = '1';
     step2.style.pointerEvents = 'all';
@@ -5588,6 +5576,7 @@ mxResetRange = function(){ dpReset('mx'); };
 setTimeout(()=>{
   mmPopulateDates(); mmcPopulateDates(); mxPopulateDates();
   dpInit('mm'); dpInit('mmc'); dpInit('mx');
+  uploadPopulateEspDropdown();
   // Snapshot initial Mailmodo context so Ongage can restore it
   _savedMmCtx = _captureCtx();
   showView('home');
