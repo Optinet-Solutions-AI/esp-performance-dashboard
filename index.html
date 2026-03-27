@@ -6034,6 +6034,11 @@ function persistSave() {
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     localStorage.setItem(HISTORY_KEY, JSON.stringify(uploadHistory));
+
+    // Database Sync
+    if (typeof sbSave === 'function' && sbConnected) {
+      sbSave().catch(err => console.error('Supabase upload sync failed:', err));
+    }
   } catch(e) {
     console.warn('Could not save to localStorage:', e.message);
   }
