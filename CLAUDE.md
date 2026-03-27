@@ -81,6 +81,8 @@ Misc UI state: `activeFilter`, `activeEsp`, `sortKey`, `sortDir`, `searchQ`, `mm
 | `uploadProcess()` | Parse XLSX, merge rows into `mmData` |
 | `exportUpdatedDashboard()` | Serialize state → downloadable HTML |
 | `toggleTheme()` | Flip dark/light, update label, rebuild charts |
+| `showMailmodoReview()` | Switch to Mailmodo Review (restores mm context) |
+| `showOngageReview()` | Switch to Ongage Review (swaps mm* globals to ogData) |
 | `dpInit(ns)` | Init calendar picker text for a view namespace (mm/mmc/mx) |
 | `dpOpen(ns,which,event)` | Open calendar popup for from/to picker |
 | `dpApplyToView(ns)` | Apply selected calendar dates → update view indices + re-render |
@@ -133,6 +135,7 @@ Label always reflects **current** active mode.
 - [x] IP registry view
 
 ### Recent Changes
+- *March 2026:* Added **Ongage Review** page — reuses `view-mailmodo` HTML and all `mm*` render functions via a data context swap (`_captureCtx`/`_applyCtx`). `ogData` holds separate Ongage data; `showOngageReview()`/`showMailmodoReview()` switch context. No render logic duplicated.
 - *March 2026:* Replaced date filter `<select>` dropdowns with calendar picker buttons across mm/mmc/mx views — uses existing `dpState`/`dpOpen`/`dpRenderPopup` engine; IDs follow `${ns}DpFrom/ToBtn/Popup/Txt` pattern.
 - *March 2026:* Fixed theme toggle label mismatch — label now shows current active mode.
 - *March 2026:* Fixed `mm-select` text color for light mode visibility.

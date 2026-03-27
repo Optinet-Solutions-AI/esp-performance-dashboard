@@ -505,15 +505,19 @@
 <div class="layout">
 
 <aside class="sidebar">
-  <div class="logo" onclick="showView('mailmodo')">
+  <div class="logo" onclick="showMailmodoReview()">
     <div class="logo-tag">Email Ops</div>
     <div class="logo-title">ESP Control</div>
   </div>
   <div class="nav-section">
     <div class="nav-label">Navigation</div>
-    <button class="nav-item active" id="nav-mailmodo" onclick="showView('mailmodo')">
+    <button class="nav-item active" id="nav-mailmodo" onclick="showMailmodoReview()">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
       Mailmodo Review
+    </button>
+    <button class="nav-item" id="nav-ongage" onclick="showOngageReview()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
+      Ongage Review
     </button>
     <button class="nav-item" id="nav-upload" onclick="showView('upload')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10V2M5 5l3-3 3 3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
@@ -5197,6 +5201,65 @@ dmLoad();
 // Auto-restore IP Matrix data
 ipmLoadStorage();
 
+/* ═══════════════════════════════════════════════════════════
+   ONGAGE REVIEW — context-swap: reuses all mm* render functions
+   by temporarily redirecting mmData + state to Ongage data.
+   ═══════════════════════════════════════════════════════════ */
+const ogData = {
+  dates:[], datesFull:[], providers:{}, domains:{}, overallByDate:{}, providerDomains:{}
+};
+let _activeReviewCtx = 'mailmodo'; // 'mailmodo' | 'ongage'
+let _savedMmCtx = null;
+let _ogCtx = {
+  data: ogData, fromIdx: 0, toIdx: 0, tab: 'provider', selRow: null,
+  embedView: 'date',
+  dp: { fromDate:null, toDate:null, curYear: new Date().getFullYear(), curMonth:0, mode:'day', which:'from' }
+};
+
+function _captureCtx() {
+  return {
+    data: mmData, fromIdx: mmFromIdx, toIdx: mmToIdx, tab: mmTab,
+    selRow: mmSelectedRow, embedView: mmEmbedView,
+    dp: Object.assign({}, dpState.mm)
+  };
+}
+function _applyCtx(ctx) {
+  // Destroy live charts so canvas elements are freed
+  Object.values(mmCharts).forEach(c=>{ try{c.destroy();}catch(e){} });
+  Object.values(mmEmbedCharts).forEach(c=>{ try{c.destroy();}catch(e){} });
+  mmData = ctx.data; mmFromIdx = ctx.fromIdx; mmToIdx = ctx.toIdx;
+  mmTab = ctx.tab; mmSelectedRow = ctx.selRow; mmEmbedView = ctx.embedView;
+  mmCharts = {}; mmEmbedCharts = {};
+  Object.assign(dpState.mm, ctx.dp);
+}
+
+function showMailmodoReview() {
+  if (_activeReviewCtx === 'ongage') {
+    _ogCtx = _captureCtx();
+    _applyCtx(_savedMmCtx);
+    _activeReviewCtx = 'mailmodo';
+  }
+  document.querySelector('#view-mailmodo .page-title').textContent = 'Mailmodo · Review';
+  showView('mailmodo');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('nav-mailmodo').classList.add('active');
+  dpInit('mm'); mmUpdateRangeLabel(); mmRenderAll();
+}
+
+function showOngageReview() {
+  if (_activeReviewCtx !== 'ongage') {
+    _savedMmCtx = _captureCtx();
+    _applyCtx(_ogCtx);
+    _activeReviewCtx = 'ongage';
+  }
+  document.querySelector('#view-mailmodo .page-title').textContent = 'Ongage · Review';
+  showView('mailmodo');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('nav-ongage').classList.add('active');
+  dpInit('mm'); mmUpdateRangeLabel(); mmRenderAll();
+}
+/* ═══════════════════════════════════════════════════════════ */
+
 // Patch view-specific reset functions to use calendar picker reset
 mmResetRange = function(){ dpReset('mm'); };
 mmcReset = function(){ dpReset('mmc'); };
@@ -5206,6 +5269,8 @@ setTimeout(()=>{
   showView('mailmodo');
   mmPopulateDates(); mmcPopulateDates(); mxPopulateDates();
   dpInit('mm'); dpInit('mmc'); dpInit('mx');
+  // Snapshot initial Mailmodo context so Ongage can restore it
+  _savedMmCtx = _captureCtx();
 }, 80);
 
 </script>
