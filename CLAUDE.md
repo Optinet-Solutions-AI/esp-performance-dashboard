@@ -1,150 +1,162 @@
 # CLAUDE Context — ESP Performance Dashboard
 
-## Project Structure
+## ⚠ Next.js Version Note
+> This project uses **Next.js 16** which has breaking changes from older versions.
+> APIs, conventions, and file structure may differ from training data.
+> **Always read `esp-dashboard/node_modules/next/dist/docs/` before writing any code in `esp-dashboard/`.**
+> Heed deprecation notices.
+
+---
+
+## Repository Layout
 ```
 /
-├── index.html          # Monolithic SPA — all HTML, CSS, JS, and data
-├── supabase.js         # Optional Supabase persistence layer
-├── SUPABASE_SETUP.md   # Supabase config docs
-└── VERIFICATION_CHECKLIST.md
+├── index.html                  # Original monolithic SPA (vanilla JS)
+├── supabase.js                 # Optional Supabase persistence layer
+├── SUPABASE_SETUP.md
+├── VERIFICATION_CHECKLIST.md
+└── esp-dashboard/              # Next.js + Tailwind rewrite
+    ├── src/
+    │   ├── app/
+    │   │   ├── layout.tsx
+    │   │   ├── page.tsx        # SPA shell — renders active view
+    │   │   └── globals.css     # Tailwind 4 + design tokens
+    │   ├── lib/
+    │   │   ├── types.ts        # All TypeScript interfaces
+    │   │   ├── data.ts         # Seed data (esps, mmData, ogData)
+    │   │   ├── utils.ts        # fmtN, fmtP, aggDates, buildProviderDomains
+    │   │   ├── store.ts        # Zustand global store (persisted to localStorage)
+    │   │   └── parsers.ts      # XLSX/CSV file parsing (lazy-loads xlsx)
+    │   └── components/
+    │       ├── layout/Sidebar.tsx
+    │       ├── ui/             # KpiCard, ChartCard, StatusPill
+    │       └── views/          # HomeView, DashboardView, MailmodoView,
+    │                           # UploadView, MatrixView, DataMgmtView, IPMatrixView
+    ├── next.config.ts
+    └── package.json
 ```
 
+---
+
 ## Tech Stack
-Vanilla JS (ES6+) · HTML5 · CSS3 · Chart.js 4.4.1 · SheetJS 0.18.5 · Supabase JS 2.x
 
-No build tools, no bundler, no package manager. Single distributable HTML file.
+| Layer | Original (`index.html`) | Next.js (`esp-dashboard/`) |
+|-------|------------------------|---------------------------|
+| Framework | None (vanilla JS) | Next.js 16 + App Router |
+| Styling | Custom CSS variables | Tailwind CSS 4 |
+| State | Global `let` vars | Zustand (persisted) |
+| Charts | Chart.js 4 (CDN) | react-chartjs-2 + chart.js |
+| File parsing | XLSX (CDN) | xlsx (lazy-loaded, client-side) |
+| Database | Supabase JS 2 (CDN) | @supabase/supabase-js |
+| Language | JavaScript | TypeScript |
 
-## Design System
-| Token | Value |
-|-------|-------|
-| Dark bg | `#0f1117` / `#1a1d27` |
-| Accent green | `#009e88` |
-| Accent amber | `#f59e0b` |
-| Text primary | `#d4dae6` |
-| Fonts | `Space Mono` (mono), `DM Sans` (sans) |
+---
 
-- **Dark mode** is default (no body class)
-- **Light mode** adds `body.light` — overrides via CSS cascade
-- Theme preference persisted in `localStorage('espDashTheme')`
+## Design System (shared between both versions)
 
-## Architecture
+| Token | Dark value | Light value |
+|-------|-----------|-------------|
+| Background | `#0a0c10` | `#f0f2f6` |
+| Surface | `#111418` | `#ffffff` |
+| Surface2 | `#181c22` | `#f4f5f8` |
+| Accent (teal) | `#00e5c3` | `#009e88` |
+| Accent2 (purple) | `#7c5cfc` | `#5b3fd4` |
+| Accent3 (orange) | `#ff6b35` | `#d4520a` |
+| Accent4 (amber) | `#ffd166` | `#b08600` |
+| Danger | `#ff4757` | `#d93025` |
+| Text | `#f0f2f5` | `#111827` |
+| Muted | `#a8b0be` | `#a8b0be` |
+| Font mono | `Space Mono` | |
+| Font sans | `DM Sans` | |
 
-### Views (tabs)
-Controlled by `showView(name)`. Each view hides all `.view` elements then shows the target:
-| View name | Content |
-|-----------|---------|
-| `dashboard` | ESP overview — KPIs, charts, sortable table |
-| `mailmodo` | Deep-dive provider/domain metrics with trend charts |
-| `upload` | Step-by-step XLSX/CSV ingestion workflow |
-| `matrix` | ESP × Domain deliverability cross-tab |
-| `datamanagement` | Partner roster analytics |
-| `ipm` | IP registry by ESP and sending domain |
+- Dark mode is default; light mode adds `body.light`
+- Theme persisted in `localStorage` / Zustand store
 
-### Global State
-```js
-mmData = {
-  dates[],           // "Feb 17", "Feb 20", … (key strings)
-  datesFull[],       // {label, year} for display
-  providers{},       // email providers → { overall{}, byDate{} }
-  domains{},         // sending domains  → { overall{}, byDate{} }
-  overallByDate{},   // global daily aggregates
-  providerDomains{}  // cross-ref for matrix view
+---
+
+## Views / Navigation
+
+| View | Route key | Content |
+|------|-----------|---------|
+| Home | `home` | Overview KPIs, volume chart, category split, recent activity |
+| Dashboard | `dashboard` | ESP table + 5 charts + filters/search |
+| Mailmodo Review | `mailmodo` | Provider/domain metrics with trend charts |
+| Ongage Review | `ongage` | Same component as Mailmodo, different data context |
+| Upload Report | `upload` | XLSX/CSV drag-drop ingestion → merges into store |
+| Deliverability Matrix | `matrix` | Provider × Domain cross-tab (delivery rate heatmap) |
+| Data Management | `datamgmt` | Partner roster CSV import/export (PIN-protected download) |
+| IPs Matrix | `ipmatrix` | IP registry CRUD by ESP and sending domain |
+
+---
+
+## Data Model
+
+```ts
+MmData = {
+  dates: string[]                          // "Feb 17", "Feb 20", …
+  datesFull: { label: string; year: number }[]
+  providers: Record<string, ProviderData>  // email providers
+  domains: Record<string, ProviderData>    // sending domains
+  overallByDate: Record<string, DateMetrics>
+  providerDomains: Record<string, Record<string, ProviderDomainCell>>
 }
 ```
 
-Misc UI state: `activeFilter`, `activeEsp`, `sortKey`, `sortDir`, `searchQ`, `mmTab`, `mmFromIdx`, `mmToIdx`
+- `mmData` = Mailmodo data, `ogData` = Ongage data (same structure)
+- Both live in Zustand store, persisted to localStorage
 
-### Charts
-- Stored in `C{}` (dashboard) and `mmCharts{}` (Mailmodo) for reuse
-- **Must be destroyed before recreation** on theme toggle (Chart.js limitation)
-- `refreshChartThemeVars()` + `rebuildAllCharts()` called by `toggleTheme()`
-
-### Persistence
-1. **In-memory** — `mmData` JS object (primary)
-2. **localStorage** — theme + Supabase toggle state
-3. **Supabase** — optional cloud sync, auto-save every 5 min via `setInterval`
-4. **Export** — `exportUpdatedDashboard()` serializes `mmData` into HTML blob download
-
-## Key Functions
-
-| Function | Purpose |
-|----------|---------|
-| `showView(name)` | Switch active tab |
-| `getFiltered()` | Apply filter/search, trigger KPI + chart + table update |
-| `updateKpis()` | Recalculate dashboard KPI cards |
-| `renderCharts()` | Rebuild all dashboard Chart.js instances |
-| `renderTable()` | Render sortable ESP table |
-| `mmGetData(name)` | Aggregate provider/domain data for selected date range |
-| `rates(r)` | Compute SR, OR, CTR, BR, Unsub from raw counts |
-| `mxRender()` | Build deliverability matrix |
-| `dmRender()` | Render data management view |
-| `uploadProcess()` | Parse XLSX, merge rows into `mmData` |
-| `exportUpdatedDashboard()` | Serialize state → downloadable HTML |
-| `toggleTheme()` | Flip dark/light, update label, rebuild charts |
-| `showMailmodoReview()` | Switch to Mailmodo Review (restores mm context) |
-| `showOngageReview()` | Switch to Ongage Review (swaps mm* globals to ogData) |
-| `dpInit(ns)` | Init calendar picker text for a view namespace (mm/mmc/mx) |
-| `dpOpen(ns,which,event)` | Open calendar popup for from/to picker |
-| `dpApplyToView(ns)` | Apply selected calendar dates → update view indices + re-render |
-| `dpReset(ns)` | Reset calendar to full data range + re-render |
-| `sbInit() / sbSave() / sbLoad()` | Supabase CRUD |
+---
 
 ## Status Logic
+
 | Condition | Status |
 |-----------|--------|
-| Bounce > 10% | Critical (red) |
+| Bounce > 10% OR Delivery < 70% | Critical (red) |
 | Bounce > 2% OR Delivery < 95% | Warning (amber) |
 | Otherwise | Healthy (green) |
 
-## Theme Toggle
-```js
-let isLight = false;  // false = dark (default)
+---
 
-function toggleTheme() {
-  isLight = !isLight;
-  document.body.classList.toggle('light', isLight);
-  document.getElementById('themeLabel').textContent = isLight ? '☀ Light mode' : '🌙 Dark mode';
-  localStorage.setItem('espDashTheme', isLight ? 'light' : 'dark');
-  refreshChartThemeVars();
-  rebuildAllCharts();
-}
+## File Upload Flow (Next.js)
+
+1. Select ESP + category (Mailmodo / Ongage)
+2. Drop or browse XLSX / CSV file
+3. `parsers.ts` auto-detects format (Mailmodo vs generic by column names)
+4. Merges parsed data into `mmData` or `ogData` in Zustand store
+5. `buildProviderDomains()` rebuilds the matrix cross-reference
+6. Upload entry added to `uploadHistory`
+
+---
+
+## Development
+
+```bash
+# Original (no build needed)
+python -m http.server 8000   # → http://localhost:8000
+
+# Next.js rewrite
+cd esp-dashboard
+npm run dev                  # → http://localhost:3000
+npm run build                # production build
 ```
-Label always reflects **current** active mode.
 
-## File Upload Flow
-1. Select ESP → `uploadEspChanged()`
-2. Select XLSX/CSV → `uploadFileSelected()` (SheetJS parses)
-3. Process → `uploadProcess()` aggregates by date, merges into `mmData`
-4. Dashboard auto-rerenders
-5. Download updated HTML → `exportUpdatedDashboard()`
-
-## Development Notes
-- Test locally: `python -m http.server 8000` → `http://localhost:8000`
-- No transpilation — edit `index.html` directly
-- All CSS in `<style>` blocks within `index.html`; light-mode overrides use `body.light` prefix
-- Supabase anon key in `supabase.js` is intentionally public (row-level security handles access)
-- PIN protection on Data Management CSV download is simple 4-digit check (client-side only)
+---
 
 ## Dynamic State
 
 ### Current Tasks
-- [x] Dark/light theme toggle with localStorage persistence
-- [x] Supabase optional cloud sync
-- [x] XLSX upload → data merge → HTML export flow
+- [x] Scaffold full Next.js + Tailwind rewrite of `index.html`
+- [x] Zustand store with localStorage persistence
+- [x] All 8 main views ported as React components
+- [x] XLSX/CSV upload with drag-drop and live log
 - [x] Deliverability matrix with date-range picker
-- [x] IP registry view
-
-### Recent Changes
-- *March 2026:* Added **"Email Providers" nav dropdown** — collapsible group in sidebar containing Mailmodo Review and Ongage Review items.
-- *March 2026:* **Upload category routing** — upload Step 1 now has a "Review Category" selector (Mailmodo/Ongage). Ongage uploads use `_origMerge` directly into `ogData`; Mailmodo uploads use the standard `mergeIntoMmData` (with `persistSave`). `uploadGoBack()` navigates to the correct review after upload.
-- *March 2026:* Added **Ongage Review** page — reuses `view-mailmodo` HTML and all `mm*` render functions via a data context swap (`_captureCtx`/`_applyCtx`). `ogData` holds separate Ongage data; `showOngageReview()`/`showMailmodoReview()` switch context. No render logic duplicated.
-- *March 2026:* Replaced date filter `<select>` dropdowns with calendar picker buttons across mm/mmc/mx views — uses existing `dpState`/`dpOpen`/`dpRenderPopup` engine; IDs follow `${ns}DpFrom/ToBtn/Popup/Txt` pattern.
-- *March 2026:* Fixed theme toggle label mismatch — label now shows current active mode.
-- *March 2026:* Fixed `mm-select` text color for light mode visibility.
-- *March 2026:* Created `CLAUDE.md`.
+- [x] IP registry CRUD with add/edit/delete modal
+- [x] Data management with PIN-protected CSV export
+- [x] Dark/light theme toggle
 
 ### Known Issues / Backlog
-- Large file uploads (>100K rows) may lag (single-threaded JS)
-- Supabase has no authentication — public read/write (RLS should be configured)
-- Chart.js requires full destroy/recreate on theme change (no live color update)
+- `performance`, `daily`, `mmcharts`, `ogcharts` views are stubs ("coming soon")
+- Large file uploads (>100K rows) may lag (single-threaded JS parser)
+- Supabase integration not yet wired into the Next.js version
 - `providerDomains` cross-ref is heuristically estimated, not exact
+- PIN protection on Data Management export is client-side only (4-digit: `1234`)

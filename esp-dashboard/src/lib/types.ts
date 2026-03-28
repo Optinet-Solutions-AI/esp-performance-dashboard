@@ -1,0 +1,106 @@
+export type EspStatus = 'healthy' | 'warn' | 'critical'
+
+export interface EspRecord {
+  name: string
+  color: string
+  sent: number
+  delivered: number
+  opens: number
+  clicks: number
+  bounced: number
+  unsub: number
+  deliveryRate: number
+  openRate: number
+  clickRate: number
+  bounceRate: number
+  unsubRate: number
+  status: EspStatus
+}
+
+export interface DailyRecord {
+  date: string
+  sent: number
+  delivered: number
+  opens: number
+  clicks: number
+  bounced: number
+}
+
+export interface DateMetrics {
+  sent: number
+  delivered: number
+  opened: number
+  clicked: number
+  bounced: number
+  unsubscribed?: number
+  complained?: number
+  deliveryRate: number
+  openRate: number
+  clickRate: number
+  bounceRate: number
+  successRate?: number
+  unsubRate?: number
+  complaintRate?: number
+}
+
+export interface ProviderData {
+  overall: DateMetrics
+  byDate: Record<string, DateMetrics>
+}
+
+export interface ProviderDomainCell {
+  sent: number
+  delivered: number
+  opened: number
+  clicked: number
+  bounced: number
+  unsubscribed: number
+}
+
+export interface MmData {
+  dates: string[]
+  datesFull: { label: string; year: number }[]
+  providers: Record<string, ProviderData>
+  domains: Record<string, ProviderData>
+  overallByDate: Record<string, DateMetrics>
+  providerDomains: Record<string, Record<string, ProviderDomainCell>>
+}
+
+export interface IpmRecord {
+  esp: string
+  ip: string
+  domain: string
+}
+
+export interface DmRecord {
+  country?: string
+  domain?: string
+  partner?: string
+  [key: string]: string | undefined
+}
+
+export interface UploadHistoryEntry {
+  esp: string
+  file: string
+  rows: number
+  dates: string[]
+  time: string
+  newDates: number
+  category: 'mailmodo' | 'ongage'
+}
+
+export type ViewName =
+  | 'home'
+  | 'dashboard'
+  | 'performance'
+  | 'daily'
+  | 'mailmodo'
+  | 'ongage'
+  | 'mmcharts'
+  | 'ogcharts'
+  | 'upload'
+  | 'matrix'
+  | 'datamgmt'
+  | 'ipmatrix'
+
+export type MmTabType = 'ip' | 'provider' | 'domain'
