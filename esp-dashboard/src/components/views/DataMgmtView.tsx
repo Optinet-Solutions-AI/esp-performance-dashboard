@@ -1,10 +1,26 @@
 'use client'
 import { useState, useRef } from 'react'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+import { Bar, Doughnut } from 'react-chartjs-2'
 import { useDashboardStore } from '@/lib/store'
+import { getGridColor, getTextColor, CHART_TOOLTIP_OPTS } from '@/lib/utils'
 import type { DmRecord } from '@/lib/types'
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend)
 
 export default function DataMgmtView() {
   const { isLight, dmData, setDmData, resetAllData } = useDashboardStore()
+  const gc = getGridColor(isLight)
+  const tc = getTextColor(isLight)
   const [search, setSearch] = useState('')
   const [filterCountry, setFilterCountry] = useState('')
   const [pinModal, setPinModal] = useState(false)
@@ -122,6 +138,128 @@ export default function DataMgmtView() {
               </div>
             ))}
           </div>
+
+          {/* Charts */}
+          {(() => {
+            // Top 10 countries by count
+            const countryCounts: Record<string, number> = {}
+            dmData.forEach(r => { if (r.country) countryCounts[r.country] = (countryCounts[r.country] || 0) + 1 })
+            const topCountries = Object.entries(countryCounts)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 10)
+            const countryLabels = topCountries.map(([k]) => k)
+            const countryValues = topCountries.map(([, v]) => v)
+
+            // Top 8 domains by count
+            const domainCounts: Record<string, number> = {}
+            dmData.forEach(r => { if (r.domain) domainCounts[r.domain] = (domainCounts[r.domain] || 0) + 1 })
+            const topDomains = Object.entries(domainCounts)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 8)
+            const domainLabels = topDomains.map(([k]) => k)
+            const domainValues = topDomains.map(([, v]) => v)
+
+            const PIE_COLORS = [
+              '#00e5c3cc', '#7c5cfc cc', '#ffd166cc', '#ff6b35cc',
+              '#ff4757cc', '#00b8d9cc', '#a8e6cfcc', '#c67cffcc',
+            ].map(c => c.replace(' ', ''))
+
+            const barData = {
+              labels: countryLabels,
+              datasets: [{
+                label: 'Records',
+                data: countryValues,
+                backgroundColor: '#00e5c3cc',
+                borderColor: '#00e5c3',
+                borderWidth: 1.5,
+                borderRadius: 4,
+                borderSkipped: false,
+              }],
+            }
+
+            const doughnutData = {
+              labels: domainLabels,
+              datasets: [{
+                data: domainValues,
+                backgroundColor: PIE_COLORS,
+                borderColor: isLight ? '#ffffff' : '#111418',
+                borderWidth: 2,
+                hoverOffset: 8,
+              }],
+            }
+
+            const barOptions = {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: { ...CHART_TOOLTIP_OPTS },
+              },
+              scales: {
+                x: {
+                  ticks: { color: tc, font: { size: 9 }, maxRotation: 25, autoSkip: false },
+                  grid: { display: false },
+                  border: { display: false },
+                },
+                y: {
+                  ticks: { color: tc, font: { size: 9 } },
+                  grid: { color: gc },
+                  border: { display: false },
+                },
+              },
+            }
+
+            const doughnutOptions = {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '60%' as const,
+              plugins: {
+                legend: {
+                  position: 'right' as const,
+                  labels: {
+                    color: tc,
+                    font: { size: 10 },
+                    padding: 10,
+                    boxWidth: 12,
+                    boxHeight: 12,
+                  },
+                },
+                tooltip: { ...CHART_TOOLTIP_OPTS },
+              },
+            }
+
+            return (
+              <div className="grid grid-cols-2 gap-4 mb-5">
+                <div className={`${cardClass} p-4`}>
+                  <div className="mb-3">
+                    <div className={`text-sm font-semibold ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}>
+                      Top 10 Countries
+                    </div>
+                    <div className={`text-[10px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
+                      By record count
+                    </div>
+                  </div>
+                  <div style={{ height: 220 }}>
+                    <Bar data={barData} options={barOptions} />
+                  </div>
+                </div>
+
+                <div className={`${cardClass} p-4`}>
+                  <div className="mb-3">
+                    <div className={`text-sm font-semibold ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}>
+                      Domain Distribution
+                    </div>
+                    <div className={`text-[10px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
+                      Top 8 sending domains
+                    </div>
+                  </div>
+                  <div style={{ height: 220 }}>
+                    <Doughnut data={doughnutData} options={doughnutOptions} />
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Filters */}
           <div className="flex items-center gap-2 mb-4">

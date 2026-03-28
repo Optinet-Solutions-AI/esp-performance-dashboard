@@ -22,8 +22,74 @@ interface ParseResult {
   dates: string[]
   totalRows: number
   skipped: number
+  skippedNoDate: number
+  skippedNoEmail: number
   newDates: number
   format: 'mailmodo' | 'generic'
+}
+
+function splitCsvLine(line: string): string[] {
+  const result: string[] = []
+  let cur = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { cur += '"'; i++ }
+      else inQuotes = !inQuotes
+    } else if (ch === ',' && !inQuotes) {
+      result.push(cur.trim())
+      cur = ''
+    } else {
+      cur += ch
+    }
+  }
+  result.push(cur.trim())
+  return result
+}
+
+// Splits the full CSV text into rows, correctly handling quoted fields
+// that contain embedded newlines (e.g. BounceReason with \r\n in them)
+function splitCsvRows(text: string): string[][] {
+  const rows: string[][] = []
+  const fields: string[] = []
+  let cur = ''
+  let inQuotes = false
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    const next = text[i + 1]
+
+    if (ch === '"') {
+      if (inQuotes && next === '"') { cur += '"'; i++ }   // escaped quote
+      else inQuotes = !inQuotes
+    } else if (ch === ',' && !inQuotes) {
+      fields.push(cur.trim())
+      cur = ''
+    } else if ((ch === '\n' || (ch === '\r' && next === '\n')) && !inQuotes) {
+      if (ch === '\r') i++                                // consume \n of \r\n
+      fields.push(cur.trim())
+      cur = ''
+      rows.push([...fields])
+      fields.length = 0
+    } else if (ch === '\r' && !inQuotes) {
+      // bare \r — treat as line end
+      fields.push(cur.trim())
+      cur = ''
+      rows.push([...fields])
+      fields.length = 0
+    } else {
+      cur += ch
+    }
+  }
+
+  // Last row (no trailing newline)
+  if (cur.trim() || fields.length) {
+    fields.push(cur.trim())
+    if (fields.some(f => f !== '')) rows.push([...fields])
+  }
+
+  return rows
 }
 
 function normaliseKeys(row: Record<string, unknown>): Record<string, string> {
@@ -44,18 +110,25 @@ function parseDate(raw: string | number): string | null {
     return `${m} ${day}`
   }
   const s = String(raw).trim()
-  // dd/mm/yyyy or dd/mm/yyyy HH:MM:SS
-  const ddmm = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/)
+  if (!s) return null
+  // dd/mm/yyyy or dd-mm-yyyy (with optional time)
+  const ddmm = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/)
   if (ddmm) {
     const d = new Date(parseInt(ddmm[3]), parseInt(ddmm[2]) - 1, parseInt(ddmm[1]))
-    return d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0')
+    if (!isNaN(d.getTime()))
+      return d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0')
   }
-  // ISO
+  // ISO yyyy-mm-dd
   const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
   if (iso) {
     const d = new Date(parseInt(iso[1]), parseInt(iso[2]) - 1, parseInt(iso[3]))
-    return d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0')
+    if (!isNaN(d.getTime()))
+      return d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0')
   }
+  // Fallback: native Date parse
+  const fallback = new Date(s)
+  if (!isNaN(fallback.getTime()))
+    return fallback.toLocaleString('en-US', { month: 'short' }) + ' ' + String(fallback.getDate()).padStart(2, '0')
   return null
 }
 
@@ -94,13 +167,30 @@ function blankMetrics(): DateMetrics {
 }
 
 export async function parseFile(file: File): Promise<ParseResult> {
-  const xlsx = await getXLSX()
-  const buf = await file.arrayBuffer()
   const isXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
-  const wb = xlsx.read(buf, isXlsx ? { type: 'array', cellDates: true } : { type: 'array', raw: true, cellDates: false })
-  const ws = wb.Sheets[wb.SheetNames[0]]
-  const rawRows = xlsx.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
-  const rows = rawRows.map(normaliseKeys)
+  let rows: Record<string, string>[]
+
+  if (isXlsx) {
+    const xlsx = await getXLSX()
+    const buf = await file.arrayBuffer()
+    const wb = xlsx.read(buf, { type: 'array', cellDates: false })
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    const rawRows = xlsx.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
+    rows = rawRows.map(normaliseKeys)
+  } else {
+    // Parse CSV as plain text, respecting quoted multi-line fields
+    const text = await file.text()
+    const csvRows = splitCsvRows(text)
+    if (csvRows.length < 2) throw new Error('No rows found in file')
+    const headers = csvRows[0].map(h => h.toLowerCase().replace(/\s+/g, '-'))
+    rows = csvRows.slice(1)
+      .filter(r => r.some(v => v.trim() !== ''))
+      .map(vals => {
+        const row: Record<string, string> = {}
+        headers.forEach((h, i) => { row[h] = vals[i] ?? '' })
+        return row
+      })
+  }
 
   if (rows.length === 0) throw new Error('No rows found in file')
 
@@ -109,15 +199,16 @@ export async function parseFile(file: File): Promise<ParseResult> {
 
   const byDate: ParseResult['byDate'] = {}
   let skipped = 0, totalRows = 0
+  let skippedNoDate = 0, skippedNoEmail = 0
 
   rows.forEach(row => {
     totalRows++
     const rawDate = row['sent-time'] || row['date'] || row['action_timestamp_rounded'] || row['timestamp'] || ''
-    const dateStr = parseDate(isXlsx && !isNaN(Number(rawDate)) ? Number(rawDate) : rawDate)
-    if (!dateStr) { skipped++; return }
+    const dateStr = parseDate(rawDate !== '' && !isNaN(Number(rawDate)) ? Number(rawDate) : rawDate)
+    if (!dateStr) { skipped++; skippedNoDate++; return }
 
-    const email = row['email'] || row['email_address'] || row['recipient'] || ''
-    if (!email) { skipped++; return }
+    const email = row['email'] || row['email-address'] || row['email_address'] || row['recipient'] || row['to'] || ''
+    if (!email) { skipped++; skippedNoEmail++; return }
 
     const providerDomain = extractDomain(email)
     const sendingDomain = isMailmodo
@@ -132,11 +223,11 @@ export async function parseFile(file: File): Promise<ParseResult> {
 
     const metrics = isMailmodo ? {
       sent: 1,
-      delivered: Number(row['delivery'] || 0) > 0 ? 1 : 0,
+      delivered: (row['delivery'] === 'TRUE' || row['delivery'] === 'true' || row['delivery'] === '1' || Number(row['delivery'] || 0) > 0) ? 1 : 0,
       opened: (Number(row['opens-html'] || 0) + Number(row['opens-amp'] || 0)) > 0 ? 1 : 0,
       clicked: (Number(row['clicks-html'] || 0) + Number(row['clicks-amp'] || 0)) > 0 ? 1 : 0,
-      bounced: row['bounced'] === '1' || row['bounced'] === 'true' ? 1 : 0,
-      unsubscribed: row['unsubscribed'] === '1' || row['unsubscribed'] === 'true' ? 1 : 0,
+      bounced: (row['bounced'] === '1' || row['bounced'] === 'true' || row['bounced'] === 'TRUE') ? 1 : 0,
+      unsubscribed: (row['unsubscribed'] === '1' || row['unsubscribed'] === 'true' || row['unsubscribed'] === 'TRUE') ? 1 : 0,
     } : {
       sent: Number(row['sent'] || 1),
       delivered: Number(row['delivered'] || 0),
@@ -180,7 +271,7 @@ export async function parseFile(file: File): Promise<ParseResult> {
     return ai - bi
   })
 
-  return { byDate, dates, totalRows, skipped, newDates: 0, format: isMailmodo ? 'mailmodo' : 'generic' }
+  return { byDate, dates, totalRows, skipped, skippedNoDate, skippedNoEmail, newDates: 0, format: isMailmodo ? 'mailmodo' : 'generic' }
 }
 
 export function mergeIntoMmData(current: MmData, result: ReturnType<typeof parseFile> extends Promise<infer T> ? T : never, espName: string): { data: MmData; newDates: number } {

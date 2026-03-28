@@ -4,195 +4,264 @@ import { useDashboardStore } from '@/lib/store'
 import type { ViewName } from '@/lib/types'
 
 const STATUS_LABEL = { healthy: 'OK', warn: 'WARN', critical: 'CRIT' } as const
-const STATUS_COLOR = {
-  healthy: 'text-[#00e5c3] border-[#00e5c3]/30 bg-[#00e5c3]/10',
-  warn: 'text-[#ffd166] border-[#ffd166]/30 bg-[#ffd166]/10',
-  critical: 'text-[#ff4757] border-[#ff4757]/30 bg-[#ff4757]/10',
+const STATUS_COLORS = {
+  healthy: { color: '#00e5c3', bg: 'rgba(0,229,195,0.08)', border: 'rgba(0,229,195,0.25)' },
+  warn:    { color: '#ffd166', bg: 'rgba(255,209,102,0.08)', border: 'rgba(255,209,102,0.25)' },
+  critical:{ color: '#ff4757', bg: 'rgba(255,71,87,0.08)',  border: 'rgba(255,71,87,0.25)' },
 } as const
 
-export default function Sidebar() {
+interface SidebarProps { onClose?: () => void }
+
+export default function Sidebar({ onClose }: SidebarProps) {
   const { activeView, setView, isLight, toggleTheme, esps, activeEsp, setActiveEsp } = useDashboardStore()
   const [providersOpen, setProvidersOpen] = useState(true)
   const [espListOpen, setEspListOpen] = useState(false)
 
-  function navTo(v: ViewName) {
-    setView(v)
+  function navTo(v: ViewName) { setView(v); onClose?.() }
+
+  const bg = isLight ? '#ffffff' : '#0e1116'
+  const borderColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)'
+  const mutedColor = isLight ? '#9ca3af' : '#4a5568'
+  const textColor = isLight ? '#374151' : '#8a94a6'
+  const textHover = isLight ? '#111827' : '#d4dae6'
+  const activeAccent = '#00e5c3'
+  const activeBg = isLight ? 'rgba(0,229,195,0.1)' : 'rgba(0,229,195,0.08)'
+  const activeText = isLight ? '#007a67' : '#00e5c3'
+  const hoverBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'
+
+  const NavItem = ({ id, label, icon }: { id: ViewName; label: string; icon: React.ReactNode }) => {
+    const active = activeView === id
+    return (
+      <button
+        onClick={() => navTo(id)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+          padding: '9px 12px', borderRadius: 12, border: 'none', cursor: 'pointer',
+          fontSize: 13, fontWeight: active ? 600 : 400, textAlign: 'left',
+          background: active ? activeBg : 'transparent',
+          color: active ? activeText : textColor,
+          transition: 'background 0.12s, color 0.12s',
+        }}
+        onMouseEnter={e => { if (!active) { e.currentTarget.style.background = hoverBg; e.currentTarget.style.color = textHover } }}
+        onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = textColor } }}
+      >
+        <span style={{ width: 18, height: 18, flexShrink: 0, opacity: active ? 1 : 0.55, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {icon}
+        </span>
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+        {active && <span style={{ width: 5, height: 5, borderRadius: '50%', background: activeAccent, flexShrink: 0 }} />}
+      </button>
+    )
   }
 
-  const navItem = (id: ViewName, label: string, icon: React.ReactNode) => (
-    <button
-      onClick={() => navTo(id)}
-      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer
-        ${activeView === id
-          ? 'bg-[#00e5c3]/10 text-[#00e5c3] border border-[#00e5c3]/20'
-          : isLight
-            ? 'text-gray-600 hover:bg-black/5 hover:text-gray-900 border border-transparent'
-            : 'text-[#a8b0be] hover:bg-white/5 hover:text-[#f0f2f5] border border-transparent'
-        }`}
-    >
-      <span className="w-4 h-4 flex-shrink-0">{icon}</span>
-      <span>{label}</span>
-    </button>
+  const SectionLabel = ({ text }: { text: string }) => (
+    <div style={{
+      fontSize: 9, fontFamily: 'Space Mono, monospace', letterSpacing: '0.15em',
+      textTransform: 'uppercase', color: mutedColor,
+      padding: '16px 12px 6px',
+    }}>
+      {text}
+    </div>
   )
 
+  const iconHome = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><path d="M1.5 8L9 1.5l7.5 6.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M3.5 7v8.5h4v-4.5h3v4.5h4V7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  const iconDash = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><rect x="1.5" y="1.5" width="6" height="6" rx="1.5" /><rect x="10.5" y="1.5" width="6" height="6" rx="1.5" /><rect x="1.5" y="10.5" width="6" height="6" rx="1.5" /><rect x="10.5" y="10.5" width="6" height="6" rx="1.5" /></svg>
+  const iconPerf = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><polyline points="1.5,14 5,9 9,11 13,5 16.5,7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  const iconCal  = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><rect x="1.5" y="3" width="15" height="13" rx="2" /><path d="M6 3V1.5M12 3V1.5M1.5 7h15" strokeLinecap="round" /></svg>
+  const iconChart= <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><polyline points="1.5,14.5 5,9 8,11 11.5,5.5 15,8 16.5,3.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  const iconUp   = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><path d="M9 11.5V3M6 6l3-3 3 3" strokeLinecap="round" strokeLinejoin="round" /><rect x="2" y="12.5" width="14" height="3.5" rx="1.5" /></svg>
+  const iconGrid = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><rect x="1.5" y="1.5" width="15" height="3" rx="1" /><rect x="1.5" y="7.5" width="15" height="3" rx="1" /><rect x="1.5" y="13.5" width="15" height="3" rx="1" /></svg>
+  const iconDb   = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><ellipse cx="9" cy="4.5" rx="6" ry="2.5" /><path d="M3 4.5v4.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V4.5" strokeLinecap="round" /><path d="M3 9v4.5C3 14.9 5.7 16 9 16s6-1.1 6-2.5V9" strokeLinecap="round" /></svg>
+  const iconIP   = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><rect x="1.5" y="3.5" width="15" height="11" rx="2.5" /><path d="M5.5 8h7M5.5 11h5" strokeLinecap="round" /></svg>
+  const iconEmail= <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><rect x="1.5" y="3.5" width="15" height="11" rx="2" /><path d="M1.5 7l7.5 5 7.5-5" strokeLinecap="round" /></svg>
+
   return (
-    <aside className={`w-[220px] flex-shrink-0 flex flex-col h-screen sticky top-0 border-r z-10
-      ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}
-    >
+    <aside style={{
+      width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
+      background: bg, borderRight: `1px solid ${borderColor}`,
+    }}>
       {/* Logo */}
-      <button
-        onClick={() => navTo('home')}
-        className="px-5 pt-5 pb-4 text-left group flex-shrink-0"
-      >
-        <div className={`text-[9px] font-mono tracking-[0.15em] uppercase mb-0.5
-          ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
-          Email Ops
-        </div>
-        <div className={`text-[17px] font-bold tracking-tight
-          ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>
-          ESP Control
-        </div>
-      </button>
-
-      {/* Nav */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-        <div className={`text-[9px] font-mono tracking-[0.12em] uppercase px-2 mb-2
-          ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
-          Navigation
-        </div>
-
-        {/* Email Providers group */}
-        <div>
-          <button
-            onClick={() => setProvidersOpen(p => !p)}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-150
-              ${isLight ? 'text-gray-600 hover:bg-black/5' : 'text-[#a8b0be] hover:bg-white/5'}`}
-          >
-            <span className="flex items-center gap-2.5">
-              <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="1" y="2" width="14" height="3" rx="1" />
-                <path d="M3 7h10M3 7l-1 6h10l-1-6" />
-                <path d="M6 10h4" />
+      <div style={{ padding: '20px 16px 16px', borderBottom: `1px solid ${borderColor}`, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <button onClick={() => navTo('home')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+            <div style={{ fontSize: 9, fontFamily: 'Space Mono,monospace', letterSpacing: '0.2em', textTransform: 'uppercase', color: mutedColor, marginBottom: 3 }}>
+              Email Ops
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              <span style={{ color: isLight ? '#111827' : '#f0f2f5' }}>ESP</span>
+              <span style={{ color: activeAccent }}> Control</span>
+            </div>
+          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              style={{
+                width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent',
+                cursor: 'pointer', color: mutedColor, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              Email Providers
-            </span>
-            <span className="text-xs opacity-50">{providersOpen ? '▼' : '▶'}</span>
-          </button>
-
-          {providersOpen && (
-            <div className="ml-3 mt-0.5 space-y-0.5">
-              <button
-                onClick={() => { useDashboardStore.getState().setActiveReviewCtx('mailmodo'); navTo('mailmodo') }}
-                className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-150
-                  ${activeView === 'mailmodo'
-                    ? 'bg-[#7c5cfc]/10 text-[#7c5cfc] border border-[#7c5cfc]/20'
-                    : isLight ? 'text-gray-500 hover:text-gray-800 hover:bg-black/5' : 'text-[#a8b0be] hover:text-[#f0f2f5] hover:bg-white/5'
-                  }`}
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="8" cy="8" r="6" /><path d="M5 8l2 2 4-4" />
-                </svg>
-                Mailmodo Review
-              </button>
-              <button
-                onClick={() => { useDashboardStore.getState().setActiveReviewCtx('ongage'); navTo('ongage') }}
-                className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-150
-                  ${activeView === 'ongage'
-                    ? 'bg-[#ffd166]/10 text-[#ffd166] border border-[#ffd166]/20'
-                    : isLight ? 'text-gray-500 hover:text-gray-800 hover:bg-black/5' : 'text-[#a8b0be] hover:text-[#f0f2f5] hover:bg-white/5'
-                  }`}
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="8" cy="8" r="6" /><path d="M5 8l2 2 4-4" />
-                </svg>
-                Ongage Review
-              </button>
-            </div>
-          )}
-        </div>
-
-        {navItem('upload', 'Upload Report', (
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M8 10V2M5 5l3-3 3 3" /><rect x="2" y="11" width="12" height="3" rx="1" />
-          </svg>
-        ))}
-        {navItem('matrix', 'Deliverability Matrix', (
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <rect x="1" y="1" width="14" height="3" rx="1" />
-            <rect x="1" y="6" width="14" height="3" rx="1" />
-            <rect x="1" y="11" width="14" height="3" rx="1" />
-          </svg>
-        ))}
-        {navItem('datamgmt', 'Data Management', (
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <ellipse cx="8" cy="4" rx="6" ry="2" />
-            <path d="M2 4v4c0 1.1 2.7 2 6 2s6-.9 6-2V4" />
-            <path d="M2 8v4c0 1.1 2.7 2 6 2s6-.9 6-2V8" />
-          </svg>
-        ))}
-        {navItem('ipmatrix', 'IPs Matrix', (
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <rect x="1" y="3" width="14" height="10" rx="2" />
-            <path d="M5 7h6M5 10h4" />
-          </svg>
-        ))}
-
-        {/* ESP provider list */}
-        <div className="pt-2">
-          <button
-            onClick={() => setEspListOpen(p => !p)}
-            className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-mono tracking-widest uppercase transition-all
-              ${isLight ? 'text-gray-400 hover:text-gray-600' : 'text-[#a8b0be] hover:text-[#d4dae6]'}`}
-          >
-            <span>Providers</span>
-            <span className="opacity-50">{espListOpen ? '▼' : '▶'}</span>
-          </button>
-          {espListOpen && (
-            <div className="mt-1 space-y-0.5">
-              {esps.map(e => (
-                <button
-                  key={e.name}
-                  onClick={() => setActiveEsp(e.name)}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-all
-                    ${activeEsp === e.name
-                      ? 'bg-white/8 ' + (isLight ? 'text-gray-900' : 'text-[#f0f2f5]')
-                      : isLight ? 'text-gray-500 hover:bg-black/5' : 'text-[#a8b0be] hover:bg-white/5'
-                    }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="w-1.5 h-4 rounded-sm flex-shrink-0" style={{ background: e.color }} />
-                    {e.name}
-                  </span>
-                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${STATUS_COLOR[e.status]}`}>
-                    {STATUS_LABEL[e.status]}
-                  </span>
-                </button>
-              ))}
-            </div>
+            </button>
           )}
         </div>
       </div>
 
+      {/* Nav */}
+      <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
+        <SectionLabel text="Main" />
+        <NavItem id="home" label="Overview" icon={iconHome} />
+        <NavItem id="dashboard" label="Dashboard" icon={iconDash} />
+        <NavItem id="performance" label="Performance" icon={iconPerf} />
+        <NavItem id="daily" label="Daily Report" icon={iconCal} />
+
+        <SectionLabel text="Providers" />
+
+        {/* Email Providers group */}
+        <button
+          onClick={() => setProvidersOpen(p => !p)}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+            padding: '9px 12px', borderRadius: 12, border: 'none', cursor: 'pointer',
+            fontSize: 13, fontWeight: 400, textAlign: 'left',
+            background: 'transparent', color: textColor, transition: 'background 0.12s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = hoverBg }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+        >
+          <span style={{ width: 18, height: 18, flexShrink: 0, opacity: 0.55 }}>{iconEmail}</span>
+          <span style={{ flex: 1 }}>Email Providers</span>
+          <span style={{ fontSize: 10, opacity: 0.5, transition: 'transform 0.2s', transform: providersOpen ? 'rotate(90deg)' : 'none' }}>▶</span>
+        </button>
+
+        {providersOpen && (
+          <div style={{ marginLeft: 16, paddingLeft: 12, borderLeft: '1px solid rgba(0,229,195,0.2)', marginTop: 2, marginBottom: 4 }}>
+            {[
+              { id: 'mailmodo' as ViewName, label: 'Mailmodo Review', color: '#7c5cfc', ctx: 'mailmodo' as const },
+              { id: 'ongage' as ViewName, label: 'Ongage Review', color: '#ffd166', ctx: 'ongage' as const },
+            ].map(item => {
+              const active = activeView === item.id
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => { useDashboardStore.getState().setActiveReviewCtx(item.ctx); navTo(item.id) }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                    fontSize: 12.5, fontWeight: active ? 600 : 400, textAlign: 'left',
+                    background: active ? `${item.color}14` : 'transparent',
+                    color: active ? item.color : textColor,
+                    transition: 'background 0.12s, color 0.12s',
+                  }}
+                  onMouseEnter={e => { if (!active) { e.currentTarget.style.background = hoverBg; e.currentTarget.style.color = textHover } }}
+                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = textColor } }}
+                >
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: item.color, flexShrink: 0, opacity: 0.85 }} />
+                  {item.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        <SectionLabel text="Charts" />
+        <NavItem id="mmcharts" label="Mailmodo Charts" icon={iconChart} />
+        <NavItem id="ogcharts" label="Ongage Charts" icon={iconChart} />
+
+        <SectionLabel text="Tools" />
+        <NavItem id="upload" label="Upload Report" icon={iconUp} />
+        <NavItem id="matrix" label="Deliverability" icon={iconGrid} />
+        <NavItem id="datamgmt" label="Data Mgmt" icon={iconDb} />
+        <NavItem id="ipmatrix" label="IPs Matrix" icon={iconIP} />
+
+        {/* Active ESP list */}
+        {(() => {
+          const activeEsps = esps.filter(e => e.sent > 0)
+          if (activeEsps.length === 0) return null
+          return (
+            <div style={{ marginTop: 8 }}>
+              <button
+                onClick={() => setEspListOpen(p => !p)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '16px 12px 6px', fontSize: 9, fontFamily: 'Space Mono,monospace',
+                  letterSpacing: '0.15em', textTransform: 'uppercase', background: 'none', border: 'none',
+                  cursor: 'pointer', color: mutedColor,
+                }}
+              >
+                <span>Active ESPs ({activeEsps.length})</span>
+                <span style={{ transition: 'transform 0.2s', transform: espListOpen ? 'rotate(90deg)' : 'none' }}>▶</span>
+              </button>
+              {espListOpen && activeEsps.map(e => {
+                const sc = STATUS_COLORS[e.status]
+                return (
+                  <button
+                    key={e.name}
+                    onClick={() => setActiveEsp(e.name)}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '8px 12px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                      fontSize: 12, fontWeight: activeEsp === e.name ? 600 : 400,
+                      background: activeEsp === e.name ? hoverBg : 'transparent',
+                      color: activeEsp === e.name ? (isLight ? '#111827' : '#f0f2f5') : textColor,
+                      transition: 'background 0.12s',
+                    }}
+                    onMouseEnter={ev => { ev.currentTarget.style.background = hoverBg }}
+                    onMouseLeave={ev => { if (activeEsp !== e.name) ev.currentTarget.style.background = 'transparent' }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <span style={{ width: 3, height: 20, borderRadius: 99, background: e.color, flexShrink: 0 }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
+                    </span>
+                    <span style={{
+                      fontSize: 9, fontFamily: 'Space Mono,monospace', fontWeight: 700,
+                      padding: '3px 7px', borderRadius: 6,
+                      color: sc.color, background: sc.bg, border: `1px solid ${sc.border}`,
+                      flexShrink: 0,
+                    }}>
+                      {STATUS_LABEL[e.status]}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )
+        })()}
+      </nav>
+
       {/* Footer */}
-      <div className="flex-shrink-0 px-3 pb-4 pt-2 border-t border-white/7">
-        <div className={`text-[10px] font-mono px-2 mb-2 ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>
-          {esps.length} providers loaded
-        </div>
+      <div style={{ flexShrink: 0, padding: '12px 8px 16px', borderTop: `1px solid ${borderColor}` }}>
         <button
           onClick={toggleTheme}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-[10px] font-mono tracking-widest uppercase transition-all
-            ${isLight
-              ? 'bg-gray-100 border-black/15 text-gray-500 hover:border-[#009e88] hover:text-gray-900'
-              : 'bg-[#181c22] border-white/13 text-[#a8b0be] hover:border-[#00e5c3] hover:text-[#f0f2f5]'
-            }`}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 14px', borderRadius: 12, border: `1px solid ${borderColor}`, cursor: 'pointer',
+            fontSize: 11, fontFamily: 'Space Mono,monospace', letterSpacing: '0.12em', textTransform: 'uppercase',
+            background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
+            color: textColor, transition: 'border-color 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = isLight ? '#d1d5db' : 'rgba(255,255,255,0.15)' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = borderColor }}
         >
-          <span id="themeLabel">{isLight ? '☀ Light mode' : '🌙 Dark mode'}</span>
-          <span className={`w-8 h-[18px] rounded-full relative flex-shrink-0 border transition-all
-            ${isLight ? 'bg-[#009e88] border-[#009e88]' : 'bg-[#1e232b] border-white/13'}`}>
-            <span className={`w-3 h-3 rounded-full absolute top-[2px] transition-all
-              ${isLight ? 'left-[16px] bg-white' : 'left-[2px] bg-[#a8b0be]'}`} />
+          <span>{isLight ? '☀ Light' : '🌙 Dark'}</span>
+          <span style={{
+            width: 36, height: 20, borderRadius: 99, flexShrink: 0, position: 'relative', display: 'inline-block',
+            background: isLight ? '#00c4a7' : '#2d3748',
+            border: `1px solid ${isLight ? '#00c4a7' : 'rgba(255,255,255,0.1)'}`,
+            transition: 'background 0.2s',
+          }}>
+            <span style={{
+              width: 14, height: 14, borderRadius: '50%', position: 'absolute', top: 2,
+              left: isLight ? 19 : 2,
+              background: isLight ? '#ffffff' : '#6b7280',
+              transition: 'left 0.2s',
+            }} />
           </span>
         </button>
+        <div style={{ fontSize: 10, fontFamily: 'Space Mono,monospace', textAlign: 'center', marginTop: 10, color: isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.12)' }}>
+          {esps.length} provider{esps.length !== 1 ? 's' : ''} loaded
+        </div>
       </div>
     </aside>
   )

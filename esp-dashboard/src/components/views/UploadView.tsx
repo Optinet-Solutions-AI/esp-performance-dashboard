@@ -9,21 +9,19 @@ import { supabase } from '@/lib/supabase'
 const ESP_LIST = ['Mailmodo', 'Ongage', 'Hotsol', 'MMS', 'Moosend', 'Omnisend', 'Klaviyo', 'Brevo']
 
 export default function UploadView() {
-  const { isLight, mmData, ogData, ipmData, setMmData, setOgData, addUploadHistory, esps, setEsps } = useDashboardStore()
+  const { isLight, mmData, ogData, setMmData, setOgData, addUploadHistory, esps, setEsps } = useDashboardStore()
 
   const [esp, setEsp] = useState('')
   const [category, setCategory] = useState<'mailmodo' | 'ongage'>('mailmodo')
   const [file, setFile] = useState<File | null>(null)
-  const [step, setStep] = useState(1) // 1=esp, 2=file, 3=ready, 4=done
+  const [step, setStep] = useState(1)
   const [processing, setProcessing] = useState(false)
   const [log, setLog] = useState<string[]>([])
   const [result, setResult] = useState<{ rows: number; dates: string[]; newDates: number } | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  function addLog(msg: string) {
-    setLog(prev => [...prev, msg])
-  }
+  function addLog(msg: string) { setLog(prev => [...prev, msg]) }
 
   function handleEspChange(name: string) {
     setEsp(name)
@@ -46,21 +44,20 @@ export default function UploadView() {
     try {
       addLog(`📂 Reading ${file.name}…`)
       const parsed = await parseFile(file)
-      addLog(`✅ Parsed ${parsed.totalRows.toLocaleString()} rows (${parsed.skipped} skipped)`)
-      addLog(`📅 Found ${parsed.dates.length} unique date(s): ${parsed.dates.join(', ')}`)
-      addLog(`🔎 Detected format: ${parsed.format}`)
+      const skipDetail = parsed.skipped > 0
+        ? ` — ${parsed.skippedNoDate} no-date, ${parsed.skippedNoEmail} no-email`
+        : ''
+      addLog(`✅ Parsed ${parsed.totalRows.toLocaleString()} rows (${parsed.skipped} skipped${skipDetail})`)
+      addLog(`📅 Found ${parsed.dates.length} date(s): ${parsed.dates.join(', ')}`)
+      addLog(`🔎 Format: ${parsed.format}`)
 
       const currentData = category === 'mailmodo' ? mmData : ogData
       const { data: merged, newDates } = mergeIntoMmData(currentData, parsed, esp)
       merged.providerDomains = buildProviderDomains(merged)
 
-      if (category === 'mailmodo') {
-        setMmData(merged)
-      } else {
-        setOgData(merged)
-      }
+      if (category === 'mailmodo') setMmData(merged)
+      else setOgData(merged)
 
-      // Update ESP totals from real uploaded data
       const existingEsp = esps.find(e => e.name === esp)
       const espRecord = existingEsp ?? {
         name: esp, color: ESP_COLORS[esp] ?? '#a8b0be',
@@ -71,9 +68,8 @@ export default function UploadView() {
       const updated = syncEspFromData(espRecord, merged)
       setEsps(existingEsp ? esps.map(e => e.name === esp ? updated : e) : [...esps, updated])
 
-      addLog(`🔀 Merged into ${category} data (+${newDates} new date${newDates !== 1 ? 's' : ''})`)
+      addLog(`🔀 Merged into ${category} (+${newDates} new date${newDates !== 1 ? 's' : ''})`)
 
-      // Persist to Supabase (upsert by category — one row per provider+category)
       try {
         const { error: sbErr } = await supabase.from('reports').upsert(
           { provider: esp, category, data: merged, updated_at: new Date().toISOString() },
@@ -82,13 +78,12 @@ export default function UploadView() {
         if (sbErr) addLog(`⚠️ Supabase: ${sbErr.message}`)
         else addLog('☁️ Saved to Supabase.')
       } catch {
-        addLog('⚠️ Supabase save failed (data still saved locally).')
+        addLog('⚠️ Supabase save failed (data saved locally).')
       }
 
-      const now = new Date()
       addUploadHistory({
         esp, file: file.name, rows: parsed.totalRows,
-        dates: parsed.dates, time: now.toLocaleTimeString(),
+        dates: parsed.dates, time: new Date().toLocaleTimeString(),
         newDates, category,
       })
 
@@ -107,153 +102,201 @@ export default function UploadView() {
     setStep(1); setLog([]); setResult(null)
   }
 
-  function exportUpdatedDashboard() {
-    const data = { mmData, ogData }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = 'esp-dashboard-data.json'
-    a.click()
+  function exportData() {
+    const blob = new Blob([JSON.stringify({ mmData, ogData }, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+    a.download = 'esp-dashboard-data.json'; a.click()
   }
 
-  const cardClass = `rounded-xl border p-6 mb-4 ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/13'}`
-  const labelClass = `block text-[10px] font-mono tracking-[0.1em] uppercase mb-1.5 ${isLight ? 'text-gray-500' : 'text-[#d4dae6]'}`
-  const selectClass = `px-3 py-2 rounded-lg border outline-none font-mono text-xs transition-all
-    ${isLight ? 'bg-white border-black/20 text-gray-900 focus:border-[#009e88]' : 'bg-[#1e232b] border-white/18 text-white focus:border-[#00ffd5]'}`
+  const textMain = isLight ? 'text-gray-900' : 'text-[#f0f2f5]'
+  const muted = isLight ? 'text-gray-400' : 'text-[#5a6478]'
+  const surface = isLight ? 'bg-white border-black/8' : 'bg-[#111418] border-white/6'
+  const inputCls = `w-full px-3.5 py-2.5 rounded-xl border outline-none text-sm transition-all appearance-none
+    ${isLight
+      ? 'bg-white border-black/15 text-gray-900 focus:border-[#009e88] focus:ring-2 focus:ring-[#009e88]/10'
+      : 'bg-[#1a1e26] border-white/10 text-[#f0f2f5] focus:border-[#00e5c3] focus:ring-2 focus:ring-[#00e5c3]/10'
+    }`
+
+  const stepCircle = (n: number, label: string) => {
+    const active = step === n
+    const done = step > n
+    return (
+      <div className="flex items-center gap-2">
+        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all
+          ${done
+            ? 'bg-[#00e5c3] text-[#0a0c10]'
+            : active
+              ? isLight ? 'bg-[#007a67] text-white' : 'bg-[#00e5c3] text-[#0a0c10]'
+              : isLight ? 'bg-gray-200 text-gray-400' : 'bg-white/8 text-[#5a6478]'
+          }`}>
+          {done ? '✓' : n}
+        </div>
+        <span className={`text-sm font-semibold ${active || done ? textMain : muted}`}>{label}</span>
+      </div>
+    )
+  }
 
   return (
-    <div className="p-6 max-w-2xl">
-      <div className="mb-6">
-        <h1 className={`text-2xl font-bold tracking-tight ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>
-          Upload Report
-        </h1>
-        <p className={`text-sm mt-1 ${isLight ? 'text-gray-500' : 'text-[#d4dae6]'}`}>
-          Import XLSX or CSV email data to update the dashboard
-        </p>
+    <div className="view-page fade-up" style={{ maxWidth: 680 }}>
+      {/* Header */}
+      <div className="section-title" style={{ marginBottom: 4 }}>
+        <div className="section-title-bar" style={{ background: '#7c5cfc' }} />
+        <h1>Upload Report</h1>
+      </div>
+      <p className="section-title-sub">Import XLSX or CSV email data to update the dashboard</p>
+
+      {/* Step indicators */}
+      <div className={`flex items-center gap-0 mb-6 rounded-2xl border p-4 ${surface}`}>
+        {stepCircle(1, 'Configure')}
+        <div className={`flex-1 h-px mx-3 ${step > 1 ? 'bg-[#00e5c3]/40' : isLight ? 'bg-black/10' : 'bg-white/8'}`} />
+        {stepCircle(2, 'Select File')}
+        <div className={`flex-1 h-px mx-3 ${step > 2 ? 'bg-[#00e5c3]/40' : isLight ? 'bg-black/10' : 'bg-white/8'}`} />
+        {stepCircle(3, 'Process')}
+        <div className={`flex-1 h-px mx-3 ${step > 3 ? 'bg-[#00e5c3]/40' : isLight ? 'bg-black/10' : 'bg-white/8'}`} />
+        {stepCircle(4, 'Done')}
       </div>
 
-      {/* Step 1: Select ESP */}
-      <div className={cardClass}>
-        <h3 className={`text-sm font-semibold mb-1.5 ${isLight ? 'text-gray-900' : 'text-white'}`}>
-          Step 1 — Select ESP &amp; Category
-        </h3>
-        <p className={`text-xs mb-4 ${isLight ? 'text-gray-500' : 'text-[#d4dae6]'}`}>
-          Choose the email service provider and data category
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>ESP</label>
-            <select value={esp} onChange={e => handleEspChange(e.target.value)} className={selectClass + ' w-full'}>
-              <option value="">Select ESP…</option>
-              {ESP_LIST.map(e => <option key={e} value={e}>{e}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Category</label>
-            <select value={category} onChange={e => setCategory(e.target.value as 'mailmodo' | 'ongage')} className={selectClass + ' w-full'}>
-              <option value="mailmodo">Mailmodo</option>
-              <option value="ongage">Ongage</option>
-            </select>
+      {/* Step 1 */}
+      <div className={`rounded-2xl border mb-4 overflow-hidden ${surface}`}>
+        <div className={`px-5 py-3.5 border-b ${isLight ? 'border-black/6 bg-gray-50/60' : 'border-white/5 bg-white/[0.02]'}`}>
+          <div className={`text-[10px] font-mono tracking-[0.15em] uppercase ${muted}`}>Step 1</div>
+          <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>Select ESP &amp; Category</div>
+        </div>
+        <div className="p-5">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={`block text-[11px] font-mono tracking-[0.08em] uppercase mb-1.5 ${muted}`}>ESP Provider</label>
+              <select value={esp} onChange={e => handleEspChange(e.target.value)} className={inputCls}>
+                <option value="">Select ESP…</option>
+                {ESP_LIST.map(e => <option key={e} value={e}>{e}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={`block text-[11px] font-mono tracking-[0.08em] uppercase mb-1.5 ${muted}`}>Category</label>
+              <select value={category} onChange={e => setCategory(e.target.value as 'mailmodo' | 'ongage')} className={inputCls}>
+                <option value="mailmodo">Mailmodo</option>
+                <option value="ongage">Ongage</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Step 2: Select file */}
-      <div className={`${cardClass} ${step < 2 ? 'opacity-50 pointer-events-none' : ''}`}>
-        <h3 className={`text-sm font-semibold mb-1.5 ${isLight ? 'text-gray-900' : 'text-white'}`}>
-          Step 2 — Select File
-        </h3>
-        <p className={`text-xs mb-4 ${isLight ? 'text-gray-500' : 'text-[#d4dae6]'}`}>
-          Supported: XLSX, CSV. Mailmodo format auto-detected by column names.
-        </p>
-        <div
-          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFileSelected(f) }}
-          onClick={() => fileInputRef.current?.click()}
-          className={`relative border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all
-            ${dragOver || file
-              ? 'border-[#00ffd5] bg-[#00ffd5]/4'
-              : isLight
-                ? 'border-black/20 bg-black/2 hover:border-[#009e88] hover:bg-[#009e88]/4'
-                : 'border-white/20 bg-white/2 hover:border-[#00ffd5] hover:bg-[#00ffd5]/4'
-            }`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelected(f) }}
-          />
-          <div className="text-3xl mb-3">📎</div>
-          {file ? (
-            <>
-              <div className="text-xs font-mono text-[#00ffd5]">{file.name}</div>
-              <div className={`text-[11px] mt-1 ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>
-                {(file.size / 1024).toFixed(1)} KB · Click to change
-              </div>
-            </>
-          ) : (
-            <>
-              <div className={`text-sm ${isLight ? 'text-gray-600' : 'text-[#d4dae6]'}`}>
-                Drop file here or click to browse
-              </div>
-              <div className={`text-[11px] font-mono mt-1 ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>
-                .xlsx .xls .csv
-              </div>
-            </>
+      {/* Step 2 */}
+      <div className={`rounded-2xl border mb-4 overflow-hidden transition-opacity ${surface} ${step < 2 ? 'opacity-40 pointer-events-none' : ''}`}>
+        <div className={`px-5 py-3.5 border-b ${isLight ? 'border-black/6 bg-gray-50/60' : 'border-white/5 bg-white/[0.02]'}`}>
+          <div className={`text-[10px] font-mono tracking-[0.15em] uppercase ${muted}`}>Step 2</div>
+          <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>Select File</div>
+        </div>
+        <div className="p-5">
+          <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelected(f) }} />
+          <div
+            onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFileSelected(f) }}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center cursor-pointer transition-all
+              ${dragOver
+                ? 'border-[#00e5c3] bg-[#00e5c3]/5'
+                : file
+                  ? 'border-[#00e5c3]/50 bg-[#00e5c3]/3'
+                  : isLight
+                    ? 'border-black/15 hover:border-gray-400 hover:bg-black/2'
+                    : 'border-white/10 hover:border-white/25 hover:bg-white/2'
+              }`}
+          >
+            <div className="text-3xl mb-3">{file ? '📄' : '📎'}</div>
+            {file ? (
+              <>
+                <div className={`text-sm font-semibold mb-1 ${textMain}`}>{file.name}</div>
+                <div className={`text-xs font-mono ${muted}`}>{(file.size / 1024).toFixed(1)} KB · Click to change</div>
+              </>
+            ) : (
+              <>
+                <div className={`text-sm mb-1 ${isLight ? 'text-gray-600' : 'text-[#8a94a6]'}`}>
+                  Drop file here or <span className={isLight ? 'text-[#007a67] font-semibold' : 'text-[#00e5c3] font-semibold'}>browse</span>
+                </div>
+                <div className={`text-[11px] font-mono ${muted}`}>.xlsx · .xls · .csv</div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Step 3 */}
+      <div className={`rounded-2xl border mb-4 overflow-hidden transition-opacity ${surface} ${step < 3 ? 'opacity-40 pointer-events-none' : ''}`}>
+        <div className={`px-5 py-3.5 border-b ${isLight ? 'border-black/6 bg-gray-50/60' : 'border-white/5 bg-white/[0.02]'}`}>
+          <div className={`text-[10px] font-mono tracking-[0.15em] uppercase ${muted}`}>Step 3</div>
+          <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>Process &amp; Import</div>
+        </div>
+        <div className="p-5">
+          <button
+            onClick={handleProcess}
+            disabled={!esp || !file || processing}
+            className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold tracking-wide transition-all
+              disabled:opacity-40 disabled:cursor-not-allowed
+              ${isLight
+                ? 'bg-[#007a67] hover:bg-[#006558] text-white shadow-lg shadow-[#007a67]/25'
+                : 'bg-[#00e5c3] hover:bg-[#00c9aa] text-[#0a0c10] shadow-lg shadow-[#00e5c3]/20'
+              }`}
+          >
+            {processing
+              ? <><span className="animate-spin">⏳</span> Processing…</>
+              : <><span>▶</span> Process File</>
+            }
+          </button>
+
+          {log.length > 0 && (
+            <div className={`mt-4 rounded-xl border px-4 py-3 font-mono text-[11px] space-y-1 max-h-40 overflow-y-auto
+              ${isLight ? 'bg-gray-50 border-black/8 text-gray-700' : 'bg-[#0d0f13] border-white/7 text-[#8a94a6]'}`}>
+              {log.map((l, i) => (
+                <div key={i} className={`leading-relaxed
+                  ${l.startsWith('✅') || l.startsWith('✨') ? (isLight ? 'text-[#007a67]' : 'text-[#00e5c3]') : ''}
+                  ${l.startsWith('❌') || l.startsWith('⚠️') ? 'text-[#ff4757]' : ''}
+                  ${l.startsWith('☁️') ? 'text-[#7c5cfc]' : ''}
+                `}>{l}</div>
+              ))}
+            </div>
           )}
         </div>
       </div>
 
-      {/* Step 3: Process */}
-      <div className={`${cardClass} ${step < 3 ? 'opacity-50 pointer-events-none' : ''}`}>
-        <h3 className={`text-sm font-semibold mb-1.5 ${isLight ? 'text-gray-900' : 'text-white'}`}>
-          Step 3 — Process
-        </h3>
-        <p className={`text-xs mb-4 ${isLight ? 'text-gray-500' : 'text-[#d4dae6]'}`}>
-          Parse and merge data into the dashboard
-        </p>
-        <button
-          onClick={handleProcess}
-          disabled={!esp || !file || processing}
-          className="px-5 py-2.5 rounded-lg bg-[#4a2fa0] hover:bg-[#6040c8] text-white text-xs font-mono font-bold tracking-wider uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {processing ? '⏳ Processing…' : '▶ Process File'}
-        </button>
-
-        {log.length > 0 && (
-          <div className={`mt-4 rounded-lg border px-4 py-3 font-mono text-[11px] space-y-1 max-h-36 overflow-y-auto
-            ${isLight ? 'bg-gray-50 border-black/10 text-gray-900' : 'bg-[#0d0f13] border-white/10 text-[#f0f2f5]'}`}>
-            {log.map((l, i) => <div key={i}>{l}</div>)}
-          </div>
-        )}
-      </div>
-
-      {/* Step 4: Done */}
+      {/* Step 4 done */}
       {step === 4 && result && (
-        <div className={cardClass}>
-          <h3 className={`text-sm font-semibold mb-1.5 text-[#00e5c3]`}>
-            ✅ Upload Complete
-          </h3>
-          <p className={`text-xs mb-4 ${isLight ? 'text-gray-500' : 'text-[#d4dae6]'}`}>
-            {result.rows.toLocaleString()} rows · {result.dates.length} dates · +{result.newDates} new
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={exportUpdatedDashboard}
-              className="px-4 py-2 rounded-lg border border-[#00e5c3]/40 text-[#00e5c3] text-xs font-mono uppercase tracking-wider hover:bg-[#00e5c3]/10 transition-all"
-            >
-              ↓ Export Data JSON
-            </button>
-            <button
-              onClick={reset}
-              className={`px-4 py-2 rounded-lg border text-xs font-mono uppercase tracking-wider transition-all
-                ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}
-            >
-              Upload Another
-            </button>
+        <div className={`rounded-2xl border overflow-hidden fade-up ${surface}`}>
+          <div className="px-5 py-3.5 border-b border-[#00e5c3]/20 bg-[#00e5c3]/5">
+            <div className="text-[10px] font-mono tracking-[0.15em] uppercase text-[#00e5c3]">Complete</div>
+            <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>Upload Successful</div>
+          </div>
+          <div className="p-5">
+            <div className="flex flex-wrap gap-3 text-sm mb-5">
+              <span className={`px-3 py-1.5 rounded-lg font-mono text-[11px] ${isLight ? 'bg-gray-100 text-gray-600' : 'bg-white/5 text-[#8a94a6]'}`}>
+                {result.rows.toLocaleString()} rows
+              </span>
+              <span className={`px-3 py-1.5 rounded-lg font-mono text-[11px] ${isLight ? 'bg-gray-100 text-gray-600' : 'bg-white/5 text-[#8a94a6]'}`}>
+                {result.dates.length} dates
+              </span>
+              <span className="px-3 py-1.5 rounded-lg font-mono text-[11px] text-[#00e5c3] bg-[#00e5c3]/10">
+                +{result.newDates} new
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={exportData}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-mono uppercase tracking-wider transition-all
+                  ${isLight ? 'border-[#007a67]/40 text-[#007a67] hover:bg-[#007a67]/8' : 'border-[#00e5c3]/30 text-[#00e5c3] hover:bg-[#00e5c3]/8'}`}
+              >
+                ↓ Export JSON
+              </button>
+              <button
+                onClick={reset}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-mono uppercase tracking-wider transition-all
+                  ${isLight ? 'border-black/15 text-gray-500 hover:border-black/30' : 'border-white/10 text-[#5a6478] hover:border-white/20'}`}
+              >
+                + Upload Another
+              </button>
+            </div>
           </div>
         </div>
       )}
