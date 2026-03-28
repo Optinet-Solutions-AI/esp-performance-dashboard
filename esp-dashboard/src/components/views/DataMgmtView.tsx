@@ -4,12 +4,13 @@ import { useDashboardStore } from '@/lib/store'
 import type { DmRecord } from '@/lib/types'
 
 export default function DataMgmtView() {
-  const { isLight, dmData, setDmData } = useDashboardStore()
+  const { isLight, dmData, setDmData, resetAllData } = useDashboardStore()
   const [search, setSearch] = useState('')
   const [filterCountry, setFilterCountry] = useState('')
   const [pinModal, setPinModal] = useState(false)
   const [pinValue, setPinValue] = useState('')
   const [pinError, setPinError] = useState('')
+  const [resetConfirm, setResetConfirm] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const countries = [...new Set(dmData.map(r => r.country).filter(Boolean))]
@@ -89,6 +90,12 @@ export default function DataMgmtView() {
               ↓ Export CSV
             </button>
           )}
+          <button
+            onClick={() => setResetConfirm(true)}
+            className="px-3 py-2 rounded-lg border border-[#ff4757]/40 text-[#ff4757] text-xs font-mono uppercase tracking-wider hover:bg-[#ff4757]/10 transition-all"
+          >
+            Reset All Data
+          </button>
         </div>
       </div>
 
@@ -177,6 +184,33 @@ export default function DataMgmtView() {
             </table>
           </div>
         </>
+      )}
+
+      {/* Reset Confirm Modal */}
+      {resetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setResetConfirm(false)} />
+          <div className={`relative z-10 rounded-xl border p-6 w-80 ${isLight ? 'bg-white border-black/10' : 'bg-[#1a1d27] border-white/13'}`}>
+            <h3 className={`text-sm font-semibold mb-2 ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>Reset All Data?</h3>
+            <p className={`text-xs mb-4 ${isLight ? 'text-gray-500' : 'text-[#a8b0be]'}`}>
+              This will clear all uploaded reports, ESP data, and upload history. This cannot be undone.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { resetAllData(); setResetConfirm(false) }}
+                className="flex-1 py-2 rounded-lg bg-[#ff4757] text-white text-xs font-mono font-bold uppercase hover:bg-[#ff6370] transition-all"
+              >
+                Yes, Clear All
+              </button>
+              <button
+                onClick={() => setResetConfirm(false)}
+                className={`flex-1 py-2 rounded-lg border text-xs font-mono uppercase ${isLight ? 'border-black/20 text-gray-500' : 'border-white/13 text-[#a8b0be]'}`}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* PIN Modal */}

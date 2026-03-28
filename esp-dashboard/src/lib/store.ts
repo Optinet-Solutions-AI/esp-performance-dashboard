@@ -66,6 +66,9 @@ interface DashboardState {
   // Data Management
   dmData: DmRecord[]
   setDmData: (data: DmRecord[]) => void
+
+  // Reset
+  resetAllData: () => void
 }
 
 const EMPTY_MM: MmData = {
@@ -145,6 +148,13 @@ export const useDashboardStore = create<DashboardState>()(
       // Data Management
       dmData: [],
       setDmData: (data) => set({ dmData: data }),
+
+      // Reset
+      resetAllData: () => set({
+        esps: [], daily7: [], uploadHistory: [], ipmData: [],
+        mmData: EMPTY_MM, ogData: EMPTY_MM,
+        mmFromIdx: 0, mmToIdx: 0, ogFromIdx: 0, ogToIdx: 0,
+      }),
     }),
     {
       name: 'esp-dashboard-storage',
