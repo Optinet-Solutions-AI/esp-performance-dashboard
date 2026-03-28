@@ -1159,7 +1159,10 @@
             <div class="page-title">Upload Report</div>
             <div class="page-sub">Add new daily sendout data — select ESP then upload the activity file</div>
           </div>
-          <button class="btn btn-sm" id="uploadBackBtn" onclick="uploadGoBack()">← Back to Review</button>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn btn-sm" onclick="clearAllData()" style="background:#ff4757;border-color:#ff4757;color:#fff;">🗑 Clear All Data</button>
+            <button class="btn btn-sm" id="uploadBackBtn" onclick="uploadGoBack()">← Back to Review</button>
+          </div>
         </div>
 
         <!-- Step 1: Choose ESP -->

@@ -2922,6 +2922,27 @@
       }
     }
 
+    function clearAllData() {
+      if (!confirm('Clear ALL Mailmodo and Ongage data? This cannot be undone.')) return;
+
+      const empty = () => ({ dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} });
+      mmData = empty();
+      ogData.dates = []; ogData.datesFull = []; ogData.providers = {}; ogData.domains = {}; ogData.overallByDate = {}; ogData.providerDomains = {};
+
+      mxBuildProviderDomains();
+      mmRenderAll();
+      uploadClearLog();
+      document.getElementById('uploadStep4').style.display = 'none';
+
+      if (sbConnected && sb) {
+        sb.from('reports').delete().neq('provider', '').then(({ error }) => {
+          if (!error) uploadLog('☁️ Supabase data cleared.'); else uploadLog(`⚠️ Supabase clear failed: ${error.message}`, 'warn');
+        });
+      }
+
+      uploadLog('✓ All data cleared. Ready for fresh upload.', 'ok');
+    }
+
     function uploadGoBack() {
       if (uploadCategory === 'ongage') showOngageReview();
       else showMailmodoReview();
