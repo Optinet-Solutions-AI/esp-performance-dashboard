@@ -3039,8 +3039,6 @@
             const detail = parts.length ? ` (${parts.join(', ')})` : '';
             uploadLog(`   ⚠ ${result.skipped} rows skipped${detail}`, 'warn');
           }
-          uploadLog(`\n☁️ Saving to Supabase…`);
-
           // Show Step 4
           document.getElementById('uploadStep4').style.display = 'block';
           document.getElementById('uploadStep4').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -3054,18 +3052,6 @@
 
           // Trigger dashboard refresh
           mmRenderAll();
-
-          // Save to Supabase reports table
-          if (sbConnected && sb) {
-            const _saveData = uploadCategory === 'ongage' ? ogData : mmData;
-            sb.from('reports').upsert(
-              { provider: uploadEsp, category: uploadCategory, data: _saveData, updated_at: new Date().toISOString() },
-              { onConflict: 'provider,category' }
-            ).then(({ error }) => {
-              if (error) uploadLog(`⚠️ Supabase: ${error.message}`, 'warn');
-              else uploadLog('☁️ Saved to Supabase.');
-            });
-          }
 
         } catch (err) {
           uploadLog(`✗ Error: ${err.message}`, 'err');
