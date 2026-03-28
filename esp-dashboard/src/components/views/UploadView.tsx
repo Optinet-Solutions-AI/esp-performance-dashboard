@@ -213,7 +213,7 @@ export default function UploadView() {
 
         {log.length > 0 && (
           <div className={`mt-4 rounded-lg border px-4 py-3 font-mono text-[11px] space-y-1 max-h-36 overflow-y-auto
-            ${isLight ? 'bg-gray-50 border-black/10 text-gray-700' : 'bg-[#0d0f13] border-white/10 text-[#d4dae6]'}`}>
+            ${isLight ? 'bg-gray-50 border-black/10 text-gray-900' : 'bg-[#0d0f13] border-white/10 text-[#f0f2f5]'}`}>
             {log.map((l, i) => <div key={i}>{l}</div>)}
           </div>
         )}
