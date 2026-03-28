@@ -266,18 +266,9 @@ export default function MailmodoView({ ctx }: Props) {
           {/* Trend chart (when row selected) */}
           {mmSelectedRow && (
             <div className={`rounded-xl border p-4 mb-4 ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}>
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <div className={`text-xs font-mono ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}>{mmSelectedRow}</div>
-                  <div className={`text-[10px] ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>Trend — Delivery & Open rate</div>
-                </div>
-                <button
-                  onClick={() => setMmSelectedRow(null)}
-                  className={`text-xs font-mono px-2 py-1 rounded border transition-all
-                    ${isLight ? 'border-black/15 text-gray-400 hover:border-black/30' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}
-                >
-                  ✕ Close
-                </button>
+              <div className="mb-3">
+                <div className={`text-xs font-mono ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}>{mmSelectedRow}</div>
+                <div className={`text-[10px] ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>Trend — Delivery & Open rate · Click row again to close</div>
               </div>
               <div style={{ height: 140 }}>
                 <canvas ref={trendRef} />
