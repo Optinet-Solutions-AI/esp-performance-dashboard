@@ -5402,7 +5402,7 @@
     esps.forEach(d => {
       d.deliveryRate = d.delivered / d.sent * 100;
       d.openRate = d.opens / d.delivered * 100;
-      d.clickRate = d.clicks / d.delivered * 100;
+      d.clickRate = d.opens > 0 ? (d.clicks / d.opens * 100) : 0;
       d.bounceRate = d.bounced / d.sent * 100;
       d.unsubRate = d.unsub / d.delivered * 100;
       d.status = d.bounceRate > 10 || d.deliveryRate < 70 ? 'critical' : d.bounceRate > 2 || d.deliveryRate < 95 ? 'warn' : 'healthy';
@@ -5744,7 +5744,7 @@
     /* MODAL */
     function openDayModal(day) {
       document.getElementById('modalTitle').innerHTML = `<span style="font-size:16px">📅</span>${day.date}`;
-      const or = (day.opens / day.delivered * 100), cr = (day.clicks / day.delivered * 100);
+      const or = (day.opens / day.delivered * 100), cr = day.opens > 0 ? (day.clicks / day.opens * 100) : 0;
       document.getElementById('modalContent').innerHTML = `
     <div class="modal-grid">
       <div class="ms"><div class="msl">Sent</div><div class="msv">${fmtN(day.sent)}</div></div>
@@ -5879,7 +5879,7 @@
         }
       });
       document.getElementById('dailyTableBody').innerHTML = daily7.map((d, i) => {
-        const or = (d.opens / d.delivered * 100), cr = (d.clicks / d.delivered * 100), isA = d.date === 'Feb 26';
+        const or = (d.opens / d.delivered * 100), cr = d.opens > 0 ? (d.clicks / d.opens * 100) : 0, isA = d.date === 'Feb 26';
         return `<tr class="dr" onclick="openDayModal(daily7[${i}])">
       <td style="font-family:var(--mono);font-size:11px;color:${isA ? '#ff4757' : 'var(--text)'}">${d.date}${isA ? ' ⚠' : ''}</td>
       <td class="td-right">${fmtN(d.sent)}</td><td class="td-right">${fmtN(d.delivered)}</td>
@@ -6944,10 +6944,11 @@
 
     function mmUpdateRangeLabel() {
       const dates = mmActiveDates();
-      if (!dates.length) { mmEl('RangeLabel').textContent = 'No data'; return; }
+      const rlEl = mmEl('RangeLabel');
+      if (!dates.length) { if (rlEl) rlEl.textContent = 'No data'; return; }
       const yr = mmData.datesFull[mmFromIdx]?.year || 2026;
       const lbl = dates[0] === dates[dates.length - 1] ? `${dates[0]} ${yr}` : `${dates[0]} – ${dates[dates.length - 1]} ${yr}`;
-      mmEl('RangeLabel').textContent = `${lbl} · ${dates.length} day${dates.length > 1 ? 's' : ''}`;
+      if (rlEl) rlEl.textContent = `${lbl} · ${dates.length} day${dates.length > 1 ? 's' : ''}`;
       const sub = mmEl('PageSub');
       if (sub) { const tot = mmGetAllData().reduce((s, r) => s + r.sent, 0); sub.textContent = `${lbl} · ${tot.toLocaleString()} records`; }
     }
@@ -7203,9 +7204,9 @@
       const dates = mmcActiveDates();
       const yr = mmData.datesFull[mmcFromIdx]?.year || 2026;
       const lbl = dates.length === 1 ? `${dates[0]} ${yr}` : `${dates[0]} – ${dates[dates.length - 1]} ${yr}`;
-      mmcEl('PageSub').textContent = `${lbl} · by Email Provider`;
-      mmcEl('RangeLabel').textContent = `${lbl} · ${dates.length} day${dates.length > 1 ? 's' : ''}`;
-      mmcEl('ViewLabel').textContent = mmcView === 'date'
+      const ps = mmcEl('PageSub'); if (ps) ps.textContent = `${lbl} · by Email Provider`;
+      const rl = mmcEl('RangeLabel'); if (rl) rl.textContent = `${lbl} · ${dates.length} day${dates.length > 1 ? 's' : ''}`;
+      const vl = mmcEl('ViewLabel'); if (vl) vl.textContent = mmcView === 'date'
         ? '↔  X-axis: Dates  ·  Each line = one Email Provider'
         : '↔  X-axis: Email Providers  ·  Each bar = period total';
       if (mmcView === 'date') mmcRenderByDate();
@@ -8719,7 +8720,7 @@
           espObj.bounced = totals.bounced; espObj.unsub = totals.unsub;
           espObj.deliveryRate = (totals.delivered / totals.sent) * 100;
           espObj.openRate = totals.delivered > 0 ? (totals.opens / totals.delivered) * 100 : 0;
-          espObj.clickRate = totals.delivered > 0 ? (totals.clicks / totals.delivered) * 100 : 0;
+          espObj.clickRate = totals.opens > 0 ? (totals.clicks / totals.opens) * 100 : 0;
           espObj.bounceRate = (totals.bounced / totals.sent) * 100;
           espObj.unsubRate = totals.delivered > 0 ? (totals.unsub / totals.delivered) * 100 : 0;
           espObj.status = espObj.bounceRate > 10 || espObj.deliveryRate < 70 ? 'critical' : espObj.bounceRate > 2 || espObj.deliveryRate < 95 ? 'warn' : 'healthy';
