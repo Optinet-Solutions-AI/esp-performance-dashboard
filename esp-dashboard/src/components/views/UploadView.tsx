@@ -2,7 +2,8 @@
 import { useState, useRef } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { parseFile, mergeIntoMmData } from '@/lib/parsers'
-import { buildProviderDomains } from '@/lib/utils'
+import { buildProviderDomains, syncEspFromData } from '@/lib/utils'
+import { ESP_COLORS } from '@/lib/data'
 import { supabase } from '@/lib/supabase'
 
 const ESP_LIST = ['Mailmodo', 'Ongage', 'Hotsol', 'MMS', 'Moosend', 'Omnisend', 'Klaviyo', 'Brevo']
@@ -58,6 +59,17 @@ export default function UploadView() {
       } else {
         setOgData(merged)
       }
+
+      // Update ESP totals from real uploaded data
+      const existingEsp = esps.find(e => e.name === esp)
+      const espRecord = existingEsp ?? {
+        name: esp, color: ESP_COLORS[esp] ?? '#a8b0be',
+        sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0,
+        deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubRate: 0,
+        status: 'healthy' as const,
+      }
+      const updated = syncEspFromData(espRecord, merged)
+      setEsps(existingEsp ? esps.map(e => e.name === esp ? updated : e) : [...esps, updated])
 
       addLog(`🔀 Merged into ${category} data (+${newDates} new date${newDates !== 1 ? 's' : ''})`)
 

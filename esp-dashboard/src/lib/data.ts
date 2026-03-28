@@ -1,32 +1,17 @@
 import type { EspRecord, DailyRecord, MmData, IpmRecord } from './types'
 
-export const INITIAL_ESPS: EspRecord[] = ((): EspRecord[] => {
-  const raw = [
-    { name: 'Mailmodo', color: '#7c5cfc', sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0 },
-    { name: 'Ongage', color: '#c67cff', sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0 },
-    { name: 'Hotsol', color: '#00e5c3', sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0 },
-    { name: 'MMS', color: '#ffd166', sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0 },
-    { name: 'Moosend', color: '#ff6b35', sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0 },
-    { name: 'Omnisend', color: '#ff4757', sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0 },
-    { name: 'Klaviyo', color: '#60d4f0', sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0 },
-    { name: 'Brevo', color: '#c5f27a', sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0 },
-  ]
-  return raw.map(d => ({
-    ...d,
-    deliveryRate: d.sent > 0 ? (d.delivered / d.sent) * 100 : 0,
-    openRate: d.delivered > 0 ? (d.opens / d.delivered) * 100 : 0,
-    clickRate: d.opens > 0 ? (d.clicks / d.opens) * 100 : 0,
-    bounceRate: d.sent > 0 ? (d.bounced / d.sent) * 100 : 0,
-    unsubRate: d.delivered > 0 ? (d.unsub / d.delivered) * 100 : 0,
-    status: (() => {
-      const bounceRate = d.sent > 0 ? (d.bounced / d.sent) * 100 : 0
-      const deliveryRate = d.sent > 0 ? (d.delivered / d.sent) * 100 : 0
-      if (bounceRate > 10 || deliveryRate < 70) return 'critical' as const
-      if (bounceRate > 2 || deliveryRate < 95) return 'warn' as const
-      return 'healthy' as const
-    })(),
-  }))
-})()
+export const INITIAL_ESPS: EspRecord[] = []
+
+export const ESP_COLORS: Record<string, string> = {
+  Mailmodo: '#7c5cfc',
+  Ongage: '#c67cff',
+  Hotsol: '#00e5c3',
+  MMS: '#ffd166',
+  Moosend: '#ff6b35',
+  Omnisend: '#ff4757',
+  Klaviyo: '#60d4f0',
+  Brevo: '#c5f27a',
+}
 
 export const INITIAL_DAILY7: DailyRecord[] = []
 
