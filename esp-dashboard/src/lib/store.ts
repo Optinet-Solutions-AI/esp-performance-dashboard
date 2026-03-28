@@ -72,10 +72,7 @@ const EMPTY_MM: MmData = {
   dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {},
 }
 
-const initialMmData = {
-  ...INITIAL_MM_DATA,
-  providerDomains: buildProviderDomains(INITIAL_MM_DATA),
-}
+const initialMmData = INITIAL_MM_DATA
 
 export const useDashboardStore = create<DashboardState>()(
   persist(
@@ -113,7 +110,7 @@ export const useDashboardStore = create<DashboardState>()(
       // Mailmodo
       mmData: initialMmData,
       mmFromIdx: 0,
-      mmToIdx: INITIAL_MM_DATA.dates.length - 1,
+      mmToIdx: 0,
       mmTab: 'ip',
       mmSelectedRow: null,
       setMmData: (data) => set({ mmData: data, mmFromIdx: 0, mmToIdx: data.dates.length - 1 }),
