@@ -9065,17 +9065,17 @@
       if (which === 'from') {
         s.fromDate = date;
         if (s.toDate && s.toDate < date) s.toDate = null;
-        document.getElementById(`${ns}DpFromTxt`).textContent = dpFmtShort(date);
+        const ft = document.getElementById(`${ns}DpFromTxt`); if (ft) ft.textContent = dpFmtShort(date);
         // Auto-open To picker
-        document.getElementById(`${ns}DpFromPopup`).style.display = 'none';
+        const fp = document.getElementById(`${ns}DpFromPopup`); if (fp) fp.style.display = 'none';
         setTimeout(() => dpOpen(ns, 'to'), 50);
         return;
       } else {
         if (s.fromDate && date < s.fromDate) { s.toDate = s.fromDate; s.fromDate = date; }
         else s.toDate = date;
-        document.getElementById(`${ns}DpFromTxt`).textContent = dpFmtShort(s.fromDate);
-        document.getElementById(`${ns}DpToTxt`).textContent = dpFmtShort(s.toDate);
-        document.getElementById(`${ns}DpToPopup`).style.display = 'none';
+        const ft = document.getElementById(`${ns}DpFromTxt`); if (ft) ft.textContent = dpFmtShort(s.fromDate);
+        const tt = document.getElementById(`${ns}DpToTxt`); if (tt) tt.textContent = dpFmtShort(s.toDate);
+        const tp = document.getElementById(`${ns}DpToPopup`); if (tp) tp.style.display = 'none';
       }
       dpApplyToView(ns);
     }
@@ -9146,8 +9146,8 @@
       const allDates = dpDataDates();
       s.fromDate = allDates[0] || null;
       s.toDate = allDates[allDates.length - 1] || null;
-      document.getElementById(`${ns}DpFromTxt`).textContent = dpFmtShort(s.fromDate) || '— —';
-      document.getElementById(`${ns}DpToTxt`).textContent = dpFmtShort(s.toDate) || '— —';
+      const ft = document.getElementById(`${ns}DpFromTxt`); if (ft) ft.textContent = dpFmtShort(s.fromDate) || '— —';
+      const tt = document.getElementById(`${ns}DpToTxt`); if (tt) tt.textContent = dpFmtShort(s.toDate) || '— —';
       if (ns === 'mm') { mmNs = 'mm'; mmFromIdx = 0; mmToIdx = mmData.dates.length - 1; mmPopulateDates(); mmUpdateRangeLabel(); mmRenderAll(); }
       if (ns === 'og') { mmNs = 'og'; mmFromIdx = 0; mmToIdx = mmData.dates.length - 1; mmPopulateDates(); mmUpdateRangeLabel(); mmRenderAll(); }
       if (ns === 'mmc') { mmcNs = 'mmc'; mmcFromIdx = 0; mmcToIdx = mmData.dates.length - 1; mmcPopulateDates(); mmcRenderAll(); }
@@ -9163,8 +9163,8 @@
       if (dates.length) {
         s.fromDate = dates[0]; s.toDate = dates[dates.length - 1];
         s.curYear = dates[0].getFullYear(); s.curMonth = dates[0].getMonth();
-        document.getElementById(`${ns}DpFromTxt`).textContent = dpFmtShort(s.fromDate);
-        document.getElementById(`${ns}DpToTxt`).textContent = dpFmtShort(s.toDate);
+        const ft = document.getElementById(`${ns}DpFromTxt`); if (ft) ft.textContent = dpFmtShort(s.fromDate);
+        const tt = document.getElementById(`${ns}DpToTxt`); if (tt) tt.textContent = dpFmtShort(s.toDate);
       }
       if (mmData.dates.length) dpUpdateRangeLabel(ns, 0, mmData.dates.length - 1);
     }
