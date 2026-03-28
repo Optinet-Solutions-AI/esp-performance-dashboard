@@ -2922,25 +2922,19 @@
       }
     }
 
-    function clearAllData() {
-      if (!confirm('Clear ALL Mailmodo and Ongage data? This cannot be undone.')) return;
+    function clearMailmodoData() {
+      if (!confirm('Clear all Mailmodo data? This cannot be undone.')) return;
 
-      const empty = () => ({ dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} });
-      mmData = empty();
-      ogData.dates = []; ogData.datesFull = []; ogData.providers = {}; ogData.domains = {}; ogData.overallByDate = {}; ogData.providerDomains = {};
+      mmData.dates = []; mmData.datesFull = []; mmData.providers = {}; mmData.domains = {}; mmData.overallByDate = {}; mmData.providerDomains = {};
 
       mxBuildProviderDomains();
       mmRenderAll();
-      uploadClearLog();
-      document.getElementById('uploadStep4').style.display = 'none';
 
       if (sbConnected && sb) {
-        sb.from('reports').delete().neq('provider', '').then(({ error }) => {
-          if (!error) uploadLog('☁️ Supabase data cleared.'); else uploadLog(`⚠️ Supabase clear failed: ${error.message}`, 'warn');
+        sb.from('reports').delete().eq('category', 'mailmodo').then(({ error }) => {
+          if (error) console.warn('Supabase clear failed:', error.message);
         });
       }
-
-      uploadLog('✓ All data cleared. Ready for fresh upload.', 'ok');
     }
 
     function uploadGoBack() {
