@@ -2498,6 +2498,15 @@
       document.getElementById('dmPinModal').classList.add('open');
       setTimeout(() => document.getElementById('dmPinInput').focus(), 100);
     }
+
+    function confirmResetAll() {
+      if (!confirm('Reset ALL dashboard data?\n\nThis will clear all uploaded reports, ESP data, IP records, and upload history. This cannot be undone.')) return;
+      localStorage.removeItem('espDashboard_mmData_v1');
+      localStorage.removeItem('espDashboard_history_v1');
+      localStorage.removeItem('espDashboard_dmData_v1');
+      localStorage.removeItem('espDashboard_ipmData_v1');
+      location.reload();
+    }
     function dmPinInput() { document.getElementById('dmPinError').textContent = ''; }
     function dmPinCancel() { document.getElementById('dmPinModal').classList.remove('open'); }
     function dmPinConfirm() {
