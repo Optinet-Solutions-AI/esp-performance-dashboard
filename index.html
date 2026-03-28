@@ -8430,6 +8430,18 @@
           // Trigger dashboard refresh
           mmRenderAll();
 
+          // Save to Supabase reports table
+          if (sbConnected && sb) {
+            const _saveData = uploadCategory === 'ongage' ? ogData : mmData;
+            sb.from('reports').upsert(
+              { provider: uploadEsp, category: uploadCategory, data: _saveData, updated_at: new Date().toISOString() },
+              { onConflict: 'provider,category' }
+            ).then(({ error }) => {
+              if (error) uploadLog(`⚠️ Supabase: ${error.message}`, 'warn');
+              else uploadLog('☁️ Saved to Supabase.', 'ok');
+            });
+          }
+
         } catch (err) {
           uploadLog(`✗ Error: ${err.message}`, 'err');
           console.error(err);
