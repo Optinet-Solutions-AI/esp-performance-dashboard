@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { parseFile, mergeIntoMmData } from '@/lib/parsers'
 import { buildProviderDomains, syncEspFromData } from '@/lib/utils'
@@ -7,6 +7,17 @@ import { ESP_COLORS } from '@/lib/data'
 import { supabase } from '@/lib/supabase'
 
 const ESP_LIST = ['Mailmodo', 'Ongage', 'Hotsol', 'MMS', 'Moosend', 'Omnisend', 'Klaviyo', 'Brevo']
+
+interface UploadRecord {
+  id: string
+  esp: string
+  category: string
+  filename: string
+  rows: number
+  dates: string[]
+  new_dates: number
+  uploaded_at: string
+}
 
 export default function UploadView() {
   const { isLight, mmData, ogData, setMmData, setOgData, addUploadHistory, esps, setEsps } = useDashboardStore()
@@ -19,7 +30,19 @@ export default function UploadView() {
   const [log, setLog] = useState<string[]>([])
   const [result, setResult] = useState<{ rows: number; dates: string[]; newDates: number } | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [history, setHistory] = useState<UploadRecord[]>([])
+  const [deleting, setDeleting] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { fetchHistory() }, [])
+
+  async function fetchHistory() {
+    const { data } = await supabase
+      .from('uploads')
+      .select('*')
+      .order('uploaded_at', { ascending: false })
+    if (data) setHistory(data)
+  }
 
   function addLog(msg: string) { setLog(prev => [...prev, msg]) }
 
@@ -81,6 +104,12 @@ export default function UploadView() {
         addLog('⚠️ Supabase save failed (data saved locally).')
       }
 
+      await supabase.from('uploads').insert({
+        esp, category, filename: file.name,
+        rows: parsed.totalRows, dates: parsed.dates, new_dates: newDates,
+      })
+      await fetchHistory()
+
       addUploadHistory({
         esp, file: file.name, rows: parsed.totalRows,
         dates: parsed.dates, time: new Date().toLocaleTimeString(),
@@ -97,6 +126,18 @@ export default function UploadView() {
     }
   }
 
+  async function handleDelete(record: UploadRecord) {
+    if (!confirm(`Delete this upload?\n\n"${record.filename}"\n\nThis will reset all ${record.esp} / ${record.category} data. You will need to re-upload to restore it.`)) return
+    setDeleting(record.id)
+    try {
+      await supabase.from('uploads').delete().eq('id', record.id)
+      await supabase.from('reports').delete().eq('provider', record.esp).eq('category', record.category)
+      window.location.reload()
+    } catch {
+      setDeleting(null)
+    }
+  }
+
   function reset() {
     setEsp(''); setCategory('mailmodo'); setFile(null)
     setStep(1); setLog([]); setResult(null)
@@ -106,6 +147,13 @@ export default function UploadView() {
     const blob = new Blob([JSON.stringify({ mmData, ogData }, null, 2)], { type: 'application/json' })
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
     a.download = 'esp-dashboard-data.json'; a.click()
+  }
+
+  function fmtDate(iso: string) {
+    return new Date(iso).toLocaleString(undefined, {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
   }
 
   const textMain = isLight ? 'text-gray-900' : 'text-[#f0f2f5]'
@@ -300,6 +348,57 @@ export default function UploadView() {
           </div>
         </div>
       )}
+
+      {/* Upload History */}
+      <div className="mt-8">
+        <div className="section-title" style={{ marginBottom: 4 }}>
+          <div className="section-title-bar" style={{ background: '#ff6b35' }} />
+          <h1>Upload History</h1>
+        </div>
+        <p className="section-title-sub">Manage past uploads — deleting resets all data for that ESP &amp; category</p>
+
+        {history.length === 0 ? (
+          <div className={`rounded-2xl border p-8 text-center ${surface}`}>
+            <div className={`text-sm ${muted}`}>No uploads yet</div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {history.map(rec => (
+              <div key={rec.id} className={`rounded-2xl border overflow-hidden ${surface}`}>
+                <div className={`px-5 py-3.5 border-b ${isLight ? 'border-black/6 bg-gray-50/60' : 'border-white/5 bg-white/[0.02]'} flex items-start justify-between gap-3`}>
+                  <div>
+                    <div className={`text-[10px] font-mono tracking-[0.12em] uppercase ${muted}`}>
+                      {fmtDate(rec.uploaded_at)}
+                    </div>
+                    <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>
+                      {rec.esp} · {rec.category} · {rec.filename}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDelete(rec)}
+                    disabled={deleting === rec.id}
+                    className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all
+                      border border-[#ff4757]/40 text-[#ff4757] hover:bg-[#ff4757]/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {deleting === rec.id ? 'Deleting…' : 'Delete'}
+                  </button>
+                </div>
+                <div className="px-5 py-3 flex flex-wrap gap-3">
+                  <span className={`px-2.5 py-1 rounded-lg font-mono text-[11px] ${isLight ? 'bg-gray-100 text-gray-600' : 'bg-white/5 text-[#8a94a6]'}`}>
+                    {rec.rows.toLocaleString()} rows
+                  </span>
+                  <span className={`px-2.5 py-1 rounded-lg font-mono text-[11px] ${isLight ? 'bg-gray-100 text-gray-600' : 'bg-white/5 text-[#8a94a6]'}`}>
+                    {rec.dates.length} date{rec.dates.length !== 1 ? 's' : ''}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg font-mono text-[11px] text-[#00e5c3] bg-[#00e5c3]/10">
+                    +{rec.new_dates} new
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
