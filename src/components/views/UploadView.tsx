@@ -2,8 +2,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { parseFile, mergeIntoMmData } from '@/lib/parsers'
-import { buildProviderDomains, syncEspFromData } from '@/lib/utils'
-import { ESP_COLORS } from '@/lib/data'
+import { buildProviderDomains, syncEspFromData, mergeMmData } from '@/lib/utils'
+import { ESP_COLORS, INITIAL_MM_DATA } from '@/lib/data'
 import { supabase } from '@/lib/supabase'
 
 const ESP_LIST = ['Mailmodo', 'Ongage', 'Hotsol', 'MMS', 'Moosend', 'Omnisend', 'Klaviyo', 'Brevo']
@@ -74,6 +74,10 @@ export default function UploadView() {
       addLog(`📅 Found ${parsed.dates.length} date(s): ${parsed.dates.join(', ')}`)
       addLog(`🔎 Format: ${parsed.format}`)
 
+      // Compute solo data (this upload only, for independent storage)
+      const { data: soloData } = mergeIntoMmData(INITIAL_MM_DATA, parsed, esp)
+      soloData.providerDomains = buildProviderDomains(soloData)
+
       const currentData = category === 'mailmodo' ? mmData : ogData
       const { data: merged, newDates } = mergeIntoMmData(currentData, parsed, esp)
       merged.providerDomains = buildProviderDomains(merged)
@@ -107,6 +111,7 @@ export default function UploadView() {
       await supabase.from('uploads').insert({
         esp, category, filename: file.name,
         rows: parsed.totalRows, dates: parsed.dates, new_dates: newDates,
+        solo_data: soloData,
       })
       await fetchHistory()
 
@@ -127,11 +132,37 @@ export default function UploadView() {
   }
 
   async function handleDelete(record: UploadRecord) {
-    if (!confirm(`Delete this upload?\n\n"${record.filename}"\n\nThis will reset all ${record.esp} / ${record.category} data. You will need to re-upload to restore it.`)) return
+    if (!confirm(`Delete this upload?\n\n"${record.filename}" (${record.esp} · ${record.category})\n\nOnly this file's data will be removed.`)) return
     setDeleting(record.id)
     try {
       await supabase.from('uploads').delete().eq('id', record.id)
-      await supabase.from('reports').delete().eq('provider', record.esp).eq('category', record.category)
+
+      // Re-merge remaining uploads for this category
+      const { data: remaining } = await supabase
+        .from('uploads')
+        .select('esp, solo_data')
+        .eq('category', record.category)
+        .order('uploaded_at', { ascending: true })
+
+      if (!remaining?.length) {
+        await supabase.from('reports').delete().eq('category', record.category)
+      } else {
+        let remerged = INITIAL_MM_DATA
+        for (const row of remaining) {
+          remerged = mergeMmData(remerged, row.solo_data)
+        }
+        remerged.providerDomains = buildProviderDomains(remerged)
+        // Update reports for each remaining provider
+        await supabase.from('reports').delete().eq('category', record.category)
+        const providers = [...new Set(remaining.map((r: {esp: string}) => r.esp))]
+        for (const prov of providers) {
+          await supabase.from('reports').insert({
+            provider: prov, category: record.category,
+            data: remerged, updated_at: new Date().toISOString(),
+          })
+        }
+      }
+
       window.location.reload()
     } catch {
       setDeleting(null)

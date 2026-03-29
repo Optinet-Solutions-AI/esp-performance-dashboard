@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
-import { buildProviderDomains, syncEspFromData } from '@/lib/utils'
-import { ESP_COLORS } from '@/lib/data'
+import { buildProviderDomains, syncEspFromData, mergeMmData } from '@/lib/utils'
+import { ESP_COLORS, INITIAL_MM_DATA } from '@/lib/data'
 import type { MmData } from '@/lib/types'
 import Sidebar from '@/components/layout/Sidebar'
 import HomeView from '@/components/views/HomeView'
@@ -34,63 +34,41 @@ export default function Page() {
     async function loadFromDB() {
       try {
         const { data: rows, error } = await supabase
-          .from('reports')
-          .select('provider, category, data, updated_at')
-          .order('updated_at', { ascending: false })
+          .from('uploads')
+          .select('esp, category, solo_data')
+          .order('uploaded_at', { ascending: true })
 
         if (error || !rows?.length) return
 
-        // Most recent row per category = the most complete accumulated state
-        const mmRow = rows.find(r => r.category === 'mailmodo')
-        const ogRow = rows.find(r => r.category === 'ongage')
-
         const newEsps = [...esps]
 
-        if (mmRow) {
-          const mmData = mmRow.data as MmData
-          mmData.providerDomains = buildProviderDomains(mmData)
-          setMmData(mmData)
+        for (const cat of ['mailmodo', 'ongage'] as const) {
+          const catRows = rows.filter(r => r.category === cat && r.solo_data)
+          if (!catRows.length) continue
 
-          // Build/update ESP records from each mailmodo provider row
-          const mmRows = rows.filter(r => r.category === 'mailmodo')
-          mmRows.forEach(row => {
-            const existing = newEsps.find(e => e.name === row.provider)
+          let merged = INITIAL_MM_DATA as MmData
+          for (const row of catRows) {
+            merged = mergeMmData(merged, row.solo_data as MmData)
+          }
+          merged.providerDomains = buildProviderDomains(merged)
+
+          if (cat === 'mailmodo') setMmData(merged)
+          else setOgData(merged)
+
+          // Build ESP records from unique providers in this category
+          const providers = [...new Set(catRows.map(r => r.esp))]
+          providers.forEach(provName => {
+            const existing = newEsps.find(e => e.name === provName)
             const base = existing ?? {
-              name: row.provider,
-              color: ESP_COLORS[row.provider] ?? '#a8b0be',
+              name: provName,
+              color: ESP_COLORS[provName] ?? '#a8b0be',
               sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0,
               deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubRate: 0,
               status: 'healthy' as const,
             }
-            const updated = syncEspFromData(base, row.data as MmData)
+            const updated = syncEspFromData(base, merged)
             if (existing) {
-              const idx = newEsps.findIndex(e => e.name === row.provider)
-              newEsps[idx] = updated
-            } else {
-              newEsps.push(updated)
-            }
-          })
-        }
-
-        if (ogRow) {
-          const ogData = ogRow.data as MmData
-          ogData.providerDomains = buildProviderDomains(ogData)
-          setOgData(ogData)
-
-          const ogRows = rows.filter(r => r.category === 'ongage')
-          ogRows.forEach(row => {
-            const existing = newEsps.find(e => e.name === row.provider)
-            const base = existing ?? {
-              name: row.provider,
-              color: ESP_COLORS[row.provider] ?? '#a8b0be',
-              sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0,
-              deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubRate: 0,
-              status: 'healthy' as const,
-            }
-            const updated = syncEspFromData(base, row.data as MmData)
-            if (existing) {
-              const idx = newEsps.findIndex(e => e.name === row.provider)
-              newEsps[idx] = updated
+              newEsps[newEsps.findIndex(e => e.name === provName)] = updated
             } else {
               newEsps.push(updated)
             }
