@@ -1,6 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
+import { supabase } from '@/lib/supabase'
+import { buildProviderDomains, syncEspFromData } from '@/lib/utils'
+import { ESP_COLORS } from '@/lib/data'
+import type { MmData } from '@/lib/types'
 import Sidebar from '@/components/layout/Sidebar'
 import HomeView from '@/components/views/HomeView'
 import DashboardView from '@/components/views/DashboardView'
@@ -22,8 +26,87 @@ const VIEW_LABELS: Record<string, string> = {
 }
 
 export default function Page() {
-  const { activeView, isLight } = useDashboardStore()
+  const { activeView, isLight, setMmData, setOgData, setEsps, esps } = useDashboardStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [dbLoaded, setDbLoaded] = useState(false)
+
+  useEffect(() => {
+    async function loadFromDB() {
+      try {
+        const { data: rows, error } = await supabase
+          .from('reports')
+          .select('provider, category, data, updated_at')
+          .order('updated_at', { ascending: false })
+
+        if (error || !rows?.length) return
+
+        // Most recent row per category = the most complete accumulated state
+        const mmRow = rows.find(r => r.category === 'mailmodo')
+        const ogRow = rows.find(r => r.category === 'ongage')
+
+        const newEsps = [...esps]
+
+        if (mmRow) {
+          const mmData = mmRow.data as MmData
+          mmData.providerDomains = buildProviderDomains(mmData)
+          setMmData(mmData)
+
+          // Build/update ESP records from each mailmodo provider row
+          const mmRows = rows.filter(r => r.category === 'mailmodo')
+          mmRows.forEach(row => {
+            const existing = newEsps.find(e => e.name === row.provider)
+            const base = existing ?? {
+              name: row.provider,
+              color: ESP_COLORS[row.provider] ?? '#a8b0be',
+              sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0,
+              deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubRate: 0,
+              status: 'healthy' as const,
+            }
+            const updated = syncEspFromData(base, row.data as MmData)
+            if (existing) {
+              const idx = newEsps.findIndex(e => e.name === row.provider)
+              newEsps[idx] = updated
+            } else {
+              newEsps.push(updated)
+            }
+          })
+        }
+
+        if (ogRow) {
+          const ogData = ogRow.data as MmData
+          ogData.providerDomains = buildProviderDomains(ogData)
+          setOgData(ogData)
+
+          const ogRows = rows.filter(r => r.category === 'ongage')
+          ogRows.forEach(row => {
+            const existing = newEsps.find(e => e.name === row.provider)
+            const base = existing ?? {
+              name: row.provider,
+              color: ESP_COLORS[row.provider] ?? '#a8b0be',
+              sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0,
+              deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubRate: 0,
+              status: 'healthy' as const,
+            }
+            const updated = syncEspFromData(base, row.data as MmData)
+            if (existing) {
+              const idx = newEsps.findIndex(e => e.name === row.provider)
+              newEsps[idx] = updated
+            } else {
+              newEsps.push(updated)
+            }
+          })
+        }
+
+        if (newEsps.length) setEsps(newEsps)
+      } catch (err) {
+        console.error('Failed to load from Supabase:', err)
+      } finally {
+        setDbLoaded(true)
+      }
+    }
+    loadFromDB()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     document.body.classList.toggle('light', isLight)
@@ -32,6 +115,26 @@ export default function Page() {
   useEffect(() => { setSidebarOpen(false) }, [activeView])
 
   const bg = isLight ? '#f0f2f6' : '#0a0c10'
+
+  if (!dbLoaded) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        minHeight: '100vh', background: bg,
+        flexDirection: 'column', gap: 16,
+      }}>
+        <div style={{
+          width: 40, height: 40, border: '3px solid rgba(0,229,195,0.2)',
+          borderTopColor: '#00e5c3', borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <div style={{ fontSize: 13, color: '#5a6478', fontFamily: 'Space Mono, monospace' }}>
+          Loading from database…
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: bg }}>
