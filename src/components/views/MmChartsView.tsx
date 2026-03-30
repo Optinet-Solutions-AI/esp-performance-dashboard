@@ -47,6 +47,35 @@ function ChartsView({ filter }: { filter?: 'ongage' | 'mailmodo' }) {
   const toIdx = store.espRanges[selectedEsp]?.toIdx ?? 0
   const setRange = (from: number, to: number) => store.setEspRange(selectedEsp, from, to)
 
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+
+  useEffect(() => {
+    if (data.datesFull.length) {
+      setFromDate(data.datesFull[fromIdx]?.iso || '')
+      setToDate(data.datesFull[toIdx]?.iso || '')
+    }
+  }, [selectedEsp, data.datesFull.length])
+
+  function findFromIdx(iso: string): number {
+    const idx = data.datesFull.findIndex(df => df.iso >= iso)
+    return idx === -1 ? 0 : idx
+  }
+  function findToIdx(iso: string): number {
+    let found = data.datesFull.length - 1
+    for (let i = data.datesFull.length - 1; i >= 0; i--) {
+      if (data.datesFull[i].iso <= iso) { found = i; break }
+    }
+    return found
+  }
+  function handleFromDate(iso: string) { setFromDate(iso); if (iso) setRange(findFromIdx(iso), toIdx) }
+  function handleToDate(iso: string) { setToDate(iso); if (iso) setRange(fromIdx, findToIdx(iso)) }
+  function handleAllDates() {
+    setRange(0, data.dates.length - 1)
+    setFromDate(data.datesFull[0]?.iso || '')
+    setToDate(data.datesFull[data.datesFull.length - 1]?.iso || '')
+  }
+
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
   const cardClass = `rounded-xl border ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`
@@ -169,15 +198,11 @@ function ChartsView({ filter }: { filter?: 'ongage' | 'mailmodo' }) {
           )}
           {hasData && (
             <>
-              <select value={fromIdx} onChange={e => setRange(Number(e.target.value), toIdx)} className={selectCls}>
-                {data.dates.map((d, i) => <option key={d} value={i}>{d}</option>)}
-              </select>
+              <input type="date" value={fromDate} min="2025-01-01" onChange={e => handleFromDate(e.target.value)} className={selectCls} />
               <span className={`text-xs ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>→</span>
-              <select value={toIdx} onChange={e => setRange(fromIdx, Number(e.target.value))} className={selectCls}>
-                {data.dates.map((d, i) => <option key={d} value={i}>{d}</option>)}
-              </select>
+              <input type="date" value={toDate} min="2025-01-01" onChange={e => handleToDate(e.target.value)} className={selectCls} />
               <button
-                onClick={() => setRange(0, data.dates.length - 1)}
+                onClick={handleAllDates}
                 className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all
                   ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}
               >

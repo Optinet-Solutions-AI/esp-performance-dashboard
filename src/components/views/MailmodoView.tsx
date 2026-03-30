@@ -1,12 +1,121 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { Chart } from 'chart.js/auto'
+import {
+  Chart as ChartJS,
+  CategoryScale, LinearScale, PointElement, LineElement,
+  Filler, Title, Tooltip, Legend,
+} from 'chart.js'
+import { Line } from 'react-chartjs-2'
 import { useDashboardStore } from '@/lib/store'
 import { aggDates, fmtN, fmtP, getGridColor, getTextColor, CHART_TOOLTIP_OPTS } from '@/lib/utils'
 import { PROVIDER_COLORS, DOMAIN_COLORS, IP_COLOR_PALETTE, ESP_COLORS } from '@/lib/data'
 import type { MmData, MmTabType } from '@/lib/types'
 
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Title, Tooltip, Legend)
+
 const EMPTY_DATA: MmData = { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
+
+function TrendCharts({ activeDates, overallByDate, brandColor, isLight, gc, tc }: {
+  activeDates: string[]
+  overallByDate: MmData['overallByDate']
+  brandColor: string
+  isLight: boolean
+  gc: string
+  tc: string
+}) {
+  const cardClass = `rounded-xl border ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`
+
+  const perDateMetrics = activeDates.map(d => {
+    const r = overallByDate[d]
+    if (!r) return null
+    return {
+      date: d,
+      sent: r.sent || 0,
+      delivered: r.delivered || 0,
+      deliveryRate: r.deliveryRate || 0,
+      openRate: r.openRate || 0,
+      bounceRate: r.bounceRate || 0,
+    }
+  }).filter(Boolean) as { date: string; sent: number; delivered: number; deliveryRate: number; openRate: number; bounceRate: number }[]
+
+  const labels = perDateMetrics.map(r => r.date)
+
+  const volumeOptions = {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index' as const, intersect: false },
+    plugins: { legend: { display: false }, tooltip: { ...CHART_TOOLTIP_OPTS } },
+    scales: {
+      x: { ticks: { color: tc, font: { size: 9 }, maxRotation: 30, autoSkip: true }, grid: { display: false }, border: { display: false } },
+      y: { ticks: { color: tc, font: { size: 9 }, callback: (v: number | string) => fmtN(Number(v)) }, grid: { color: gc }, border: { display: false } },
+    },
+  }
+
+  const rateOptions = {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index' as const, intersect: false },
+    plugins: { legend: { display: false }, tooltip: { ...CHART_TOOLTIP_OPTS } },
+    scales: {
+      x: { ticks: { color: tc, font: { size: 9 }, maxRotation: 30, autoSkip: true }, grid: { display: false }, border: { display: false } },
+      y: { ticks: { color: tc, font: { size: 9 }, callback: (v: number | string) => v + '%' }, grid: { color: gc }, border: { display: false } },
+    },
+  }
+
+  const charts = [
+    {
+      label: 'Volume Over Time', sublabel: 'Sent + Delivered', accent: '#6b7280',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Sent', data: perDateMetrics.map(r => r.sent), borderColor: '#6b7280', backgroundColor: 'rgba(107,114,128,0.06)', fill: true, tension: 0.35, pointRadius: 4, pointHoverRadius: 7, borderWidth: 2 },
+          { label: 'Delivered', data: perDateMetrics.map(r => r.delivered), borderColor: brandColor, backgroundColor: brandColor + '12', fill: true, tension: 0.35, pointRadius: 4, pointHoverRadius: 7, borderWidth: 2 },
+        ],
+      },
+      opts: volumeOptions,
+    },
+    {
+      label: 'Delivery Rate Trend', sublabel: 'Delivered ÷ Sent × 100', accent: '#00e5c3',
+      data: { labels, datasets: [{ label: 'Delivery Rate', data: perDateMetrics.map(r => +r.deliveryRate.toFixed(2)), borderColor: '#00e5c3', backgroundColor: 'rgba(0,229,195,0.08)', fill: true, tension: 0.35, pointRadius: 4, pointHoverRadius: 7, borderWidth: 2 }] },
+      opts: rateOptions,
+    },
+    {
+      label: 'Open Rate Trend', sublabel: 'Opens ÷ Delivered × 100', accent: brandColor,
+      data: { labels, datasets: [{ label: 'Open Rate', data: perDateMetrics.map(r => +r.openRate.toFixed(2)), borderColor: brandColor, backgroundColor: brandColor + '12', fill: true, tension: 0.35, pointRadius: 4, pointHoverRadius: 7, borderWidth: 2 }] },
+      opts: rateOptions,
+    },
+    {
+      label: 'Bounce Rate Trend', sublabel: 'Bounced ÷ Sent × 100', accent: '#ff4757',
+      data: { labels, datasets: [{ label: 'Bounce Rate', data: perDateMetrics.map(r => +r.bounceRate.toFixed(2)), borderColor: '#ff4757', backgroundColor: 'rgba(255,71,87,0.06)', fill: true, tension: 0.35, pointRadius: 4, pointHoverRadius: 7, borderWidth: 2 }] },
+      opts: rateOptions,
+    },
+  ]
+
+  if (perDateMetrics.length === 0) return null
+
+  return (
+    <div className="mt-5">
+      <div className={`text-xs font-mono tracking-wider uppercase mb-3 ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>KPI Trends</div>
+      <div className="grid grid-cols-2 gap-4">
+        {charts.map(chart => (
+          <div key={chart.label} className={`${cardClass} p-4`}>
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <div className="text-sm font-semibold" style={{ color: chart.accent }}>{chart.label}</div>
+                <div className={`text-[10px] font-mono mt-0.5 ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>{chart.sublabel}</div>
+              </div>
+              <div className={`text-[9px] font-mono px-2 py-0.5 rounded border ${isLight ? 'border-black/15 text-gray-500' : 'border-white/13 text-[#a8b0be]'}`}>
+                {activeDates.length}d
+              </div>
+            </div>
+            <div style={{ height: 200 }}>
+              <Line data={chart.data} options={chart.opts} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 interface ProviderRowProps {
   name: string
@@ -76,6 +185,43 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const fromIdx = store.espRanges[selectedEsp]?.fromIdx ?? 0
   const toIdx = store.espRanges[selectedEsp]?.toIdx ?? 0
   const setRange = (from: number, to: number) => store.setEspRange(selectedEsp, from, to)
+
+  // Calendar date state (ISO strings)
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+
+  // Sync calendar inputs when ESP or data changes
+  useEffect(() => {
+    if (data.datesFull.length) {
+      setFromDate(data.datesFull[fromIdx]?.iso || '')
+      setToDate(data.datesFull[toIdx]?.iso || '')
+    }
+  }, [selectedEsp, data.datesFull.length])
+
+  function findFromIdx(iso: string): number {
+    const idx = data.datesFull.findIndex(df => df.iso >= iso)
+    return idx === -1 ? 0 : idx
+  }
+  function findToIdx(iso: string): number {
+    let found = data.datesFull.length - 1
+    for (let i = data.datesFull.length - 1; i >= 0; i--) {
+      if (data.datesFull[i].iso <= iso) { found = i; break }
+    }
+    return found
+  }
+  function handleFromDate(iso: string) {
+    setFromDate(iso)
+    if (iso) setRange(findFromIdx(iso), toIdx)
+  }
+  function handleToDate(iso: string) {
+    setToDate(iso)
+    if (iso) setRange(fromIdx, findToIdx(iso))
+  }
+  function handleAllDates() {
+    setRange(0, data.dates.length - 1)
+    setFromDate(data.datesFull[0]?.iso || '')
+    setToDate(data.datesFull[data.datesFull.length - 1]?.iso || '')
+  }
   const mmTab = store.mmTab
   const setMmTab = store.setMmTab
   const mmSelectedRow = store.mmSelectedRow
@@ -173,24 +319,24 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               {espList.map(e => <option key={e} value={e}>{e}</option>)}
             </select>
           )}
-          {/* Date range */}
-          <select
-            value={fromIdx}
-            onChange={e => setRange(Number(e.target.value), toIdx)}
+          {/* Date range — calendar */}
+          <input
+            type="date"
+            value={fromDate}
+            min="2025-01-01"
+            onChange={e => handleFromDate(e.target.value)}
             className={selectCls}
-          >
-            {data.dates.map((d, i) => <option key={d} value={i}>{d}</option>)}
-          </select>
+          />
           <span className={`text-xs ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>→</span>
-          <select
-            value={toIdx}
-            onChange={e => setRange(fromIdx, Number(e.target.value))}
+          <input
+            type="date"
+            value={toDate}
+            min="2025-01-01"
+            onChange={e => handleToDate(e.target.value)}
             className={selectCls}
-          >
-            {data.dates.map((d, i) => <option key={d} value={i}>{d}</option>)}
-          </select>
+          />
           <button
-            onClick={() => setRange(0, data.dates.length - 1)}
+            onClick={handleAllDates}
             className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all
               ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}
           >
@@ -291,6 +437,16 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               </tbody>
             </table>
           </div>
+
+          {/* KPI Trend Charts */}
+          <TrendCharts
+            activeDates={activeDates}
+            overallByDate={data.overallByDate}
+            brandColor={brandColor}
+            isLight={isLight}
+            gc={gc}
+            tc={tc}
+          />
         </>
       )}
     </div>

@@ -151,14 +151,60 @@ function mergeProviderData(a: ProviderData, b: ProviderData): ProviderData {
   return { overall, byDate }
 }
 
+const MONTHS_UTIL = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function makeDatesFull(label: string, year: number): { label: string; year: number; iso: string } {
+  const [mon, day] = label.split(' ')
+  const m = MONTHS_UTIL.indexOf(mon) + 1
+  const iso = `${year}-${String(m).padStart(2, '0')}-${day.padStart(2, '0')}`
+  return { label, year, iso }
+}
+
+function inferYearsFromSequence(labels: string[]): Record<string, number> {
+  // Start from 2025, increment year when month wraps backward
+  const result: Record<string, number> = {}
+  let year = 2025
+  let prevMonthIdx = -1
+  for (const label of labels) {
+    const [mon] = label.split(' ')
+    const mIdx = MONTHS_UTIL.indexOf(mon)
+    if (mIdx < prevMonthIdx) year++
+    result[label] = year
+    prevMonthIdx = mIdx
+  }
+  return result
+}
+
 export function mergeMmData(a: MmData, b: MmData): MmData {
   const dateSet = new Set([...a.dates, ...b.dates])
-  const dates = Array.from(dateSet).sort()
-  const datesFull = dates.map(d =>
-    a.datesFull.find(df => df.label === d) ||
-    b.datesFull.find(df => df.label === d) ||
-    { label: d, year: new Date().getFullYear() }
-  )
+
+  // Build label -> datesFull map from both sources
+  const dfMap: Record<string, { label: string; year: number; iso: string }> = {}
+  ;[...a.datesFull, ...b.datesFull].forEach(df => {
+    if (!dfMap[df.label]) dfMap[df.label] = { label: df.label, year: df.year, iso: df.iso || '' }
+  })
+
+  // For any label missing iso or year, infer
+  const allLabels = Array.from(dateSet)
+  const missingYears = allLabels.filter(l => !dfMap[l] || !dfMap[l].iso)
+  if (missingYears.length) {
+    // Sort labels first to infer year sequence correctly
+    const sorted = allLabels.slice().sort((x, y) => {
+      const xi = MONTHS_UTIL.indexOf(x.split(' ')[0]) * 31 + parseInt(x.split(' ')[1])
+      const yi = MONTHS_UTIL.indexOf(y.split(' ')[0]) * 31 + parseInt(y.split(' ')[1])
+      return xi - yi
+    })
+    const inferred = inferYearsFromSequence(sorted)
+    missingYears.forEach(l => { dfMap[l] = makeDatesFull(l, inferred[l] || 2025) })
+  }
+
+  const dates = Array.from(dateSet).sort((x, y) => {
+    const xy = dfMap[x]?.year || 2025, yy = dfMap[y]?.year || 2025
+    if (xy !== yy) return xy - yy
+    const [xm, xd] = x.split(' '), [ym, yd] = y.split(' ')
+    return (MONTHS_UTIL.indexOf(xm) * 31 + parseInt(xd)) - (MONTHS_UTIL.indexOf(ym) * 31 + parseInt(yd))
+  })
+  const datesFull = dates.map(d => dfMap[d])
 
   const allProviders = new Set([...Object.keys(a.providers), ...Object.keys(b.providers)])
   const providers: MmData['providers'] = {}

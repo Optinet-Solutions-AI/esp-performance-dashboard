@@ -59,7 +59,7 @@ export interface ProviderDomainCell {
 
 export interface MmData {
   dates: string[]
-  datesFull: { label: string; year: number }[]
+  datesFull: { label: string; year: number; iso: string }[]
   providers: Record<string, ProviderData>
   domains: Record<string, ProviderData>
   overallByDate: Record<string, DateMetrics>
@@ -95,7 +95,6 @@ export type ViewName =
   | 'daily'
   | 'mailmodo'
   | 'ongage'
-  | 'mmcharts'
   | 'ogcharts'
   | 'upload'
   | 'matrix'

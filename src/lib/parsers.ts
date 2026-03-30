@@ -20,6 +20,7 @@ interface ParseResult {
     }>>
   }>
   dates: string[]
+  dateYears: Record<string, number>
   totalRows: number
   skipped: number
   skippedNoDate: number
@@ -100,14 +101,14 @@ function normaliseKeys(row: Record<string, unknown>): Record<string, string> {
   return out
 }
 
-function parseDate(raw: string | number, monthFirst = false): string | null {
+function parseDate(raw: string | number, monthFirst = false): { str: string; year: number } | null {
   if (!raw) return null
   // Excel serial number
   if (typeof raw === 'number') {
     const d = new Date(Date.UTC(1899, 11, 30) + raw * 86400000)
     const m = d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })
     const day = String(d.getUTCDate()).padStart(2, '0')
-    return `${m} ${day}`
+    return { str: `${m} ${day}`, year: d.getUTCFullYear() }
   }
   const s = String(raw).trim()
   if (!s) return null
@@ -117,21 +118,20 @@ function parseDate(raw: string | number, monthFirst = false): string | null {
     const n1 = parseInt(dmMatch[1])
     const n2 = parseInt(dmMatch[2])
     const year = parseInt(dmMatch[3])
-    // Determine month/day: if monthFirst (Ongage mm/dd), n1=month n2=day
-    // If n1 > 12 it must be the day regardless; if n2 > 12 it must be the day
     let month: number, day: number
     if (monthFirst || n2 > 12) { month = n1; day = n2 }
     else { day = n1; month = n2 }
     const d = new Date(year, month - 1, day)
     if (!isNaN(d.getTime()))
-      return d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0')
+      return { str: d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0'), year }
   }
   // ISO yyyy-mm-dd
-  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
-  if (iso) {
-    const d = new Date(parseInt(iso[1]), parseInt(iso[2]) - 1, parseInt(iso[3]))
+  const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (isoMatch) {
+    const year = parseInt(isoMatch[1])
+    const d = new Date(year, parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]))
     if (!isNaN(d.getTime()))
-      return d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0')
+      return { str: d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0'), year }
   }
   return null
 }
@@ -203,14 +203,17 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
   const isOngage = espName === 'Ongage'
 
   const byDate: ParseResult['byDate'] = {}
+  const dateYears: Record<string, number> = {}
   let skipped = 0, totalRows = 0
   let skippedNoDate = 0, skippedNoEmail = 0
 
   rows.forEach(row => {
     totalRows++
     const rawDate = row['sent-time'] || row['date'] || row['action_timestamp_rounded'] || row['timestamp'] || ''
-    const dateStr = parseDate(rawDate !== '' && !isNaN(Number(rawDate)) ? Number(rawDate) : rawDate, isOngage)
-    if (!dateStr) { skipped++; skippedNoDate++; return }
+    const parsed = parseDate(rawDate !== '' && !isNaN(Number(rawDate)) ? Number(rawDate) : rawDate, isOngage)
+    if (!parsed) { skipped++; skippedNoDate++; return }
+    const dateStr = parsed.str
+    dateYears[dateStr] = parsed.year
 
     const email = row['email'] || row['email-address'] || row['email_address'] || row['recipient'] || row['to'] || ''
     if (!email) { skipped++; skippedNoEmail++; return }
@@ -267,16 +270,15 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
     Object.values(d.domains).forEach(recalcRates)
   })
 
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const dates = Object.keys(byDate).sort((a, b) => {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-    const [am, ad] = a.split(' ')
-    const [bm, bd] = b.split(' ')
-    const ai = months.indexOf(am) * 31 + parseInt(ad)
-    const bi = months.indexOf(bm) * 31 + parseInt(bd)
-    return ai - bi
+    const ay = dateYears[a] || 0, by_ = dateYears[b] || 0
+    if (ay !== by_) return ay - by_
+    const [am, ad] = a.split(' '), [bm, bd] = b.split(' ')
+    return (MONTHS.indexOf(am) * 31 + parseInt(ad)) - (MONTHS.indexOf(bm) * 31 + parseInt(bd))
   })
 
-  return { byDate, dates, totalRows, skipped, skippedNoDate, skippedNoEmail, newDates: 0, format: isMailmodo ? 'mailmodo' : 'generic' }
+  return { byDate, dates, dateYears, totalRows, skipped, skippedNoDate, skippedNoEmail, newDates: 0, format: isMailmodo ? 'mailmodo' : 'generic' }
 }
 
 export function mergeIntoMmData(current: MmData, result: ReturnType<typeof parseFile> extends Promise<infer T> ? T : never, espName: string): { data: MmData; newDates: number } {
@@ -328,17 +330,20 @@ export function mergeIntoMmData(current: MmData, result: ReturnType<typeof parse
     d.overall = overall
   })
 
-  // Sort dates
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  // Sort dates with year awareness
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   data.dates.sort((a, b) => {
-    const [am, ad] = a.split(' ')
-    const [bm, bd] = b.split(' ')
-    return (months.indexOf(am) * 31 + parseInt(ad)) - (months.indexOf(bm) * 31 + parseInt(bd))
+    const ay = result.dateYears[a] || 0, by_ = result.dateYears[b] || 0
+    if (ay !== by_) return ay - by_
+    const [am, ad] = a.split(' '), [bm, bd] = b.split(' ')
+    return (MONTHS.indexOf(am) * 31 + parseInt(ad)) - (MONTHS.indexOf(bm) * 31 + parseInt(bd))
   })
   data.datesFull = data.dates.map(d => {
-    const [m, day] = d.split(' ')
-    const year = new Date().getFullYear()
-    return { label: d, year }
+    const year = result.dateYears[d] || new Date().getFullYear()
+    const [mon, day] = d.split(' ')
+    const m = MONTHS.indexOf(mon) + 1
+    const iso = `${year}-${String(m).padStart(2, '0')}-${day.padStart(2, '0')}`
+    return { label: d, year, iso }
   })
 
   return { data, newDates }

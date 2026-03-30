@@ -166,7 +166,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
         )}
 
         <SectionLabel text="Charts" />
-        <NavItem id="mmcharts" label="Mailmodo Charts" icon={iconChart} />
         <NavItem id="ogcharts" label="Ongage Charts" icon={iconChart} />
 
         <SectionLabel text="Tools" />

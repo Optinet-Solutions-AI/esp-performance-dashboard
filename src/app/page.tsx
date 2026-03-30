@@ -15,14 +15,13 @@ import DataMgmtView from '@/components/views/DataMgmtView'
 import IPMatrixView from '@/components/views/IPMatrixView'
 import PerformanceView from '@/components/views/PerformanceView'
 import DailyView from '@/components/views/DailyView'
-import MmChartsView from '@/components/views/MmChartsView'
 import OgChartsView from '@/components/views/OgChartsView'
 
 const VIEW_LABELS: Record<string, string> = {
   home: 'Overview', dashboard: 'Dashboard', mailmodo: 'Mailmodo Review',
   ongage: 'Ongage Review', upload: 'Upload Report', matrix: 'Deliverability Matrix',
   datamgmt: 'Data Management', ipmatrix: 'IPs Matrix', performance: 'Performance',
-  daily: 'Daily Report', mmcharts: 'Mailmodo Charts', ogcharts: 'Ongage Charts',
+  daily: 'Daily Report', ogcharts: 'Ongage Charts',
 }
 
 export default function Page() {
@@ -187,8 +186,7 @@ export default function Page() {
           {activeView === 'ipmatrix' && <IPMatrixView />}
           {activeView === 'performance' && <PerformanceView />}
           {activeView === 'daily' && <DailyView />}
-          {activeView === 'mmcharts' && <MmChartsView filter="mailmodo" />}
-          {activeView === 'ogcharts' && <OgChartsView />}
+{activeView === 'ogcharts' && <OgChartsView />}
         </main>
       </div>
     </div>
