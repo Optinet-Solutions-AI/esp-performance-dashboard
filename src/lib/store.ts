@@ -160,12 +160,8 @@ export const useDashboardStore = create<DashboardState>()(
       name: 'esp-dashboard-storage',
       partialize: (s) => ({
         isLight: s.isLight,
-        mmData: s.mmData,
-        ogData: s.ogData,
         ipmData: s.ipmData,
         dmData: s.dmData,
-        uploadHistory: s.uploadHistory,
-        esps: s.esps,
       }),
     }
   )

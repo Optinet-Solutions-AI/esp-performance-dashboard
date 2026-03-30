@@ -1,4 +1,4 @@
-import type { MmData, DateMetrics, EspRecord, EspStatus } from './types'
+import type { MmData, DateMetrics, ProviderData, EspRecord, EspStatus } from './types'
 
 export const fmtN = (n: number): string => {
   if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M'
@@ -115,6 +115,77 @@ export function syncEspFromData(
     deliveryRate, openRate, clickRate, bounceRate, unsubRate,
     status: getEspStatus(bounceRate, deliveryRate),
   }
+}
+
+function mergeMetrics(a: DateMetrics, b: DateMetrics): DateMetrics {
+  const sent = (a.sent || 0) + (b.sent || 0)
+  const delivered = (a.delivered || 0) + (b.delivered || 0)
+  const opened = (a.opened || 0) + (b.opened || 0)
+  const clicked = (a.clicked || 0) + (b.clicked || 0)
+  const bounced = (a.bounced || 0) + (b.bounced || 0)
+  const unsubscribed = (a.unsubscribed || 0) + (b.unsubscribed || 0)
+  const complained = (a.complained || 0) + (b.complained || 0)
+  return {
+    sent, delivered, opened, clicked, bounced, unsubscribed, complained,
+    deliveryRate: sent > 0 ? (delivered / sent) * 100 : 0,
+    successRate: sent > 0 ? (delivered / sent) * 100 : 0,
+    openRate: delivered > 0 ? (opened / delivered) * 100 : 0,
+    clickRate: opened > 0 ? (clicked / opened) * 100 : 0,
+    bounceRate: sent > 0 ? (bounced / sent) * 100 : 0,
+    unsubRate: opened > 0 ? (unsubscribed / opened) * 100 : 0,
+    complaintRate: delivered > 0 ? (complained / delivered) * 100 : 0,
+  }
+}
+
+function mergeProviderData(a: ProviderData, b: ProviderData): ProviderData {
+  const allDates = new Set([...Object.keys(a.byDate), ...Object.keys(b.byDate)])
+  const byDate: Record<string, DateMetrics> = {}
+  allDates.forEach(d => {
+    const am = a.byDate[d], bm = b.byDate[d]
+    byDate[d] = am && bm ? mergeMetrics(am, bm) : (am || bm)
+  })
+  const vals = Object.values(byDate)
+  const overall = vals.length
+    ? vals.reduce((acc, m) => mergeMetrics(acc, m))
+    : a.overall
+  return { overall, byDate }
+}
+
+export function mergeMmData(a: MmData, b: MmData): MmData {
+  const dateSet = new Set([...a.dates, ...b.dates])
+  const dates = Array.from(dateSet).sort()
+  const datesFull = dates.map(d =>
+    a.datesFull.find(df => df.label === d) ||
+    b.datesFull.find(df => df.label === d) ||
+    { label: d, year: new Date().getFullYear() }
+  )
+
+  const allProviders = new Set([...Object.keys(a.providers), ...Object.keys(b.providers)])
+  const providers: MmData['providers'] = {}
+  allProviders.forEach(p => {
+    providers[p] = a.providers[p] && b.providers[p]
+      ? mergeProviderData(a.providers[p], b.providers[p])
+      : (a.providers[p] || b.providers[p])
+  })
+
+  const allDomains = new Set([...Object.keys(a.domains), ...Object.keys(b.domains)])
+  const domains: MmData['domains'] = {}
+  allDomains.forEach(d => {
+    domains[d] = a.domains[d] && b.domains[d]
+      ? mergeProviderData(a.domains[d], b.domains[d])
+      : (a.domains[d] || b.domains[d])
+  })
+
+  const allDates = new Set([...Object.keys(a.overallByDate), ...Object.keys(b.overallByDate)])
+  const overallByDate: MmData['overallByDate'] = {}
+  allDates.forEach(d => {
+    const am = a.overallByDate[d], bm = b.overallByDate[d]
+    overallByDate[d] = am && bm ? mergeMetrics(am, bm) : (am || bm)
+  })
+
+  const merged: MmData = { dates, datesFull, providers, domains, overallByDate, providerDomains: {} }
+  merged.providerDomains = buildProviderDomains(merged)
+  return merged
 }
 
 export function exportCSV(rows: EspRecord[]): void {
