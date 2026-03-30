@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { parseFile, mergeIntoMmData } from '@/lib/parsers'
-import { buildProviderDomains, syncEspFromData } from '@/lib/utils'
+import { buildProviderDomains, syncEspFromData, mergeMmData } from '@/lib/utils'
 import { ESP_COLORS } from '@/lib/data'
 import type { MmData } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
@@ -73,18 +73,56 @@ export default function UploadView() {
       addLog(`📅 Found ${parsed.dates.length} date(s): ${parsed.dates.join(', ')}`)
       addLog(`🔎 Format: ${parsed.format}`)
 
-      // Compute solo data using a fresh empty object — never reuse INITIAL_MM_DATA
-      // because mergeIntoMmData mutates its input (shallow copy), which would corrupt
-      // INITIAL_MM_DATA for the second call below and double all metrics.
       const freshEmpty = (): MmData => ({ dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} })
+
+      // Delete any existing uploads for this ESP that overlap with the new dates
+      const { data: existing } = await supabase
+        .from('uploads')
+        .select('id, dates')
+        .eq('esp', esp)
+
+      if (existing) {
+        const overlapping = existing.filter((r: { id: string; dates: string[] }) =>
+          r.dates?.some((d: string) => parsed.dates.includes(d))
+        )
+        if (overlapping.length > 0) {
+          const ids = overlapping.map((r: { id: string }) => r.id)
+          await supabase.from('uploads').delete().in('id', ids)
+          addLog(`🔄 Overriding ${overlapping.length} existing upload(s) with overlapping dates`)
+        }
+      }
+
+      // Compute solo data for this upload only
       const { data: soloData } = mergeIntoMmData(freshEmpty(), parsed, esp)
       soloData.providerDomains = buildProviderDomains(soloData)
 
-      // Merge into this ESP's existing data
-      const currentData = espData[esp] ?? freshEmpty()
-      const { data: merged, newDates } = mergeIntoMmData(currentData, parsed, esp)
-      merged.providerDomains = buildProviderDomains(merged)
+      // Save new upload to DB
+      const category = esp === 'Ongage' ? 'ongage' : 'mailmodo'
+      const { error: insertError } = await supabase.from('uploads').insert({
+        esp, category, filename: file.name,
+        rows: parsed.totalRows, dates: parsed.dates, new_dates: parsed.dates.length,
+        solo_data: soloData,
+      })
+      if (insertError) {
+        addLog(`⚠️ Save failed: ${insertError.message}`)
+      } else {
+        addLog('☁️ Saved to database.')
+      }
 
+      // Rebuild this ESP's data fresh from all remaining DB uploads
+      const { data: allUploads } = await supabase
+        .from('uploads')
+        .select('solo_data')
+        .eq('esp', esp)
+        .order('uploaded_at', { ascending: true })
+
+      let merged = freshEmpty()
+      if (allUploads?.length) {
+        for (const row of allUploads) {
+          if (row.solo_data) merged = mergeMmData(merged, row.solo_data as MmData)
+        }
+      }
+      merged.providerDomains = buildProviderDomains(merged)
       setEspData(esp, merged)
 
       const existingEsp = esps.find(e => e.name === esp)
@@ -97,29 +135,17 @@ export default function UploadView() {
       const updated = syncEspFromData(espRecord, merged)
       setEsps(existingEsp ? esps.map(e => e.name === esp ? updated : e) : [...esps, updated])
 
-      addLog(`🔀 Merged into ${esp} (+${newDates} new date${newDates !== 1 ? 's' : ''})`)
+      addLog(`🔀 Merged into ${esp} (${parsed.dates.length} date${parsed.dates.length !== 1 ? 's' : ''})`)
 
-      // category column is still required in the DB schema for backwards compat
-      const category = esp === 'Ongage' ? 'ongage' : 'mailmodo'
-      const { error: insertError } = await supabase.from('uploads').insert({
-        esp, category, filename: file.name,
-        rows: parsed.totalRows, dates: parsed.dates, new_dates: newDates,
-        solo_data: soloData,
-      })
-      if (insertError) {
-        addLog(`⚠️ Save failed: ${insertError.message}`)
-      } else {
-        addLog('☁️ Saved to database.')
-      }
       await fetchHistory()
 
       addUploadHistory({
         esp, file: file.name, rows: parsed.totalRows,
         dates: parsed.dates, time: new Date().toLocaleTimeString(),
-        newDates,
+        newDates: parsed.dates.length,
       })
 
-      setResult({ rows: parsed.totalRows, dates: parsed.dates, newDates })
+      setResult({ rows: parsed.totalRows, dates: parsed.dates, newDates: parsed.dates.length })
       addLog('✨ Done! Dashboard updated.')
       setStep(4)
     } catch (err) {
