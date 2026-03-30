@@ -99,11 +99,18 @@ export default function UploadView() {
 
       addLog(`🔀 Merged into ${esp} (+${newDates} new date${newDates !== 1 ? 's' : ''})`)
 
-      await supabase.from('uploads').insert({
-        esp, filename: file.name,
+      // category column is still required in the DB schema for backwards compat
+      const category = esp === 'Ongage' ? 'ongage' : 'mailmodo'
+      const { error: insertError } = await supabase.from('uploads').insert({
+        esp, category, filename: file.name,
         rows: parsed.totalRows, dates: parsed.dates, new_dates: newDates,
         solo_data: soloData,
       })
+      if (insertError) {
+        addLog(`⚠️ Save failed: ${insertError.message}`)
+      } else {
+        addLog('☁️ Saved to database.')
+      }
       await fetchHistory()
 
       addUploadHistory({
