@@ -75,21 +75,16 @@ export default function UploadView() {
 
       const freshEmpty = (): MmData => ({ dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} })
 
-      // Delete any existing uploads for this ESP that overlap with the new dates
-      const { data: existing } = await supabase
+      // Delete all existing uploads for this ESP before inserting new data
+      const { error: deleteError, count } = await supabase
         .from('uploads')
-        .select('id, dates')
+        .delete({ count: 'exact' })
         .eq('esp', esp)
 
-      if (existing) {
-        const overlapping = existing.filter((r: { id: string; dates: string[] }) =>
-          r.dates?.some((d: string) => parsed.dates.includes(d))
-        )
-        if (overlapping.length > 0) {
-          const ids = overlapping.map((r: { id: string }) => r.id)
-          await supabase.from('uploads').delete().in('id', ids)
-          addLog(`🔄 Overriding ${overlapping.length} existing upload(s) with overlapping dates`)
-        }
+      if (deleteError) {
+        addLog(`⚠️ Override failed: ${deleteError.message}`)
+      } else if (count && count > 0) {
+        addLog(`🔄 Replaced ${count} existing upload(s) for ${esp}`)
       }
 
       // Compute solo data for this upload only
