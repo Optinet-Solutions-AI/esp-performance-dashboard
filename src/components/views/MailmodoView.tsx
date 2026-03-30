@@ -2,10 +2,9 @@
 import { useEffect, useRef } from 'react'
 import { Chart } from 'chart.js/auto'
 import { useDashboardStore } from '@/lib/store'
-import { aggDates, fmtN, fmtP, getGridColor, getTextColor, CHART_TOOLTIP_OPTS, buildProviderDomains } from '@/lib/utils'
+import { aggDates, fmtN, fmtP, getGridColor, getTextColor, CHART_TOOLTIP_OPTS } from '@/lib/utils'
 import { PROVIDER_COLORS, DOMAIN_COLORS, IP_COLOR_PALETTE } from '@/lib/data'
 import type { MmData, MmTabType } from '@/lib/types'
-import { supabase } from '@/lib/supabase'
 
 interface ProviderRowProps {
   name: string
@@ -62,48 +61,6 @@ export default function MailmodoView({ ctx }: Props) {
 
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
-
-  // Fetch all records for this category from Supabase and merge into store
-  useEffect(() => {
-    const setData = ctx === 'mailmodo' ? store.setMmData : store.setOgData
-    supabase
-      .from('reports')
-      .select('data')
-      .eq('category', ctx)
-      .then(({ data: rows }) => {
-        if (!rows || rows.length === 0) return
-        // Merge all provider rows into one MmData
-        let merged: MmData = { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
-        for (const row of rows) {
-          const src = row.data as MmData
-          if (!src?.dates?.length) continue
-          // Merge dates
-          src.dates.forEach(d => { if (!merged.dates.includes(d)) merged.dates.push(d) })
-          // Merge providers
-          Object.entries(src.providers || {}).forEach(([name, pd]) => {
-            if (!merged.providers[name]) merged.providers[name] = { overall: pd.overall, byDate: { ...pd.byDate } }
-            else Object.assign(merged.providers[name].byDate, pd.byDate)
-          })
-          // Merge domains
-          Object.entries(src.domains || {}).forEach(([name, pd]) => {
-            if (!merged.domains[name]) merged.domains[name] = { overall: pd.overall, byDate: { ...pd.byDate } }
-            else Object.assign(merged.domains[name].byDate, pd.byDate)
-          })
-          // Merge overallByDate
-          Object.entries(src.overallByDate || {}).forEach(([d, m]) => {
-            merged.overallByDate[d] = m
-          })
-        }
-        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-        merged.dates.sort((a, b) => {
-          const [am, ad] = a.split(' '), [bm, bd] = b.split(' ')
-          return (months.indexOf(am) * 31 + parseInt(ad)) - (months.indexOf(bm) * 31 + parseInt(bd))
-        })
-        merged.datesFull = merged.dates.map(d => ({ label: d, year: new Date().getFullYear() }))
-        merged.providerDomains = buildProviderDomains(merged)
-        setData(merged)
-      })
-  }, [ctx])
 
   const activeDates = data.dates.slice(fromIdx, toIdx + 1)
 

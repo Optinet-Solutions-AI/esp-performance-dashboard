@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { parseFile, mergeIntoMmData } from '@/lib/parsers'
-import { buildProviderDomains, syncEspFromData, mergeMmData } from '@/lib/utils'
+import { buildProviderDomains, syncEspFromData } from '@/lib/utils'
 import { ESP_COLORS, INITIAL_MM_DATA } from '@/lib/data'
 import { supabase } from '@/lib/supabase'
 
@@ -97,17 +97,6 @@ export default function UploadView() {
 
       addLog(`🔀 Merged into ${category} (+${newDates} new date${newDates !== 1 ? 's' : ''})`)
 
-      try {
-        const { error: sbErr } = await supabase.from('reports').upsert(
-          { provider: esp, category, data: merged, updated_at: new Date().toISOString() },
-          { onConflict: 'provider,category' }
-        )
-        if (sbErr) addLog(`⚠️ Supabase: ${sbErr.message}`)
-        else addLog('☁️ Saved to Supabase.')
-      } catch {
-        addLog('⚠️ Supabase save failed (data saved locally).')
-      }
-
       await supabase.from('uploads').insert({
         esp, category, filename: file.name,
         rows: parsed.totalRows, dates: parsed.dates, new_dates: newDates,
@@ -136,33 +125,6 @@ export default function UploadView() {
     setDeleting(record.id)
     try {
       await supabase.from('uploads').delete().eq('id', record.id)
-
-      // Re-merge remaining uploads for this category
-      const { data: remaining } = await supabase
-        .from('uploads')
-        .select('esp, solo_data')
-        .eq('category', record.category)
-        .order('uploaded_at', { ascending: true })
-
-      if (!remaining?.length) {
-        await supabase.from('reports').delete().eq('category', record.category)
-      } else {
-        let remerged = INITIAL_MM_DATA
-        for (const row of remaining) {
-          remerged = mergeMmData(remerged, row.solo_data)
-        }
-        remerged.providerDomains = buildProviderDomains(remerged)
-        // Update reports for each remaining provider
-        await supabase.from('reports').delete().eq('category', record.category)
-        const providers = [...new Set(remaining.map((r: {esp: string}) => r.esp))]
-        for (const prov of providers) {
-          await supabase.from('reports').insert({
-            provider: prov, category: record.category,
-            data: remerged, updated_at: new Date().toISOString(),
-          })
-        }
-      }
-
       window.location.reload()
     } catch {
       setDeleting(null)
