@@ -125,10 +125,6 @@ function parseDate(raw: string | number): string | null {
     if (!isNaN(d.getTime()))
       return d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0')
   }
-  // Fallback: native Date parse
-  const fallback = new Date(s)
-  if (!isNaN(fallback.getTime()))
-    return fallback.toLocaleString('en-US', { month: 'short' }) + ' ' + String(fallback.getDate()).padStart(2, '0')
   return null
 }
 
