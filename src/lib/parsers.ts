@@ -100,7 +100,7 @@ function normaliseKeys(row: Record<string, unknown>): Record<string, string> {
   return out
 }
 
-function parseDate(raw: string | number): string | null {
+function parseDate(raw: string | number, monthFirst = false): string | null {
   if (!raw) return null
   // Excel serial number
   if (typeof raw === 'number') {
@@ -111,10 +111,18 @@ function parseDate(raw: string | number): string | null {
   }
   const s = String(raw).trim()
   if (!s) return null
-  // dd/mm/yyyy or dd-mm-yyyy (with optional time)
-  const ddmm = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/)
-  if (ddmm) {
-    const d = new Date(parseInt(ddmm[3]), parseInt(ddmm[2]) - 1, parseInt(ddmm[1]))
+  // mm/dd/yyyy (Ongage) or dd/mm/yyyy — also handles dd-mm-yyyy and optional time suffix
+  const dmMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/)
+  if (dmMatch) {
+    const n1 = parseInt(dmMatch[1])
+    const n2 = parseInt(dmMatch[2])
+    const year = parseInt(dmMatch[3])
+    // Determine month/day: if monthFirst (Ongage mm/dd), n1=month n2=day
+    // If n1 > 12 it must be the day regardless; if n2 > 12 it must be the day
+    let month: number, day: number
+    if (monthFirst || n2 > 12) { month = n1; day = n2 }
+    else { day = n1; month = n2 }
+    const d = new Date(year, month - 1, day)
     if (!isNaN(d.getTime()))
       return d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0')
   }
@@ -162,7 +170,7 @@ function blankMetrics(): DateMetrics {
   return { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, unsubscribed: 0, complained: 0, deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0 }
 }
 
-export async function parseFile(file: File): Promise<ParseResult> {
+export async function parseFile(file: File, espName?: string): Promise<ParseResult> {
   const isXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
   let rows: Record<string, string>[]
 
@@ -192,6 +200,7 @@ export async function parseFile(file: File): Promise<ParseResult> {
 
   const first = rows[0]
   const isMailmodo = 'campaign-name' in first || 'opens-html' in first
+  const isOngage = espName === 'Ongage'
 
   const byDate: ParseResult['byDate'] = {}
   let skipped = 0, totalRows = 0
@@ -200,7 +209,7 @@ export async function parseFile(file: File): Promise<ParseResult> {
   rows.forEach(row => {
     totalRows++
     const rawDate = row['sent-time'] || row['date'] || row['action_timestamp_rounded'] || row['timestamp'] || ''
-    const dateStr = parseDate(rawDate !== '' && !isNaN(Number(rawDate)) ? Number(rawDate) : rawDate)
+    const dateStr = parseDate(rawDate !== '' && !isNaN(Number(rawDate)) ? Number(rawDate) : rawDate, isOngage)
     if (!dateStr) { skipped++; skippedNoDate++; return }
 
     const email = row['email'] || row['email-address'] || row['email_address'] || row['recipient'] || row['to'] || ''

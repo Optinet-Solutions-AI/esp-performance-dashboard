@@ -65,7 +65,7 @@ export default function UploadView() {
 
     try {
       addLog(`📂 Reading ${file.name}…`)
-      const parsed = await parseFile(file)
+      const parsed = await parseFile(file, esp)
       const skipDetail = parsed.skipped > 0
         ? ` — ${parsed.skippedNoDate} no-date, ${parsed.skippedNoEmail} no-email`
         : ''
