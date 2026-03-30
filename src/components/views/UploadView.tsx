@@ -3,7 +3,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { parseFile, mergeIntoMmData } from '@/lib/parsers'
 import { buildProviderDomains, syncEspFromData } from '@/lib/utils'
-import { ESP_COLORS, INITIAL_MM_DATA } from '@/lib/data'
+import { ESP_COLORS } from '@/lib/data'
+import type { MmData } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 
 const ESP_LIST = ['Mailmodo', 'Ongage', 'Hotsol', 'MMS', 'Moosend', 'Omnisend', 'Klaviyo', 'Brevo']
@@ -72,12 +73,15 @@ export default function UploadView() {
       addLog(`📅 Found ${parsed.dates.length} date(s): ${parsed.dates.join(', ')}`)
       addLog(`🔎 Format: ${parsed.format}`)
 
-      // Compute solo data (this upload only, for independent storage)
-      const { data: soloData } = mergeIntoMmData(INITIAL_MM_DATA, parsed, esp)
+      // Compute solo data using a fresh empty object — never reuse INITIAL_MM_DATA
+      // because mergeIntoMmData mutates its input (shallow copy), which would corrupt
+      // INITIAL_MM_DATA for the second call below and double all metrics.
+      const freshEmpty = (): MmData => ({ dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} })
+      const { data: soloData } = mergeIntoMmData(freshEmpty(), parsed, esp)
       soloData.providerDomains = buildProviderDomains(soloData)
 
       // Merge into this ESP's existing data
-      const currentData = espData[esp] ?? INITIAL_MM_DATA
+      const currentData = espData[esp] ?? freshEmpty()
       const { data: merged, newDates } = mergeIntoMmData(currentData, parsed, esp)
       merged.providerDomains = buildProviderDomains(merged)
 
