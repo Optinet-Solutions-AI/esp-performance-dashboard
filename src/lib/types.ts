@@ -95,7 +95,6 @@ export type ViewName =
   | 'daily'
   | 'mailmodo'
   | 'ongage'
-  | 'ogcharts'
   | 'upload'
   | 'matrix'
   | 'datamgmt'

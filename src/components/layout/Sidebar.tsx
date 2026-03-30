@@ -165,8 +165,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </div>
         )}
 
-        <SectionLabel text="Charts" />
-        <NavItem id="ogcharts" label="Ongage Charts" icon={iconChart} />
 
         <SectionLabel text="Tools" />
         <NavItem id="upload" label="Upload Report" icon={iconUp} />
