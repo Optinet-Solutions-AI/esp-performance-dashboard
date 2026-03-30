@@ -179,15 +179,15 @@ export default function Page() {
         <main style={{ flex: 1, overflowY: 'auto', background: bg }}>
           {activeView === 'home' && <HomeView />}
           {activeView === 'dashboard' && <DashboardView />}
-          {activeView === 'mailmodo' && <MailmodoView />}
-          {activeView === 'ongage' && <MailmodoView />}
+          {activeView === 'mailmodo' && <MailmodoView filter="mailmodo" />}
+          {activeView === 'ongage' && <MailmodoView filter="ongage" />}
           {activeView === 'upload' && <UploadView />}
           {activeView === 'matrix' && <MatrixView />}
           {activeView === 'datamgmt' && <DataMgmtView />}
           {activeView === 'ipmatrix' && <IPMatrixView />}
           {activeView === 'performance' && <PerformanceView />}
           {activeView === 'daily' && <DailyView />}
-          {activeView === 'mmcharts' && <MmChartsView />}
+          {activeView === 'mmcharts' && <MmChartsView filter="mailmodo" />}
           {activeView === 'ogcharts' && <OgChartsView />}
         </main>
       </div>

@@ -24,18 +24,23 @@ ChartJS.register(
 
 const EMPTY_DATA: MmData = { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
 
-function ChartsView() {
+function ChartsView({ filter }: { filter?: 'ongage' | 'mailmodo' }) {
   const store = useDashboardStore()
   const isLight = store.isLight
-  const espList = Object.keys(store.espData)
+  const allEspList = Object.keys(store.espData)
+  const espList = filter === 'ongage'
+    ? allEspList.filter(e => e === 'Ongage')
+    : filter === 'mailmodo'
+      ? allEspList.filter(e => e !== 'Ongage')
+      : allEspList
 
   const [selectedEsp, setSelectedEsp] = useState<string>('')
 
   useEffect(() => {
-    if (!selectedEsp || !store.espData[selectedEsp]) {
+    if (!selectedEsp || !espList.includes(selectedEsp)) {
       setSelectedEsp(espList[0] || '')
     }
-  }, [espList.length])
+  }, [espList.join(',')])
 
   const data: MmData = store.espData[selectedEsp] ?? EMPTY_DATA
   const fromIdx = store.espRanges[selectedEsp]?.fromIdx ?? 0
@@ -238,6 +243,6 @@ function ChartsView() {
   )
 }
 
-export default function MmChartsView() {
-  return <ChartsView />
+export default function MmChartsView({ filter }: { filter?: 'ongage' | 'mailmodo' }) {
+  return <ChartsView filter={filter} />
 }

@@ -45,22 +45,27 @@ function ProviderRow({ name, data, color, isLight, isSelected, onSelect }: Provi
   )
 }
 
-export default function MailmodoView() {
+export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo' }) {
   const store = useDashboardStore()
   const isLight = store.isLight
-  const espList = Object.keys(store.espData)
+  const allEspList = Object.keys(store.espData)
+  const espList = filter === 'ongage'
+    ? allEspList.filter(e => e === 'Ongage')
+    : filter === 'mailmodo'
+      ? allEspList.filter(e => e !== 'Ongage')
+      : allEspList
 
   const [selectedEsp, setSelectedEsp] = useState<string>('')
 
-  // Pick initial ESP: use reviewEsp if available, else first ESP
+  // Pick initial ESP: use reviewEsp if available, else first ESP in filtered list
   useEffect(() => {
-    if (!selectedEsp || !store.espData[selectedEsp]) {
-      const def = store.reviewEsp && store.espData[store.reviewEsp]
+    if (!selectedEsp || !espList.includes(selectedEsp)) {
+      const def = store.reviewEsp && espList.includes(store.reviewEsp)
         ? store.reviewEsp
         : espList[0] || ''
       if (def) setSelectedEsp(def)
     }
-  }, [espList.length, store.reviewEsp])
+  }, [espList.join(','), store.reviewEsp])
 
   // Reset selected row when ESP changes
   useEffect(() => {

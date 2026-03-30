@@ -1,3 +1,6 @@
 'use client'
-// OgChartsView now delegates to the shared ChartsView in MmChartsView
-export { default } from './MmChartsView'
+import MmChartsView from './MmChartsView'
+
+export default function OgChartsView() {
+  return <MmChartsView filter="ongage" />
+}
