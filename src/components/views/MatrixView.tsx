@@ -1,17 +1,34 @@
 'use client'
+import { useState, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
-import { aggDates, fmtN, fmtP } from '@/lib/utils'
-import { PROVIDER_COLORS, DOMAIN_COLORS, IP_COLOR_PALETTE } from '@/lib/data'
+import { fmtP } from '@/lib/utils'
+import { PROVIDER_COLORS } from '@/lib/data'
+
+const EMPTY_DATA = { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
 
 export default function MatrixView() {
-  const { isLight, mmData, mmFromIdx, mmToIdx, setMmRange } = useDashboardStore()
+  const store = useDashboardStore()
+  const { isLight } = store
+  const espList = Object.keys(store.espData)
 
-  const activeDates = mmData.dates.slice(mmFromIdx, mmToIdx + 1)
-  const providers = Object.keys(mmData.providers || {})
-  const domains = Object.keys(mmData.domains || {})
+  const [selectedEsp, setSelectedEsp] = useState<string>('')
+
+  useEffect(() => {
+    if (!selectedEsp || !store.espData[selectedEsp]) {
+      setSelectedEsp(espList[0] || '')
+    }
+  }, [espList.length])
+
+  const data = store.espData[selectedEsp] ?? EMPTY_DATA
+  const fromIdx = store.espRanges[selectedEsp]?.fromIdx ?? 0
+  const toIdx = store.espRanges[selectedEsp]?.toIdx ?? 0
+  const setRange = (from: number, to: number) => store.setEspRange(selectedEsp, from, to)
+
+  const providers = Object.keys(data.providers || {})
+  const domains = Object.keys(data.domains || {})
 
   function getCellData(prov: string, dom: string) {
-    const pd = mmData.providerDomains[prov]?.[dom]
+    const pd = data.providerDomains[prov]?.[dom]
     if (!pd || !pd.sent) return null
     const deliveryRate = pd.sent > 0 ? (pd.delivered / pd.sent) * 100 : 0
     const bounceRate = pd.sent > 0 ? ((pd.sent - pd.delivered) / pd.sent) * 100 : 0
@@ -24,6 +41,9 @@ export default function MatrixView() {
     return 'bg-[#00e5c3]/10 text-[#00e5c3]'
   }
 
+  const selectCls = `px-3 py-1.5 rounded-lg border text-xs font-mono outline-none appearance-none
+    ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`
+
   return (
     <div className="p-6">
       <div className="flex items-start justify-between mb-5">
@@ -32,29 +52,32 @@ export default function MatrixView() {
             Deliverability Matrix
           </h1>
           <p className={`text-sm mt-1 ${isLight ? 'text-gray-500' : 'text-[#a8b0be]'}`}>
-            ESP × Domain cross-reference for Mailmodo
+            Provider × Domain cross-reference
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {espList.length > 0 && (
+            <select value={selectedEsp} onChange={e => setSelectedEsp(e.target.value)} className={selectCls}>
+              {espList.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
+          )}
           <select
-            value={mmFromIdx}
-            onChange={e => setMmRange(Number(e.target.value), mmToIdx)}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-mono outline-none
-              ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`}
+            value={fromIdx}
+            onChange={e => setRange(Number(e.target.value), toIdx)}
+            className={selectCls}
           >
-            {mmData.dates.map((d, i) => <option key={d} value={i}>{d}</option>)}
+            {data.dates.map((d, i) => <option key={d} value={i}>{d}</option>)}
           </select>
           <span className={`text-xs ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>→</span>
           <select
-            value={mmToIdx}
-            onChange={e => setMmRange(mmFromIdx, Number(e.target.value))}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-mono outline-none
-              ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`}
+            value={toIdx}
+            onChange={e => setRange(fromIdx, Number(e.target.value))}
+            className={selectCls}
           >
-            {mmData.dates.map((d, i) => <option key={d} value={i}>{d}</option>)}
+            {data.dates.map((d, i) => <option key={d} value={i}>{d}</option>)}
           </select>
           <button
-            onClick={() => setMmRange(0, mmData.dates.length - 1)}
+            onClick={() => setRange(0, data.dates.length - 1)}
             className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all
               ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}
           >
@@ -63,11 +86,11 @@ export default function MatrixView() {
         </div>
       </div>
 
-      {mmData.dates.length === 0 ? (
+      {data.dates.length === 0 ? (
         <div className={`rounded-xl border p-12 text-center ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}>
           <div className="text-4xl mb-4">🔢</div>
           <div className={`text-lg font-medium ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>No matrix data</div>
-          <div className={`text-sm mt-2 ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>Upload Mailmodo data first.</div>
+          <div className={`text-sm mt-2 ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>Upload data first.</div>
         </div>
       ) : (
         <div className={`rounded-xl border overflow-auto ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}>
@@ -122,7 +145,6 @@ export default function MatrixView() {
         </div>
       )}
 
-      {/* Legend */}
       <div className="flex items-center gap-4 mt-4">
         <span className={`text-[10px] font-mono uppercase tracking-wider ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>Delivery rate:</span>
         <div className="flex items-center gap-1.5 text-[10px] font-mono">

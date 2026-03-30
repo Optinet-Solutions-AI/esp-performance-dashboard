@@ -86,7 +86,6 @@ export interface UploadHistoryEntry {
   dates: string[]
   time: string
   newDates: number
-  category: 'mailmodo' | 'ongage'
 }
 
 export type ViewName =

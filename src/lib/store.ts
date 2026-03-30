@@ -2,8 +2,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { EspRecord, DailyRecord, MmData, IpmRecord, DmRecord, UploadHistoryEntry, ViewName, MmTabType, EspStatus } from './types'
-import { INITIAL_ESPS, INITIAL_DAILY7, INITIAL_MM_DATA, INITIAL_IPM_DATA } from './data'
-import { buildProviderDomains, getEspStatus } from './utils'
+import { INITIAL_ESPS, INITIAL_DAILY7, INITIAL_IPM_DATA } from './data'
 
 interface DashboardState {
   // Theme
@@ -25,32 +24,26 @@ interface DashboardState {
   setSort: (key: string) => void
   setSearch: (q: string) => void
 
-  // ESP data
+  // ESP records (cards on dashboard)
   esps: EspRecord[]
   daily7: DailyRecord[]
   setEsps: (esps: EspRecord[]) => void
 
-  // Mailmodo data
-  mmData: MmData
-  mmFromIdx: number
-  mmToIdx: number
+  // Per-ESP data store
+  espData: Record<string, MmData>
+  espRanges: Record<string, { fromIdx: number; toIdx: number }>
+  setEspData: (name: string, data: MmData) => void
+  setEspRange: (name: string, from: number, to: number) => void
+
+  // Which ESP to show when navigating to review views
+  reviewEsp: string
+  setReviewEsp: (esp: string) => void
+
+  // Shared review UI state (tab + selected row for detail views)
   mmTab: MmTabType
   mmSelectedRow: string | null
-  setMmData: (data: MmData) => void
-  setMmRange: (from: number, to: number) => void
   setMmTab: (tab: MmTabType) => void
   setMmSelectedRow: (row: string | null) => void
-
-  // Ongage data
-  ogData: MmData
-  ogFromIdx: number
-  ogToIdx: number
-  setOgData: (data: MmData) => void
-  setOgRange: (from: number, to: number) => void
-
-  // Active review context: 'mailmodo' | 'ongage'
-  activeReviewCtx: 'mailmodo' | 'ongage'
-  setActiveReviewCtx: (ctx: 'mailmodo' | 'ongage') => void
 
   // Upload
   uploadHistory: UploadHistoryEntry[]
@@ -71,15 +64,9 @@ interface DashboardState {
   resetAllData: () => void
 }
 
-const EMPTY_MM: MmData = {
-  dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {},
-}
-
-const initialMmData = INITIAL_MM_DATA
-
 export const useDashboardStore = create<DashboardState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       // Theme
       isLight: false,
       toggleTheme: () => set(s => ({ isLight: !s.isLight })),
@@ -105,32 +92,34 @@ export const useDashboardStore = create<DashboardState>()(
       })),
       setSearch: (q) => set({ searchQ: q }),
 
-      // ESP data
+      // ESP records
       esps: INITIAL_ESPS,
       daily7: INITIAL_DAILY7,
       setEsps: (esps) => set({ esps }),
 
-      // Mailmodo
-      mmData: initialMmData,
-      mmFromIdx: 0,
-      mmToIdx: 0,
+      // Per-ESP data
+      espData: {},
+      espRanges: {},
+      setEspData: (name, data) => set(s => ({
+        espData: { ...s.espData, [name]: data },
+        espRanges: {
+          ...s.espRanges,
+          [name]: { fromIdx: 0, toIdx: Math.max(0, data.dates.length - 1) },
+        },
+      })),
+      setEspRange: (name, from, to) => set(s => ({
+        espRanges: { ...s.espRanges, [name]: { fromIdx: from, toIdx: to } },
+      })),
+
+      // Review context
+      reviewEsp: '',
+      setReviewEsp: (esp) => set({ reviewEsp: esp }),
+
+      // Shared review UI
       mmTab: 'ip',
       mmSelectedRow: null,
-      setMmData: (data) => set({ mmData: data, mmFromIdx: 0, mmToIdx: data.dates.length - 1 }),
-      setMmRange: (from, to) => set({ mmFromIdx: from, mmToIdx: to }),
       setMmTab: (tab) => set({ mmTab: tab, mmSelectedRow: null }),
       setMmSelectedRow: (row) => set({ mmSelectedRow: row }),
-
-      // Ongage
-      ogData: EMPTY_MM,
-      ogFromIdx: 0,
-      ogToIdx: 0,
-      setOgData: (data) => set({ ogData: data, ogFromIdx: 0, ogToIdx: data.dates.length - 1 }),
-      setOgRange: (from, to) => set({ ogFromIdx: from, ogToIdx: to }),
-
-      // Active review
-      activeReviewCtx: 'mailmodo',
-      setActiveReviewCtx: (ctx) => set({ activeReviewCtx: ctx }),
 
       // Upload
       uploadHistory: [],
@@ -152,8 +141,8 @@ export const useDashboardStore = create<DashboardState>()(
       // Reset
       resetAllData: () => set({
         esps: [], daily7: [], uploadHistory: [], ipmData: [],
-        mmData: EMPTY_MM, ogData: EMPTY_MM,
-        mmFromIdx: 0, mmToIdx: 0, ogFromIdx: 0, ogToIdx: 0,
+        espData: {}, espRanges: {}, reviewEsp: '',
+        mmTab: 'ip', mmSelectedRow: null,
       }),
     }),
     {

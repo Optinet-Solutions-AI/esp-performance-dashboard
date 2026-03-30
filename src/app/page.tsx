@@ -26,7 +26,7 @@ const VIEW_LABELS: Record<string, string> = {
 }
 
 export default function Page() {
-  const { activeView, isLight, setMmData, setOgData, setEsps, esps } = useDashboardStore()
+  const { activeView, isLight, setEspData, setEsps, esps } = useDashboardStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [dbLoaded, setDbLoaded] = useState(false)
 
@@ -35,44 +35,42 @@ export default function Page() {
       try {
         const { data: rows, error } = await supabase
           .from('uploads')
-          .select('esp, category, solo_data')
+          .select('esp, solo_data')
           .order('uploaded_at', { ascending: true })
 
         if (error || !rows?.length) return
 
+        // Group uploads by ESP name and merge per-ESP
+        const byEsp: Record<string, MmData[]> = {}
+        for (const row of rows) {
+          if (!row.esp || !row.solo_data) continue
+          if (!byEsp[row.esp]) byEsp[row.esp] = []
+          byEsp[row.esp].push(row.solo_data as MmData)
+        }
+
         const newEsps = [...esps]
-
-        for (const cat of ['mailmodo', 'ongage'] as const) {
-          const catRows = rows.filter(r => r.category === cat && r.solo_data)
-          if (!catRows.length) continue
-
+        for (const [espName, uploads] of Object.entries(byEsp)) {
           let merged = INITIAL_MM_DATA as MmData
-          for (const row of catRows) {
-            merged = mergeMmData(merged, row.solo_data as MmData)
+          for (const data of uploads) {
+            merged = mergeMmData(merged, data)
           }
           merged.providerDomains = buildProviderDomains(merged)
+          setEspData(espName, merged)
 
-          if (cat === 'mailmodo') setMmData(merged)
-          else setOgData(merged)
-
-          // Build ESP records from unique providers in this category
-          const providers = [...new Set(catRows.map(r => r.esp))]
-          providers.forEach(provName => {
-            const existing = newEsps.find(e => e.name === provName)
-            const base = existing ?? {
-              name: provName,
-              color: ESP_COLORS[provName] ?? '#a8b0be',
-              sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0,
-              deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubRate: 0,
-              status: 'healthy' as const,
-            }
-            const updated = syncEspFromData(base, merged)
-            if (existing) {
-              newEsps[newEsps.findIndex(e => e.name === provName)] = updated
-            } else {
-              newEsps.push(updated)
-            }
-          })
+          const existing = newEsps.find(e => e.name === espName)
+          const base = existing ?? {
+            name: espName,
+            color: ESP_COLORS[espName] ?? '#a8b0be',
+            sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0,
+            deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubRate: 0,
+            status: 'healthy' as const,
+          }
+          const updated = syncEspFromData(base, merged)
+          if (existing) {
+            newEsps[newEsps.findIndex(e => e.name === espName)] = updated
+          } else {
+            newEsps.push(updated)
+          }
         }
 
         if (newEsps.length) setEsps(newEsps)
@@ -181,8 +179,8 @@ export default function Page() {
         <main style={{ flex: 1, overflowY: 'auto', background: bg }}>
           {activeView === 'home' && <HomeView />}
           {activeView === 'dashboard' && <DashboardView />}
-          {activeView === 'mailmodo' && <MailmodoView ctx="mailmodo" />}
-          {activeView === 'ongage' && <MailmodoView ctx="ongage" />}
+          {activeView === 'mailmodo' && <MailmodoView />}
+          {activeView === 'ongage' && <MailmodoView />}
           {activeView === 'upload' && <UploadView />}
           {activeView === 'matrix' && <MatrixView />}
           {activeView === 'datamgmt' && <DataMgmtView />}

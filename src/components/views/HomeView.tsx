@@ -3,36 +3,42 @@ import { useEffect, useRef } from 'react'
 import { Chart } from 'chart.js/auto'
 import { useDashboardStore } from '@/lib/store'
 import { fmtN, getGridColor, getTextColor, CHART_TOOLTIP_OPTS } from '@/lib/utils'
+import { ESP_COLORS } from '@/lib/data'
 import KpiCard from '@/components/ui/KpiCard'
 import ChartCard, { LegendItem } from '@/components/ui/ChartCard'
 
 export default function HomeView() {
-  const { isLight, mmData, ogData, uploadHistory, setView, setActiveReviewCtx } = useDashboardStore()
+  const { isLight, espData, uploadHistory, setView, setReviewEsp } = useDashboardStore()
   const volumeRef = useRef<HTMLCanvasElement>(null)
   const catRef = useRef<HTMLCanvasElement>(null)
   const volumeChart = useRef<Chart | null>(null)
   const catChart = useRef<Chart | null>(null)
 
-  const mmDates = mmData.dates || []
-  const ogDates = ogData.dates || []
-  const mmProvs = Object.keys(mmData.providers || {})
-  const ogProvs = Object.keys(ogData.providers || {})
+  const espList = Object.keys(espData)
+  const allEspData = Object.values(espData)
 
+  // Aggregate monthly totals across all ESPs
   const monthTotals: Record<string, number> = {}
-  const accumulate = (data: typeof mmData) => {
+  allEspData.forEach(data => {
     ;(data.dates || []).forEach(d => {
       const m = d.replace(/\s+\d+$/, '')
       monthTotals[m] = (monthTotals[m] || 0) + (data.overallByDate[d]?.sent || 0)
     })
-  }
-  accumulate(mmData)
-  accumulate(ogData)
+  })
   const months = Object.keys(monthTotals)
   const volumes = months.map(m => monthTotals[m])
 
-  const mmSent = mmDates.reduce((s, d) => s + (mmData.overallByDate[d]?.sent || 0), 0)
-  const ogSent = ogDates.reduce((s, d) => s + (ogData.overallByDate[d]?.sent || 0), 0)
-  const totalSent = mmSent + ogSent
+  // Total sent per ESP (for doughnut)
+  const espSentMap: Record<string, number> = {}
+  espList.forEach(name => {
+    const data = espData[name]
+    espSentMap[name] = (data.dates || []).reduce((s, d) => s + (data.overallByDate[d]?.sent || 0), 0)
+  })
+  const totalSent = Object.values(espSentMap).reduce((s, v) => s + v, 0)
+
+  // Unique email provider domains across all ESPs
+  const allProviders = new Set<string>()
+  allEspData.forEach(d => Object.keys(d.providers || {}).forEach(p => allProviders.add(p)))
 
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
@@ -68,18 +74,19 @@ export default function HomeView() {
       },
     })
     return () => { volumeChart.current?.destroy(); volumeChart.current = null }
-  }, [isLight, mmData, ogData])
+  }, [isLight, JSON.stringify(monthTotals)])
 
   useEffect(() => {
-    if (!catRef.current) return
+    if (!catRef.current || espList.length === 0) return
     catChart.current?.destroy()
+    const colors = espList.map(name => ESP_COLORS[name] || '#a8b0be')
     catChart.current = new Chart(catRef.current, {
       type: 'doughnut',
       data: {
-        labels: ['Mailmodo', 'Ongage'],
+        labels: espList,
         datasets: [{
-          data: [mmSent || 0.001, ogSent || 0.001],
-          backgroundColor: ['rgba(124,92,252,0.75)', 'rgba(255,209,102,0.75)'],
+          data: espList.map(name => espSentMap[name] || 0.001),
+          backgroundColor: colors.map(c => c + 'bf'),
           borderWidth: 0,
           hoverOffset: 8,
         }],
@@ -91,7 +98,7 @@ export default function HomeView() {
       },
     })
     return () => { catChart.current?.destroy(); catChart.current = null }
-  }, [isLight, mmSent, ogSent])
+  }, [isLight, JSON.stringify(espSentMap)])
 
   const latest = uploadHistory[0]
   const muted = isLight ? '#9ca3af' : '#5a6478'
@@ -102,7 +109,6 @@ export default function HomeView() {
 
   return (
     <div className="view-page fade-up">
-      {/* Page header */}
       <div className="section-title" style={{ marginBottom: 4 }}>
         <div className="section-title-bar" style={{ background: '#00e5c3' }} />
         <h1>Overview</h1>
@@ -115,7 +121,7 @@ export default function HomeView() {
           label="Total Emails Sent"
           value={totalSent > 0 ? fmtN(totalSent) : '—'}
           accent="#00e5c3"
-          delta={<span style={{ color: muted, fontSize: 11 }}>{fmtN(mmSent)} MM · {fmtN(ogSent)} OG</span>}
+          delta={<span style={{ color: muted, fontSize: 11 }}>{espList.length} ESP{espList.length !== 1 ? 's' : ''} tracked</span>}
           icon={
             <svg style={{ width: 18, height: 18 }} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7">
               <rect x="2" y="4" width="16" height="12" rx="2" />
@@ -125,9 +131,9 @@ export default function HomeView() {
         />
         <KpiCard
           label="Providers Tracked"
-          value={new Set([...mmProvs, ...ogProvs]).size || '—'}
+          value={allProviders.size || '—'}
           accent="#7c5cfc"
-          delta={<span style={{ color: muted, fontSize: 11 }}>{mmProvs.length} MM · {ogProvs.length} OG</span>}
+          delta={<span style={{ color: muted, fontSize: 11 }}>{allProviders.size} unique email providers</span>}
           icon={
             <svg style={{ width: 18, height: 18 }} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7">
               <circle cx="10" cy="7" r="3" />
@@ -159,12 +165,13 @@ export default function HomeView() {
         </ChartCard>
         <ChartCard
           title="ESP Split"
-          subtitle="Mailmodo vs Ongage"
+          subtitle="Volume breakdown by provider"
           height={200}
           legend={
             <>
-              <LegendItem color="rgba(124,92,252,0.75)" label={`Mailmodo — ${fmtN(mmSent)}`} />
-              <LegendItem color="rgba(255,209,102,0.75)" label={`Ongage — ${fmtN(ogSent)}`} />
+              {espList.map(name => (
+                <LegendItem key={name} color={(ESP_COLORS[name] || '#a8b0be') + 'bf'} label={`${name} — ${fmtN(espSentMap[name] || 0)}`} />
+              ))}
             </>
           }
         >
@@ -172,44 +179,38 @@ export default function HomeView() {
         </ChartCard>
       </div>
 
-      {/* Provider quick-access */}
-      <div className="grid-2" style={{ marginBottom: 20 }}>
-        <button
-          onClick={() => { setActiveReviewCtx('mailmodo'); setView('mailmodo') }}
-          style={{
-            background: cardBg, border: `1px solid ${cardBorder}`,
-            borderRadius: 16, padding: '20px 20px', textAlign: 'left', cursor: 'pointer',
-            transition: 'border-color 0.15s',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(124,92,252,0.35)')}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = cardBorder)}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ fontSize: 10, fontFamily: 'Space Mono,monospace', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#7c5cfc' }}>Mailmodo</span>
-            <span style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(124,92,252,0.1)', color: '#7c5cfc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>→</span>
-          </div>
-          <div style={{ fontSize: 32, fontWeight: 700, color: textMain, marginBottom: 4, lineHeight: 1 }}>{mmProvs.length || '—'}</div>
-          <div style={{ fontSize: 12, color: muted }}>{mmDates.length} date{mmDates.length !== 1 ? 's' : ''} loaded · Click to review</div>
-        </button>
-
-        <button
-          onClick={() => { setActiveReviewCtx('ongage'); setView('ongage') }}
-          style={{
-            background: cardBg, border: `1px solid ${cardBorder}`,
-            borderRadius: 16, padding: '20px 20px', textAlign: 'left', cursor: 'pointer',
-            transition: 'border-color 0.15s',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,209,102,0.35)')}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = cardBorder)}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ fontSize: 10, fontFamily: 'Space Mono,monospace', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#ffd166' }}>Ongage</span>
-            <span style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,209,102,0.1)', color: '#ffd166', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>→</span>
-          </div>
-          <div style={{ fontSize: 32, fontWeight: 700, color: textMain, marginBottom: 4, lineHeight: 1 }}>{ogProvs.length || '—'}</div>
-          <div style={{ fontSize: 12, color: muted }}>{ogDates.length} date{ogDates.length !== 1 ? 's' : ''} loaded · Click to review</div>
-        </button>
-      </div>
+      {/* ESP quick-access cards */}
+      {espList.length > 0 && (
+        <div className="grid-2" style={{ marginBottom: 20 }}>
+          {espList.map(name => {
+            const data = espData[name]
+            const sent = espSentMap[name] || 0
+            const color = ESP_COLORS[name] || '#a8b0be'
+            const provCount = Object.keys(data.providers || {}).length
+            const dateCount = (data.dates || []).length
+            return (
+              <button
+                key={name}
+                onClick={() => { setReviewEsp(name); setView('mailmodo') }}
+                style={{
+                  background: cardBg, border: `1px solid ${cardBorder}`,
+                  borderRadius: 16, padding: '20px 20px', textAlign: 'left', cursor: 'pointer',
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = color + '55')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = cardBorder)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <span style={{ fontSize: 10, fontFamily: 'Space Mono,monospace', letterSpacing: '0.18em', textTransform: 'uppercase', color }}>{name}</span>
+                  <span style={{ width: 32, height: 32, borderRadius: 10, background: color + '18', color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>→</span>
+                </div>
+                <div style={{ fontSize: 32, fontWeight: 700, color: textMain, marginBottom: 4, lineHeight: 1 }}>{fmtN(sent) || '—'}</div>
+                <div style={{ fontSize: 12, color: muted }}>{dateCount} date{dateCount !== 1 ? 's' : ''} · {provCount} provider{provCount !== 1 ? 's' : ''} · Click to review</div>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Recent activity */}
       <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 16, padding: '20px 20px' }}>

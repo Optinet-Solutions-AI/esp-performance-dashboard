@@ -1,10 +1,12 @@
 'use client'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Chart } from 'chart.js/auto'
 import { useDashboardStore } from '@/lib/store'
 import { aggDates, fmtN, fmtP, getGridColor, getTextColor, CHART_TOOLTIP_OPTS } from '@/lib/utils'
-import { PROVIDER_COLORS, DOMAIN_COLORS, IP_COLOR_PALETTE } from '@/lib/data'
+import { PROVIDER_COLORS, DOMAIN_COLORS, IP_COLOR_PALETTE, ESP_COLORS } from '@/lib/data'
 import type { MmData, MmTabType } from '@/lib/types'
+
+const EMPTY_DATA: MmData = { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
 
 interface ProviderRowProps {
   name: string
@@ -16,7 +18,7 @@ interface ProviderRowProps {
   maxSent: number
 }
 
-function ProviderRow({ name, data, color, isLight, isSelected, onSelect, maxSent }: ProviderRowProps) {
+function ProviderRow({ name, data, color, isLight, isSelected, onSelect }: ProviderRowProps) {
   if (!data) return null
   return (
     <tr
@@ -43,17 +45,32 @@ function ProviderRow({ name, data, color, isLight, isSelected, onSelect, maxSent
   )
 }
 
-interface Props {
-  ctx: 'mailmodo' | 'ongage'
-}
-
-export default function MailmodoView({ ctx }: Props) {
+export default function MailmodoView() {
   const store = useDashboardStore()
   const isLight = store.isLight
-  const data: MmData = ctx === 'mailmodo' ? store.mmData : store.ogData
-  const fromIdx = ctx === 'mailmodo' ? store.mmFromIdx : store.ogFromIdx
-  const toIdx = ctx === 'mailmodo' ? store.mmToIdx : store.ogToIdx
-  const setRange = ctx === 'mailmodo' ? store.setMmRange : store.setOgRange
+  const espList = Object.keys(store.espData)
+
+  const [selectedEsp, setSelectedEsp] = useState<string>('')
+
+  // Pick initial ESP: use reviewEsp if available, else first ESP
+  useEffect(() => {
+    if (!selectedEsp || !store.espData[selectedEsp]) {
+      const def = store.reviewEsp && store.espData[store.reviewEsp]
+        ? store.reviewEsp
+        : espList[0] || ''
+      if (def) setSelectedEsp(def)
+    }
+  }, [espList.length, store.reviewEsp])
+
+  // Reset selected row when ESP changes
+  useEffect(() => {
+    store.setMmSelectedRow(null)
+  }, [selectedEsp])
+
+  const data: MmData = store.espData[selectedEsp] ?? EMPTY_DATA
+  const fromIdx = store.espRanges[selectedEsp]?.fromIdx ?? 0
+  const toIdx = store.espRanges[selectedEsp]?.toIdx ?? 0
+  const setRange = (from: number, to: number) => store.setEspRange(selectedEsp, from, to)
   const mmTab = store.mmTab
   const setMmTab = store.setMmTab
   const mmSelectedRow = store.mmSelectedRow
@@ -67,14 +84,10 @@ export default function MailmodoView({ ctx }: Props) {
   const trendRef = useRef<HTMLCanvasElement>(null)
   const trendChart = useRef<Chart | null>(null)
 
-  // KPI aggregation
   const aggOverall = aggDates(data.overallByDate, activeDates)
 
-  // Get entity list by tab
   function getEntities() {
     if (mmTab === 'provider') return Object.keys(data.providers || {})
-    if (mmTab === 'domain') return Object.keys(data.domains || {})
-    // ip: use domains as proxy for IP rows
     return Object.keys(data.domains || {})
   }
 
@@ -92,7 +105,6 @@ export default function MailmodoView({ ctx }: Props) {
   const entityData = entities.map(e => ({ name: e, data: getEntityData(e) })).filter(e => e.data && e.data.sent > 0)
   const maxSent = Math.max(...entityData.map(e => e.data?.sent || 0), 1)
 
-  // Trend chart for selected row
   useEffect(() => {
     if (!trendRef.current || !mmSelectedRow) {
       if (trendChart.current) { trendChart.current.destroy(); trendChart.current = null }
@@ -129,8 +141,9 @@ export default function MailmodoView({ ctx }: Props) {
     return () => { trendChart.current?.destroy(); trendChart.current = null }
   }, [mmSelectedRow, mmTab, isLight, fromIdx, toIdx])
 
-  const brandColor = ctx === 'mailmodo' ? '#7c5cfc' : '#ffd166'
-  const title = ctx === 'mailmodo' ? 'Mailmodo Review' : 'Ongage Review'
+  const brandColor = ESP_COLORS[selectedEsp] || '#00e5c3'
+  const selectCls = `px-3 py-1.5 rounded-lg border text-xs font-mono outline-none appearance-none
+    ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`
 
   return (
     <div className="p-6">
@@ -138,19 +151,28 @@ export default function MailmodoView({ ctx }: Props) {
       <div className="flex items-start justify-between mb-5">
         <div>
           <h1 className={`text-2xl font-bold tracking-tight ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>
-            {title}
+            ESP Review
           </h1>
           <p className={`text-sm mt-1 ${isLight ? 'text-gray-500' : 'text-[#a8b0be]'}`}>
             Provider and domain deliverability breakdown
           </p>
         </div>
-        {/* Date range */}
         <div className="flex items-center gap-2">
+          {/* ESP selector */}
+          {espList.length > 0 && (
+            <select
+              value={selectedEsp}
+              onChange={e => setSelectedEsp(e.target.value)}
+              className={selectCls}
+            >
+              {espList.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
+          )}
+          {/* Date range */}
           <select
             value={fromIdx}
             onChange={e => setRange(Number(e.target.value), toIdx)}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-mono outline-none
-              ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`}
+            className={selectCls}
           >
             {data.dates.map((d, i) => <option key={d} value={i}>{d}</option>)}
           </select>
@@ -158,8 +180,7 @@ export default function MailmodoView({ ctx }: Props) {
           <select
             value={toIdx}
             onChange={e => setRange(fromIdx, Number(e.target.value))}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-mono outline-none
-              ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`}
+            className={selectCls}
           >
             {data.dates.map((d, i) => <option key={d} value={i}>{d}</option>)}
           </select>
@@ -173,12 +194,12 @@ export default function MailmodoView({ ctx }: Props) {
         </div>
       </div>
 
-      {data.dates.length === 0 ? (
+      {espList.length === 0 || data.dates.length === 0 ? (
         <div className={`rounded-xl border p-12 text-center ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}>
           <div className="text-4xl mb-4">📬</div>
           <div className={`text-lg font-medium mb-2 ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>No data yet</div>
           <div className={`text-sm ${isLight ? 'text-gray-500' : 'text-[#a8b0be]'}`}>
-            Upload a {ctx === 'mailmodo' ? 'Mailmodo' : 'Ongage'} file via Upload Report to see data here.
+            Upload a file via Upload Report to see data here.
           </div>
         </div>
       ) : (
@@ -220,7 +241,7 @@ export default function MailmodoView({ ctx }: Props) {
             ))}
           </div>
 
-          {/* Trend chart (when row selected) */}
+          {/* Trend chart */}
           {mmSelectedRow && (
             <div className={`rounded-xl border p-4 mb-4 ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}>
               <div className="mb-3">

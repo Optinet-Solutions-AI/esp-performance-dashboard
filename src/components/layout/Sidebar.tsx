@@ -145,7 +145,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               return (
                 <button
                   key={item.id}
-                  onClick={() => { useDashboardStore.getState().setActiveReviewCtx(item.ctx); navTo(item.id) }}
+                  onClick={() => navTo(item.id)}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                     padding: '8px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',

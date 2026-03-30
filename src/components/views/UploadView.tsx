@@ -11,7 +11,6 @@ const ESP_LIST = ['Mailmodo', 'Ongage', 'Hotsol', 'MMS', 'Moosend', 'Omnisend', 
 interface UploadRecord {
   id: string
   esp: string
-  category: string
   filename: string
   rows: number
   dates: string[]
@@ -20,10 +19,9 @@ interface UploadRecord {
 }
 
 export default function UploadView() {
-  const { isLight, mmData, ogData, setMmData, setOgData, addUploadHistory, esps, setEsps } = useDashboardStore()
+  const { isLight, espData, setEspData, addUploadHistory, esps, setEsps } = useDashboardStore()
 
   const [esp, setEsp] = useState('')
-  const [category, setCategory] = useState<'mailmodo' | 'ongage'>('mailmodo')
   const [file, setFile] = useState<File | null>(null)
   const [step, setStep] = useState(1)
   const [processing, setProcessing] = useState(false)
@@ -78,12 +76,12 @@ export default function UploadView() {
       const { data: soloData } = mergeIntoMmData(INITIAL_MM_DATA, parsed, esp)
       soloData.providerDomains = buildProviderDomains(soloData)
 
-      const currentData = category === 'mailmodo' ? mmData : ogData
+      // Merge into this ESP's existing data
+      const currentData = espData[esp] ?? INITIAL_MM_DATA
       const { data: merged, newDates } = mergeIntoMmData(currentData, parsed, esp)
       merged.providerDomains = buildProviderDomains(merged)
 
-      if (category === 'mailmodo') setMmData(merged)
-      else setOgData(merged)
+      setEspData(esp, merged)
 
       const existingEsp = esps.find(e => e.name === esp)
       const espRecord = existingEsp ?? {
@@ -95,10 +93,10 @@ export default function UploadView() {
       const updated = syncEspFromData(espRecord, merged)
       setEsps(existingEsp ? esps.map(e => e.name === esp ? updated : e) : [...esps, updated])
 
-      addLog(`🔀 Merged into ${category} (+${newDates} new date${newDates !== 1 ? 's' : ''})`)
+      addLog(`🔀 Merged into ${esp} (+${newDates} new date${newDates !== 1 ? 's' : ''})`)
 
       await supabase.from('uploads').insert({
-        esp, category, filename: file.name,
+        esp, filename: file.name,
         rows: parsed.totalRows, dates: parsed.dates, new_dates: newDates,
         solo_data: soloData,
       })
@@ -107,7 +105,7 @@ export default function UploadView() {
       addUploadHistory({
         esp, file: file.name, rows: parsed.totalRows,
         dates: parsed.dates, time: new Date().toLocaleTimeString(),
-        newDates, category,
+        newDates,
       })
 
       setResult({ rows: parsed.totalRows, dates: parsed.dates, newDates })
@@ -121,7 +119,7 @@ export default function UploadView() {
   }
 
   async function handleDelete(record: UploadRecord) {
-    if (!confirm(`Delete this upload?\n\n"${record.filename}" (${record.esp} · ${record.category})\n\nOnly this file's data will be removed.`)) return
+    if (!confirm(`Delete this upload?\n\n"${record.filename}" (${record.esp})\n\nOnly this file's data will be removed.`)) return
     setDeleting(record.id)
     try {
       await supabase.from('uploads').delete().eq('id', record.id)
@@ -132,12 +130,12 @@ export default function UploadView() {
   }
 
   function reset() {
-    setEsp(''); setCategory('mailmodo'); setFile(null)
+    setEsp(''); setFile(null)
     setStep(1); setLog([]); setResult(null)
   }
 
   function exportData() {
-    const blob = new Blob([JSON.stringify({ mmData, ogData }, null, 2)], { type: 'application/json' })
+    const blob = new Blob([JSON.stringify({ espData }, null, 2)], { type: 'application/json' })
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
     a.download = 'esp-dashboard-data.json'; a.click()
   }
@@ -201,24 +199,15 @@ export default function UploadView() {
       <div className={`rounded-2xl border mb-4 overflow-hidden ${surface}`}>
         <div className={`px-5 py-3.5 border-b ${isLight ? 'border-black/6 bg-gray-50/60' : 'border-white/5 bg-white/[0.02]'}`}>
           <div className={`text-[10px] font-mono tracking-[0.15em] uppercase ${muted}`}>Step 1</div>
-          <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>Select ESP &amp; Category</div>
+          <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>Select ESP Provider</div>
         </div>
         <div className="p-5">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={`block text-[11px] font-mono tracking-[0.08em] uppercase mb-1.5 ${muted}`}>ESP Provider</label>
-              <select value={esp} onChange={e => handleEspChange(e.target.value)} className={inputCls}>
-                <option value="">Select ESP…</option>
-                {ESP_LIST.map(e => <option key={e} value={e}>{e}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={`block text-[11px] font-mono tracking-[0.08em] uppercase mb-1.5 ${muted}`}>Category</label>
-              <select value={category} onChange={e => setCategory(e.target.value as 'mailmodo' | 'ongage')} className={inputCls}>
-                <option value="mailmodo">Mailmodo</option>
-                <option value="ongage">Ongage</option>
-              </select>
-            </div>
+          <div>
+            <label className={`block text-[11px] font-mono tracking-[0.08em] uppercase mb-1.5 ${muted}`}>ESP Provider</label>
+            <select value={esp} onChange={e => handleEspChange(e.target.value)} className={inputCls}>
+              <option value="">Select ESP…</option>
+              {ESP_LIST.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
           </div>
         </div>
       </div>
@@ -348,7 +337,7 @@ export default function UploadView() {
           <div className="section-title-bar" style={{ background: '#ff6b35' }} />
           <h1>Upload History</h1>
         </div>
-        <p className="section-title-sub">Manage past uploads — deleting resets all data for that ESP &amp; category</p>
+        <p className="section-title-sub">Manage past uploads — deleting resets all data for that ESP provider</p>
 
         {history.length === 0 ? (
           <div className={`rounded-2xl border p-8 text-center ${surface}`}>
@@ -364,7 +353,7 @@ export default function UploadView() {
                       {fmtDate(rec.uploaded_at)}
                     </div>
                     <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>
-                      {rec.esp} · {rec.category} · {rec.filename}
+                      {rec.esp} · {rec.filename}
                     </div>
                   </div>
                   <button

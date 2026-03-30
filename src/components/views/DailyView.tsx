@@ -34,17 +34,16 @@ interface DayRow {
 }
 
 export default function DailyView() {
-  const { mmData, ogData, isLight } = useDashboardStore()
+  const { espData, isLight } = useDashboardStore()
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
 
   const cardClass = `rounded-xl border ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`
 
-  // Merge all dates from both mmData and ogData
-  const allDatesSet = new Set<string>([
-    ...Object.keys(mmData.overallByDate),
-    ...Object.keys(ogData.overallByDate),
-  ])
+  // Merge all dates across all ESPs
+  const allEspData = Object.values(espData)
+  const allDatesSet = new Set<string>()
+  allEspData.forEach(d => Object.keys(d.overallByDate).forEach(date => allDatesSet.add(date)))
 
   // Sort dates (month day format e.g. "Feb 17")
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -57,16 +56,19 @@ export default function DailyView() {
   // Take last 7 dates
   const last7 = sortedDates.slice(-7)
 
-  // Merge combined daily rows
+  // Merge combined daily rows across all ESPs
   const rows: DayRow[] = last7.map(date => {
-    const mm = mmData.overallByDate[date]
-    const og = ogData.overallByDate[date]
-
-    const sent = (mm?.sent || 0) + (og?.sent || 0)
-    const delivered = (mm?.delivered || 0) + (og?.delivered || 0)
-    const opened = (mm?.opened || 0) + (og?.opened || 0)
-    const clicked = (mm?.clicked || 0) + (og?.clicked || 0)
-    const bounced = (mm?.bounced || 0) + (og?.bounced || 0)
+    let sent = 0, delivered = 0, opened = 0, clicked = 0, bounced = 0
+    allEspData.forEach(d => {
+      const r = d.overallByDate[date]
+      if (r) {
+        sent += r.sent || 0
+        delivered += r.delivered || 0
+        opened += r.opened || 0
+        clicked += r.clicked || 0
+        bounced += r.bounced || 0
+      }
+    })
 
     return {
       date,
@@ -181,7 +183,7 @@ export default function DailyView() {
           Daily Report
         </h1>
         <p className={`text-sm mt-1 ${isLight ? 'text-gray-500' : 'text-[#a8b0be]'}`}>
-          Last 7 days of combined send volume — Mailmodo + Ongage
+          Last 7 days of combined send volume across all ESPs
         </p>
       </div>
 
