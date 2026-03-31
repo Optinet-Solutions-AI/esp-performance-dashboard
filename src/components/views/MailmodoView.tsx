@@ -617,7 +617,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                 ${isLight ? 'bg-white border-black/20 text-gray-800 hover:border-violet-400' : 'bg-[#1e232b] border-white/18 text-white hover:border-[#7c5cfc]'}`}
               style={{ minWidth: 80 }}
             >
-              {{ daily: 'DAY', weekly: 'WEEK', monthly: 'MONTH' }[granularity]}
+              {{ daily: 'DAILY', weekly: 'WEEKLY', monthly: 'MONTHLY' }[granularity]}
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="opacity-60 ml-auto">
                 <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -627,7 +627,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                 className="absolute z-50 left-0 shadow-2xl rounded-xl overflow-hidden"
                 style={{ top: '100%', marginTop: 8, minWidth: 100, background: isLight ? '#ffffff' : '#181c22', border: `1px solid ${isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'}` }}
               >
-                {([['daily', 'DAY'], ['weekly', 'WEEK'], ['monthly', 'MONTH']] as [Granularity, string][]).map(([val, label]) => (
+                {([['daily', 'DAILY'], ['weekly', 'WEEKLY'], ['monthly', 'MONTHLY']] as [Granularity, string][]).map(([val, label]) => (
                   <button
                     key={val}
                     onClick={() => { setGranularity(val); setGranOpen(false) }}
@@ -892,58 +892,89 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                   </tr>
                 </thead>
                 <tbody>
-                  {entityData.map(({ name, data: d, color }) => (
-                    <tr key={name}
-                      onClick={() => setSelected(selectedRow === name ? null : name)}
-                      className={`cursor-pointer border-b last:border-0 transition-colors
-                        ${isLight ? 'border-black/8 hover:bg-black/3' : 'border-white/7 hover:bg-white/3'}
-                        ${selectedRow === name ? (isLight ? 'bg-[#009e88]/7' : 'bg-[#00e5c3]/4') : ''}`}
-                    >
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className="w-1.5 h-5 rounded-sm flex-shrink-0" style={{ background: color }} />
-                          <span className={`text-[11px] font-mono ${txt}`}>{name}</span>
-                        </div>
-                      </td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${muted}`}>{fmtN(d?.sent ?? 0)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${txt}`}>{fmtN(d?.delivered ?? 0)}</td>
-                      <td className="px-3 py-2.5 text-right text-[11px] font-mono text-[#00e5c3]">{fmtN(d?.opened ?? 0)}</td>
-                      <td className="px-3 py-2.5 text-right text-[11px] font-mono text-[#ffd166]">{fmtN(d?.clicked ?? 0)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${(d?.bounced ?? 0) > 0 ? 'text-[#ff4757]' : muted}`}>{fmtN(d?.bounced ?? 0)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${(d?.unsubscribed ?? 0) > 0 ? 'text-[#ff9a5c]' : muted}`}>{fmtN(d?.unsubscribed ?? 0)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${(d?.deliveryRate ?? 0) < 80 ? 'text-[#ffd166]' : txt}`}>{fmtP(d?.deliveryRate ?? 0)}</td>
-                      <td className="px-3 py-2.5 text-right text-[11px] font-mono text-[#00e5c3]">{fmtP(d?.openRate ?? 0)}</td>
-                      <td className="px-3 py-2.5 text-right text-[11px] font-mono text-[#ffd166]">{fmtP(d?.clickRate ?? 0)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono
-                        ${(d?.bounceRate ?? 0) > 10 ? 'text-[#ff4757]' : (d?.bounceRate ?? 0) > 2 ? 'text-[#ffd166]' : muted}`}>
-                        {fmtP(d?.bounceRate ?? 0)}
-                      </td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${(d?.unsubRate ?? 0) > 0 ? 'text-[#ff9a5c]' : muted}`}>
-                        {fmtP(d?.unsubRate ?? 0, 3)}
-                      </td>
-                    </tr>
-                  ))}
+                  {entityData.map(({ name, data: d, color }) => {
+                    const s = d?.sent ?? 0, del = d?.delivered ?? 0, op = d?.opened ?? 0
+                    const cl = d?.clicked ?? 0, bo = d?.bounced ?? 0, un = d?.unsubscribed ?? 0
+                    const tip = (title: string, exact: string, formula: string, calc: string, color: string) =>
+                      ({ title, exact, formula, calc, color })
+                    const cols = [
+                      { tip: tip('TOTAL SENT',    fmtN(s),   'Raw count of emails dispatched',       `= ${fmtN(s)}`,                                                                        '#a8b0be'), cls: muted },
+                      { tip: tip('DELIVERED',      fmtN(del), 'Emails accepted by recipient server',  `${fmtN(del)} of ${fmtN(s)} sent`,                                                    '#c8cdd6'), cls: txt },
+                      { tip: tip('OPENS',          fmtN(op),  'Unique opens recorded',                `Open Rate = ${del > 0 ? (op/del*100).toFixed(2) : '0.00'}% (opens ÷ delivered)`,    '#00e5c3'), cls: 'text-[#00e5c3]' },
+                      { tip: tip('CLICKS',         fmtN(cl),  'Unique clicks recorded',               `CTR = ${op > 0 ? (cl/op*100).toFixed(2) : '0.00'}% (clicks ÷ opens)`,               '#ffd166'), cls: 'text-[#ffd166]' },
+                      { tip: tip('BOUNCED',        fmtN(bo),  'Emails not delivered',                 `Bounce Rate = ${s > 0 ? (bo/s*100).toFixed(2) : '0.00'}% (bounced ÷ sent)`,         '#ff4757'), cls: bo > 0 ? 'text-[#ff4757]' : muted },
+                      { tip: tip('UNSUBSCRIBES',   fmtN(un),  'Recipients who unsubscribed',          `Unsub Rate = ${op > 0 ? (un/op*100).toFixed(3) : '0.000'}% (unsubs ÷ opens)`,       '#ff9a5c'), cls: un > 0 ? 'text-[#ff9a5c]' : muted },
+                      { tip: tip('SUCCESS RATE',   `${(d?.deliveryRate??0).toFixed(2)}%`, 'Delivered ÷ Sent × 100',         `${fmtN(del)} ÷ ${fmtN(s)} × 100 = ${(d?.deliveryRate??0).toFixed(2)}%`,          '#b39dff'), cls: (d?.deliveryRate??0) < 80 ? 'text-[#ffd166]' : txt },
+                      { tip: tip('OPEN RATE',      `${(d?.openRate??0).toFixed(2)}%`,     'Opens ÷ Delivered × 100',        `${fmtN(op)} ÷ ${fmtN(del)} × 100 = ${(d?.openRate??0).toFixed(2)}%`,             '#00e5c3'), cls: 'text-[#00e5c3]' },
+                      { tip: tip('CTR',            `${(d?.clickRate??0).toFixed(2)}%`,    'Clicks ÷ Opens × 100',           `${fmtN(cl)} ÷ ${fmtN(op)} × 100 = ${(d?.clickRate??0).toFixed(2)}%`,             '#ffd166'), cls: 'text-[#ffd166]' },
+                      { tip: tip('BOUNCE RATE',    `${(d?.bounceRate??0).toFixed(2)}%`,   'Bounced ÷ Sent × 100',           `${fmtN(bo)} ÷ ${fmtN(s)} × 100 = ${(d?.bounceRate??0).toFixed(2)}%`,             '#ff6b77'), cls: (d?.bounceRate??0) > 10 ? 'text-[#ff4757]' : (d?.bounceRate??0) > 2 ? 'text-[#ffd166]' : muted },
+                      { tip: tip('UNSUB RATE',     `${(d?.unsubRate??0).toFixed(3)}%`,    'Unsubscribed ÷ Opens × 100',     `${fmtN(un)} ÷ ${fmtN(op)} × 100 = ${(d?.unsubRate??0).toFixed(3)}%`,             '#ff9a5c'), cls: (d?.unsubRate??0) > 0 ? 'text-[#ff9a5c]' : muted },
+                    ]
+                    const values = [fmtN(s), fmtN(del), fmtN(op), fmtN(cl), fmtN(bo), fmtN(un),
+                      fmtP(d?.deliveryRate??0), fmtP(d?.openRate??0), fmtP(d?.clickRate??0),
+                      fmtP(d?.bounceRate??0), fmtP(d?.unsubRate??0, 3)]
+                    return (
+                      <tr key={name}
+                        onClick={() => setSelected(selectedRow === name ? null : name)}
+                        className={`cursor-pointer border-b last:border-0 transition-colors
+                          ${isLight ? 'border-black/8 hover:bg-black/3' : 'border-white/7 hover:bg-white/3'}
+                          ${selectedRow === name ? (isLight ? 'bg-[#009e88]/7' : 'bg-[#00e5c3]/4') : ''}`}
+                      >
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-5 rounded-sm flex-shrink-0" style={{ background: color }} />
+                            <span className={`text-[11px] font-mono ${txt}`}>{name}</span>
+                          </div>
+                        </td>
+                        {cols.map((c, i) => (
+                          <td key={i}
+                            className={`px-3 py-2.5 text-right text-[11px] font-mono ${c.cls}`}
+                            onMouseEnter={e2 => setGridTip({ ...c.tip, x: e2.clientX + 14, y: e2.clientY + 14 })}
+                            onMouseLeave={() => setGridTip(null)}
+                          >
+                            {values[i]}
+                          </td>
+                        ))}
+                      </tr>
+                    )
+                  })}
                   {/* Totals row */}
-                  {aggOverall && (
-                    <tr className={`border-t font-bold ${isLight ? 'border-black/15 bg-gray-50' : 'border-white/12 bg-[#181c22]'}`}>
-                      <td className={`px-3 py-2.5 text-[11px] font-mono ${txt}`}>TOTAL</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${txt}`}>{fmtN(aggOverall.sent)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${txt}`}>{fmtN(aggOverall.delivered)}</td>
-                      <td className="px-3 py-2.5 text-right text-[11px] font-mono text-[#00e5c3]">{fmtN(aggOverall.opened)}</td>
-                      <td className="px-3 py-2.5 text-right text-[11px] font-mono text-[#ffd166]">{fmtN(aggOverall.clicked)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${aggOverall.bounced > 0 ? 'text-[#ff4757]' : txt}`}>{fmtN(aggOverall.bounced)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${(aggOverall.unsubscribed ?? 0) > 0 ? 'text-[#ff9a5c]' : txt}`}>{fmtN(aggOverall.unsubscribed ?? 0)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${txt}`}>{fmtP(aggOverall.deliveryRate)}</td>
-                      <td className="px-3 py-2.5 text-right text-[11px] font-mono text-[#00e5c3]">{fmtP(aggOverall.openRate)}</td>
-                      <td className="px-3 py-2.5 text-right text-[11px] font-mono text-[#ffd166]">{fmtP(aggOverall.clickRate)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${aggOverall.bounceRate > 10 ? 'text-[#ff4757]' : aggOverall.bounceRate > 2 ? 'text-[#ffd166]' : txt}`}>
-                        {fmtP(aggOverall.bounceRate)}
-                      </td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${(aggOverall.unsubRate ?? 0) > 0 ? 'text-[#ff9a5c]' : txt}`}>
-                        {fmtP(aggOverall.unsubRate ?? 0, 3)}
-                      </td>
-                    </tr>
-                  )}
+                  {aggOverall && (() => {
+                    const s = aggOverall.sent, del = aggOverall.delivered, op = aggOverall.opened
+                    const cl = aggOverall.clicked, bo = aggOverall.bounced, un = aggOverall.unsubscribed ?? 0
+                    const tip = (title: string, exact: string, formula: string, calc: string, color: string) =>
+                      ({ title, exact, formula, calc, color })
+                    const cols = [
+                      { tip: tip('TOTAL SENT',    fmtN(s),   'Raw count of emails dispatched',       `= ${fmtN(s)}`,                                                                       '#a8b0be'), cls: txt },
+                      { tip: tip('DELIVERED',      fmtN(del), 'Emails accepted by recipient server',  `${fmtN(del)} of ${fmtN(s)} sent`,                                                   '#c8cdd6'), cls: txt },
+                      { tip: tip('OPENS',          fmtN(op),  'Unique opens recorded',                `Open Rate = ${del > 0 ? (op/del*100).toFixed(2) : '0.00'}% (opens ÷ delivered)`,   '#00e5c3'), cls: 'text-[#00e5c3]' },
+                      { tip: tip('CLICKS',         fmtN(cl),  'Unique clicks recorded',               `CTR = ${op > 0 ? (cl/op*100).toFixed(2) : '0.00'}% (clicks ÷ opens)`,              '#ffd166'), cls: 'text-[#ffd166]' },
+                      { tip: tip('BOUNCED',        fmtN(bo),  'Emails not delivered',                 `Bounce Rate = ${s > 0 ? (bo/s*100).toFixed(2) : '0.00'}% (bounced ÷ sent)`,        '#ff4757'), cls: bo > 0 ? 'text-[#ff4757]' : txt },
+                      { tip: tip('UNSUBSCRIBES',   fmtN(un),  'Recipients who unsubscribed',          `Unsub Rate = ${op > 0 ? (un/op*100).toFixed(3) : '0.000'}% (unsubs ÷ opens)`,      '#ff9a5c'), cls: un > 0 ? 'text-[#ff9a5c]' : txt },
+                      { tip: tip('SUCCESS RATE',   `${aggOverall.deliveryRate.toFixed(2)}%`, 'Delivered ÷ Sent × 100',     `${fmtN(del)} ÷ ${fmtN(s)} × 100 = ${aggOverall.deliveryRate.toFixed(2)}%`,     '#b39dff'), cls: txt },
+                      { tip: tip('OPEN RATE',      `${aggOverall.openRate.toFixed(2)}%`,     'Opens ÷ Delivered × 100',    `${fmtN(op)} ÷ ${fmtN(del)} × 100 = ${aggOverall.openRate.toFixed(2)}%`,        '#00e5c3'), cls: 'text-[#00e5c3]' },
+                      { tip: tip('CTR',            `${aggOverall.clickRate.toFixed(2)}%`,    'Clicks ÷ Opens × 100',       `${fmtN(cl)} ÷ ${fmtN(op)} × 100 = ${aggOverall.clickRate.toFixed(2)}%`,        '#ffd166'), cls: 'text-[#ffd166]' },
+                      { tip: tip('BOUNCE RATE',    `${aggOverall.bounceRate.toFixed(2)}%`,   'Bounced ÷ Sent × 100',       `${fmtN(bo)} ÷ ${fmtN(s)} × 100 = ${aggOverall.bounceRate.toFixed(2)}%`,        '#ff6b77'), cls: aggOverall.bounceRate > 10 ? 'text-[#ff4757]' : aggOverall.bounceRate > 2 ? 'text-[#ffd166]' : txt },
+                      { tip: tip('UNSUB RATE',     `${(aggOverall.unsubRate??0).toFixed(3)}%`, 'Unsubscribed ÷ Opens × 100', `${fmtN(un)} ÷ ${fmtN(op)} × 100 = ${(aggOverall.unsubRate??0).toFixed(3)}%`, '#ff9a5c'), cls: (aggOverall.unsubRate??0) > 0 ? 'text-[#ff9a5c]' : txt },
+                    ]
+                    const values = [fmtN(s), fmtN(del), fmtN(op), fmtN(cl), fmtN(bo), fmtN(un),
+                      fmtP(aggOverall.deliveryRate), fmtP(aggOverall.openRate), fmtP(aggOverall.clickRate),
+                      fmtP(aggOverall.bounceRate), fmtP(aggOverall.unsubRate??0, 3)]
+                    return (
+                      <tr className={`border-t font-bold ${isLight ? 'border-black/15 bg-gray-50' : 'border-white/12 bg-[#181c22]'}`}>
+                        <td className={`px-3 py-2.5 text-[11px] font-mono ${txt}`}>TOTAL</td>
+                        {cols.map((c, i) => (
+                          <td key={i}
+                            className={`px-3 py-2.5 text-right text-[11px] font-mono ${c.cls}`}
+                            onMouseEnter={e2 => setGridTip({ ...c.tip, x: e2.clientX + 14, y: e2.clientY + 14 })}
+                            onMouseLeave={() => setGridTip(null)}
+                          >
+                            {values[i]}
+                          </td>
+                        ))}
+                      </tr>
+                    )
+                  })()}
                 </tbody>
               </table>
             </div>
