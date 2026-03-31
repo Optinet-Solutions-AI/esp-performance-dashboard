@@ -316,11 +316,19 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { ...CHART_TOOLTIP_OPTS, callbacks: { label: ctx => `${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toFixed(1)}%` } },
+          tooltip: {
+            ...CHART_TOOLTIP_OPTS,
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              title: (items: any[]) => items[0]?.label ?? '',
+              label: (ctx: any) => `${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toFixed(1)}%`,
+            },
+          },
         },
         scales: {
           x: { ticks: { color: tc, font: { size: 9 }, maxRotation: 30 }, grid: { display: false } },
-          y: { min: 0, ticks: { color: tc, font: { size: 9 }, callback: v => v + '%' }, grid: { color: gc }, border: { display: false } },
+          y: { min: 0, ticks: { color: tc, font: { size: 9 }, callback: (v: any) => v + '%' }, grid: { color: gc }, border: { display: false } },
         },
       },
     })
@@ -585,7 +593,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             <div className={`${card} p-4`}>
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <div className={`text-xs font-medium ${txt}`}>Rate Trends — {selectedRow ?? 'Overall'}</div>
+                  <div className={`text-xs font-medium ${txt}`}>Rate Trends{selectedRow ? ` — ${selectedRow}` : ''}</div>
                   <div className={`text-[10px] font-mono mt-0.5 ${muted}`}>
                     {selectedRow ? 'Click row again to reset' : `Click table row to isolate · ${granularity}`}
                   </div>
