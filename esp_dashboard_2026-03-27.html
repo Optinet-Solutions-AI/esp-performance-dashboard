@@ -1038,12 +1038,12 @@
     <!-- 3. KPI Charts · Email Provider -->
     <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div>
-        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#d4dae6;">KPI Charts · Email Provider</div>
-        <div style="font-family:var(--mono);font-size:9px;color:#c8cdd6;margin-top:3px;" id="mmEmbedViewLabel">↔  X-axis: Dates  ·  Each line = one Email Provider</div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#d4dae6;">KPI Charts · IP Address</div>
+        <div style="font-family:var(--mono);font-size:9px;color:#c8cdd6;margin-top:3px;" id="mmEmbedViewLabel">↔  X-axis: Dates  ·  Each line = one IP</div>
       </div>
       <div class="kpi-view-toggle">
         <button id="mmEmbedBtnDate"     class="kpi-view-btn active"   onclick="mmEmbedSetView('date')">BY DATE</button>
-        <button id="mmEmbedBtnProvider" class="kpi-view-btn inactive" onclick="mmEmbedSetView('provider')">BY PROVIDER</button>
+        <button id="mmEmbedBtnProvider" class="kpi-view-btn inactive" onclick="mmEmbedSetView('provider')">BY IP</button>
       </div>
     </div>
     <div class="kpi-charts-grid" style="margin-bottom:24px;">
@@ -3927,10 +3927,8 @@ function mmEmbedDestroyAll(){
 }
 
 function mmEmbedGetEntities(){
-  const providers = Object.entries(mmData.providers)
-    .sort((a,b)=>b[1].overall.sent - a[1].overall.sent)
-    .map(([n])=>n);
-  return { names: providers, colorMap: mmProviderColors, src: mmData.providers };
+  const { src, colorMap, sortedIps } = mmGetIpSource();
+  return { names: sortedIps, colorMap, src };
 }
 
 function mmEmbedRenderByDate(){
@@ -3995,8 +3993,8 @@ function mmEmbedSetView(v){
   document.getElementById('mmEmbedBtnProvider').className =`kpi-view-btn ${v==='provider'?'active':'inactive'}`;
   const lbl=document.getElementById('mmEmbedViewLabel');
   if(lbl) lbl.textContent = v==='date'
-    ? '↔  X-axis: Dates  ·  Each line = one Email Provider'
-    : '↔  X-axis: Email Providers  ·  Each bar = period total';
+    ? '↔  X-axis: Dates  ·  Each line = one IP'
+    : '↔  X-axis: IP Addresses  ·  Each bar = period total';
   mmEmbedDestroyAll();
   if(v==='date') mmEmbedRenderByDate();
   else mmEmbedRenderByProvider();
@@ -4007,8 +4005,8 @@ function mmEmbedRenderAll(){
   // Update embed header label
   const lbl=document.getElementById('mmEmbedViewLabel');
   if(lbl) lbl.textContent = mmEmbedView==='date'
-    ? '↔  X-axis: Dates  ·  Each line = one Email Provider'
-    : '↔  X-axis: Email Providers  ·  Each bar = period total';
+    ? '↔  X-axis: Dates  ·  Each line = one IP'
+    : '↔  X-axis: IP Addresses  ·  Each bar = period total';
   if(mmEmbedView==='date') mmEmbedRenderByDate();
   else mmEmbedRenderByProvider();
 }
