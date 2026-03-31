@@ -190,6 +190,17 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const [selectedEsp, setSelectedEsp] = useState('')
   const [granularity, setGranularity] = useState<Granularity>('daily')
   const [embedView,   setEmbedView]   = useState<EmbedView>('date')
+  const [granOpen,    setGranOpen]    = useState(false)
+  const granRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!granOpen) return
+    const handler = (e: MouseEvent) => {
+      if (granRef.current && !granRef.current.contains(e.target as Node)) setGranOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [granOpen])
 
   // ── Pick initial ESP ────────────────────────────────────────────
   useEffect(() => {
@@ -573,15 +584,39 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           >All</button>
 
           {/* Granularity dropdown */}
-          <select
-            value={granularity}
-            onChange={e => setGranularity(e.target.value as Granularity)}
-            className={selCls}
-          >
-            <option value="daily">DAY</option>
-            <option value="weekly">WEEK</option>
-            <option value="monthly">MONTH</option>
-          </select>
+          <div ref={granRef} className="relative">
+            <button
+              onClick={() => setGranOpen(o => !o)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono font-semibold transition-all
+                ${isLight ? 'bg-white border-black/20 text-gray-800 hover:border-violet-400' : 'bg-[#1e232b] border-white/18 text-white hover:border-[#7c5cfc]'}`}
+              style={{ minWidth: 80 }}
+            >
+              {{ daily: 'DAY', weekly: 'WEEK', monthly: 'MONTH' }[granularity]}
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="opacity-60 ml-auto">
+                <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {granOpen && (
+              <div
+                className="absolute z-50 left-0 shadow-2xl rounded-xl overflow-hidden"
+                style={{ top: '100%', marginTop: 8, minWidth: 100, background: isLight ? '#ffffff' : '#181c22', border: `1px solid ${isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'}` }}
+              >
+                {([['daily', 'DAY'], ['weekly', 'WEEK'], ['monthly', 'MONTH']] as [Granularity, string][]).map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => { setGranularity(val); setGranOpen(false) }}
+                    className={`w-full text-left px-4 py-2.5 text-xs font-mono font-semibold transition-all
+                      ${granularity === val
+                        ? 'bg-[#7c5cfc] text-white'
+                        : isLight ? 'text-gray-700 hover:bg-gray-100' : 'text-[#c8cdd6] hover:bg-white/8'
+                      }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
