@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
+import * as XLSX from 'xlsx'
 import { useDashboardStore } from '@/lib/store'
 import type { IpmRecord } from '@/lib/types'
 
@@ -126,18 +127,33 @@ export default function IPMatrixView() {
 
   /* ── File upload ───────────────────────────────────────────────── */
   async function handleFile(file: File) {
-    const text = await file.text()
-    const lines = text.trim().split('\n')
-    if (lines.length < 2) return
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z]/g, ''))
+    const isExcel = file.name.match(/\.xlsx?$/i)
+    let rows: string[][]
+
+    if (isExcel) {
+      const buf = await file.arrayBuffer()
+      const wb  = XLSX.read(buf, { type: 'array' })
+      const ws  = wb.Sheets[wb.SheetNames[0]]
+      const raw = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '' }) as string[][]
+      rows = raw.filter(r => r.some(c => String(c).trim() !== ''))
+    } else {
+      const text = await file.text()
+      rows = text.trim().split('\n').map(l => l.split(','))
+    }
+
+    if (rows.length < 2) return
+    const headers = rows[0].map(h => String(h).trim().toLowerCase().replace(/[^a-z]/g, ''))
     const find = (...cands: string[]) => headers.findIndex(h => cands.some(c => h.includes(c)))
-    const ci = { esp: find('esp', 'provider', 'service'), ip: find('ip', 'ipaddress', 'address'), domain: find('domain', 'fromdomain', 'from', 'sender') }
-    lines.slice(1).forEach(line => {
-      const v = line.split(',')
+    const ci = {
+      esp:    find('esp', 'provider', 'service'),
+      ip:     find('ip', 'ipaddress', 'address'),
+      domain: find('domain', 'fromdomain', 'from', 'sender'),
+    }
+    rows.slice(1).forEach(cols => {
       const r: IpmRecord = {
-        esp:    ci.esp    >= 0 ? (v[ci.esp]    ?? '').trim() : '',
-        ip:     ci.ip     >= 0 ? (v[ci.ip]     ?? '').trim() : '',
-        domain: ci.domain >= 0 ? (v[ci.domain] ?? '').trim() : '',
+        esp:    ci.esp    >= 0 ? String(cols[ci.esp]    ?? '').trim() : '',
+        ip:     ci.ip     >= 0 ? String(cols[ci.ip]     ?? '').trim() : '',
+        domain: ci.domain >= 0 ? String(cols[ci.domain] ?? '').trim() : '',
       }
       if (r.esp || r.ip) addIpmRecord(r)
     })
@@ -191,7 +207,7 @@ export default function IPMatrixView() {
           >
             <IconUpload /> Upload File
           </button>
-          <input ref={fileInputRef} type="file" accept=".csv" className="hidden"
+          <input ref={fileInputRef} type="file" accept=".csv,.xls,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) { handleFile(f); e.target.value = '' } }} />
           <button
             onClick={() => openModal(null)}
