@@ -1744,7 +1744,7 @@
     <!-- Step 3: Process -->
     <div class="upload-card" id="uploadStep3" style="opacity:.4;pointer-events:none;">
       <h3>Step 3 — Process &amp; Merge</h3>
-      <p>Click below to parse the file, extract daily statistics, and merge them into the dashboard. New dates will be added; existing dates will be updated if the new data has more rows.</p>
+      <p>Click below to parse the file and load it into the dashboard. Existing data for the same dates will be replaced with the new file's data. Every upload is logged in history.</p>
       <button class="upload-btn" id="uploadProcessBtn" onclick="uploadProcess()" disabled>Process File</button>
       <div class="upload-log" id="uploadLog"></div>
     </div>
@@ -5315,8 +5315,8 @@ function uploadProcess() {
         }
       }
 
-      uploadLog(`\n✅ Merge complete! Dashboard updated.`, 'ok');
-      uploadLog(`   New dates added: ${result.newDates.length > 0 ? result.newDates.join(', ') : 'none (existing dates updated)'}`, 'ok');
+      uploadLog(`\n✅ Upload complete! Dashboard updated (existing data replaced).`, 'ok');
+      uploadLog(`   Dates loaded: ${result.dates.join(', ')}${result.newDates.length > 0 ? ` (${result.newDates.length} new)` : ' (all replaced)'}`, 'ok');
       if (result.skipped > 0) {
         const parts = [];
         if (result.skipDate)  parts.push(`${result.skipDate} missing/invalid date`);
@@ -5515,7 +5515,7 @@ function parseGenericESP(rows, espName) {
   return { byDate, dates, totalRows: rows.length, skipped, newDates: [], format: 'generic' };
 }
 
-/* ── Merge parsed data into mmData ───────────────────── */
+/* ── Replace parsed data into mmData (overwrite per date) ── */
 function mergeIntoMmData(result, espName) {
   const { byDate, dates } = result;
   const newDates = [];
@@ -5532,58 +5532,53 @@ function mergeIntoMmData(result, espName) {
       newDates.push(date);
     }
 
-    // Merge providers
+    // Wipe existing data for this date so re-uploads replace rather than accumulate
+    Object.values(mmData.providers).forEach(p => { delete p.byDate[date]; });
+    Object.values(mmData.domains).forEach(d => { delete d.byDate[date]; });
+    delete mmData.overallByDate[date];
+
+    // Write providers (fresh — no prior data for this date)
     Object.entries(parsed.providers).forEach(([provider, stats]) => {
       if (!mmData.providers[provider]) {
         mmData.providers[provider] = { overall: {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0}, byDate: {} };
       }
-      const existing = mmData.providers[provider].byDate[date] || {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0};
       mmData.providers[provider].byDate[date] = {
-        sent: existing.sent + stats.sent,
-        delivered: existing.delivered + stats.delivered,
-        opened: existing.opened + stats.opened,
-        clicked: existing.clicked + stats.clicked,
-        bounced: existing.bounced + stats.bounced,
-        unsubscribed: (existing.unsubscribed||0) + (stats.unsubscribed||0)
+        sent: stats.sent,
+        delivered: stats.delivered,
+        opened: stats.opened,
+        clicked: stats.clicked,
+        bounced: stats.bounced,
+        unsubscribed: stats.unsubscribed||0
       };
-      // Recalculate overall
       mmData.providers[provider].overall = recalcOverall(mmData.providers[provider].byDate);
     });
 
-    // Merge domains
+    // Write domains (fresh)
     Object.entries(parsed.domains).forEach(([domain, stats]) => {
       if (!mmData.domains[domain]) {
         mmData.domains[domain] = { overall: {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0}, byDate: {} };
       }
-      const existing = mmData.domains[domain].byDate[date] || {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0};
       mmData.domains[domain].byDate[date] = {
-        sent: existing.sent + stats.sent,
-        delivered: existing.delivered + stats.delivered,
-        opened: existing.opened + stats.opened,
-        clicked: existing.clicked + stats.clicked,
-        bounced: existing.bounced + stats.bounced,
-        unsubscribed: (existing.unsubscribed||0) + (stats.unsubscribed||0)
+        sent: stats.sent,
+        delivered: stats.delivered,
+        opened: stats.opened,
+        clicked: stats.clicked,
+        bounced: stats.bounced,
+        unsubscribed: stats.unsubscribed||0
       };
       mmData.domains[domain].overall = recalcOverall(mmData.domains[domain].byDate);
     });
 
-    // Update overallByDate
-    const existingTotal = mmData.overallByDate[date] || {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0};
+    // Write overallByDate (fresh)
     const allProviders = Object.values(parsed.providers);
-    const fileTotals = allProviders.reduce((a,p)=>({
-      sent:a.sent+p.sent, delivered:a.delivered+p.delivered,
-      opened:a.opened+p.opened, clicked:a.clicked+p.clicked,
-      bounced:a.bounced+p.bounced, unsubscribed:a.unsubscribed+(p.unsubscribed||0)
+    mmData.overallByDate[date] = allProviders.reduce((a,p)=>({
+      sent:        a.sent        + p.sent,
+      delivered:   a.delivered   + p.delivered,
+      opened:      a.opened      + p.opened,
+      clicked:     a.clicked     + p.clicked,
+      bounced:     a.bounced     + p.bounced,
+      unsubscribed:a.unsubscribed+ (p.unsubscribed||0)
     }), {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0});
-    
-    mmData.overallByDate[date] = {
-      sent: existingTotal.sent + fileTotals.sent,
-      delivered: existingTotal.delivered + fileTotals.delivered,
-      opened: existingTotal.opened + fileTotals.opened,
-      clicked: existingTotal.clicked + fileTotals.clicked,
-      bounced: existingTotal.bounced + fileTotals.bounced,
-      unsubscribed: (existingTotal.unsubscribed||0) + (fileTotals.unsubscribed||0)
-    };
   });
 
   // Sort dates chronologically
@@ -5672,7 +5667,7 @@ function renderUploadHistory() {
         <div style="font-weight:600;color:#fff;font-size:12px;">${h.file}</div>
         <div style="font-size:11px;color:#d4dae6;margin-top:2px;font-family:var(--mono)">${h.esp.toUpperCase()} · ${h.rows.toLocaleString()} rows · ${h.dates.length} dates · ${h.time}</div>
       </div>
-      <span class="upload-badge ${h.newDates>0?'badge-success':'badge-partial'}">${h.newDates>0?'+'+h.newDates+' new dates':'updated'}</span>
+      <span class="upload-badge ${h.newDates>0?'badge-success':'badge-partial'}">${h.newDates>0?'+'+h.newDates+' new':'replaced'}</span>
     </div>`).join('');
 }
 
