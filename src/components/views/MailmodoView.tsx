@@ -22,11 +22,11 @@ const KPI_DEFS = [
   { key: 'unsubRate'  as keyof DateMetrics, label: 'Unsub Rate %',  color: '#ff9a5c', formula: 'Unsubscribed ÷ Opens × 100' },
 ]
 const GRID_KPIS = [
-  { key: 'deliveryRate' as keyof DateMetrics, label: 'Sr%',  color: '#b39dff' },
-  { key: 'openRate'     as keyof DateMetrics, label: 'Or%',  color: '#00ffd5' },
-  { key: 'clickRate'    as keyof DateMetrics, label: 'Ctr%', color: '#ffe066' },
-  { key: 'bounceRate'   as keyof DateMetrics, label: 'Br%',  color: '#ff6b77' },
-  { key: 'unsubRate'    as keyof DateMetrics, label: 'Ubr%', color: '#ff9a5c' },
+  { key: 'deliveryRate' as keyof DateMetrics, label: 'Success%', color: '#b39dff', tipTitle: 'SUCCESS RATE',  formula: 'Delivered ÷ Sent × 100',        rawFn: (r: DateMetrics) => ({ a: r.delivered, b: r.sent        }), dec: 1 },
+  { key: 'openRate'     as keyof DateMetrics, label: 'Open%',    color: '#00ffd5', tipTitle: 'OPEN RATE',     formula: 'Opens ÷ Delivered × 100',       rawFn: (r: DateMetrics) => ({ a: r.opened,    b: r.delivered   }), dec: 1 },
+  { key: 'clickRate'    as keyof DateMetrics, label: 'CTR%',     color: '#ffe066', tipTitle: 'CTR',           formula: 'Clicks ÷ Opens × 100',          rawFn: (r: DateMetrics) => ({ a: r.clicked,   b: r.opened      }), dec: 1 },
+  { key: 'bounceRate'   as keyof DateMetrics, label: 'Bounce%',  color: '#ff6b77', tipTitle: 'BOUNCE RATE',   formula: 'Bounced ÷ Sent × 100',          rawFn: (r: DateMetrics) => ({ a: r.bounced,   b: r.sent        }), dec: 1 },
+  { key: 'unsubRate'    as keyof DateMetrics, label: 'Unsub%',   color: '#ff9a5c', tipTitle: 'UNSUB RATE',    formula: 'Unsubscribed ÷ Opens × 100',    rawFn: (r: DateMetrics) => ({ a: r.unsubscribed ?? 0, b: r.opened }), dec: 3 },
 ]
 const BAD_METRICS = new Set(['bounceRate', 'unsubRate'])
 
@@ -193,6 +193,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const [granOpen,    setGranOpen]    = useState(false)
   const granRef = useRef<HTMLDivElement>(null)
   const [kpiTooltip, setKpiTooltip] = useState<{ idx: number; x: number; y: number } | null>(null)
+  const [gridTip, setGridTip] = useState<{ title: string; exact: string; formula: string; calc: string; color: string; x: number; y: number } | null>(null)
 
   useEffect(() => {
     if (!kpiTooltip) return
@@ -200,6 +201,13 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
     window.addEventListener('mousemove', move)
     return () => window.removeEventListener('mousemove', move)
   }, [!!kpiTooltip]) // eslint-disable-line
+
+  useEffect(() => {
+    if (!gridTip) return
+    const move = (e: MouseEvent) => setGridTip(t => t ? { ...t, x: e.clientX + 14, y: e.clientY + 14 } : null)
+    window.addEventListener('mousemove', move)
+    return () => window.removeEventListener('mousemove', move)
+  }, [!!gridTip]) // eslint-disable-line
 
   useEffect(() => {
     if (!granOpen) return
@@ -307,8 +315,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
 
   // ── Grid col-stats (min/max per entity×kpi across date groups) ──
   const colStats: Record<string, Record<string, { min: number; max: number }>> = {}
-  const gridTop5 = entityData.slice(0, 5)
-  gridTop5.forEach(e => {
+  entityData.forEach(e => {
     colStats[e.name] = {}
     GRID_KPIS.forEach(kpi => {
       const vals = dateGroups
@@ -985,39 +992,40 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           )}
 
           {/* ── Daily KPIs Grid ───────────────────────────────────── */}
-          {gridTop5.length > 0 && dateGroups.length > 0 && (
+          {entityData.length > 0 && dateGroups.length > 0 && (
             <div className={`${card} overflow-hidden`}>
               <div className="px-4 py-3 border-b" style={divBdr}>
                 <span className={`text-[10px] font-mono uppercase tracking-wider ${muted}`}>
-                  {granularity.charAt(0).toUpperCase() + granularity.slice(1)} KPIs Grid
-                  {' '}— by {tabLabel} · top {gridTop5.length} by volume · heatmap per column
+                  Daily KPIs by {tabLabel}
+                  {activeDates.length > 0 && ` · ${activeDates[0]} – ${activeDates[activeDates.length - 1]}`}
+                  {' · ordered by volume'}
                 </span>
               </div>
               <div className="overflow-x-auto">
-                <table className="border-collapse text-[10px] font-mono"
-                  style={{ minWidth: gridTop5.length * 5 * 56 + 80 }}>
+                <table className="border-collapse text-[10px] font-mono" style={{ minWidth: entityData.length * 5 * 52 + 72 }}>
                   <thead>
-                    {/* Entity names */}
-                    <tr className={isLight ? 'bg-gray-50' : 'bg-[#181c22]'}>
-                      <th className={`px-3 py-2 text-left border-b border-r ${isLight ? 'border-black/8' : 'border-white/7'}`} />
-                      {gridTop5.map(e => (
+                    {/* Row 1 — entity names */}
+                    <tr style={{ background: isLight ? '#f1f3f7' : '#181c22' }}>
+                      <th className={`px-3 py-2.5 text-left text-[9px] tracking-widest uppercase border-b border-r ${isLight ? 'border-black/8 text-gray-500' : 'border-white/7 text-[#6b7280]'}`}
+                        style={{ minWidth: 70 }}>Date</th>
+                      {entityData.map((e, ei) => (
                         <th key={e.name} colSpan={5}
-                          className={`px-2 py-2 border-b border-r text-center ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
+                          className={`px-2 py-2.5 border-b text-center ${ei < entityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}>
                           <div className="flex items-center justify-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: e.color }} />
-                            <span className="truncate" style={{ maxWidth: 100 }}>{e.name}</span>
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: e.color }} />
+                            <span className="text-[10px] font-semibold tracking-wide uppercase truncate" style={{ color: e.color, maxWidth: 140 }}>{e.name}</span>
                           </div>
                         </th>
                       ))}
                     </tr>
-                    {/* KPI sub-labels */}
-                    <tr className={isLight ? 'bg-gray-50' : 'bg-[#181c22]'}>
-                      <th className={`px-3 py-1.5 border-b border-r ${isLight ? 'border-black/8' : 'border-white/7'}`} />
-                      {gridTop5.flatMap(e =>
+                    {/* Row 2 — KPI sub-labels */}
+                    <tr style={{ background: isLight ? '#f1f3f7' : '#181c22' }}>
+                      <th className={`border-b border-r ${isLight ? 'border-black/8' : 'border-white/7'}`} />
+                      {entityData.flatMap((e, ei) =>
                         GRID_KPIS.map((kpi, ki) => (
                           <th key={e.name + kpi.key}
-                            className={`px-1.5 py-1.5 border-b text-center ${ki === 4 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}
-                            style={{ color: kpi.color }}>
+                            className={`px-1.5 py-1.5 text-right border-b ${ki === 4 && ei < entityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}
+                            style={{ color: kpi.color, fontSize: 9, letterSpacing: '0.06em' }}>
                             {kpi.label}
                           </th>
                         ))
@@ -1026,36 +1034,52 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                   </thead>
                   <tbody>
                     {dateGroups.map((group, gi) => (
-                      <tr key={group.label} className={`border-b last:border-0 ${isLight ? 'border-black/8' : 'border-white/7'}`}>
-                        <td className={`px-3 py-1.5 whitespace-nowrap border-r ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#c8cdd6]'}`}>
+                      <tr key={group.label}
+                        className={`border-b last:border-0 transition-colors ${isLight ? 'border-black/7 hover:bg-black/3' : 'border-white/5 hover:bg-white/3'}`}>
+                        <td className={`px-3 py-2 whitespace-nowrap font-semibold border-r ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#c8cdd6]'}`}
+                          style={{ fontSize: 11 }}>
                           {group.label}
                         </td>
-                        {gridTop5.flatMap(e =>
+                        {entityData.flatMap((e, ei) =>
                           GRID_KPIS.map((kpi, ki) => {
-                            const r    = aggDates(e.byDate, group.dates)
-                            const val  = r ? (r[kpi.key] as number | undefined) ?? null : null
-                            const prev = gi > 0 ? aggDates(e.byDate, dateGroups[gi - 1].dates) : null
-                            const pVal = prev ? (prev[kpi.key] as number | undefined) ?? null : null
+                            const r     = aggDates(e.byDate, group.dates)
+                            const val   = r ? (r[kpi.key] as number | undefined) ?? null : null
+                            const prev  = gi > 0 ? aggDates(e.byDate, dateGroups[gi - 1].dates) : null
+                            const pVal  = prev ? (prev[kpi.key] as number | undefined) ?? null : null
                             const stats = colStats[e.name]?.[kpi.key as string]
-                            const bg   = val != null && stats
-                              ? minMaxHeat(kpi.key as string, val, stats.min, stats.max)
-                              : 'transparent'
+                            const bg    = val != null && stats ? minMaxHeat(kpi.key as string, val, stats.min, stats.max) : 'transparent'
                             const trend = trendArrow(val, pVal, kpi.key as string)
+                            const valColor = kpi.key === 'bounceRate' && val != null
+                              ? val > 10 ? '#ff6b77' : val > 2 ? '#ffe066' : kpi.color
+                              : kpi.key === 'deliveryRate' && val != null && val < 95
+                                ? '#ffe066' : kpi.color
+
+                            const tipContent = val != null && r ? (() => {
+                              const { a, b } = kpi.rawFn(r)
+                              const pct = b > 0 ? (a / b * 100).toFixed(kpi.dec) : '—'
+                              return {
+                                title: kpi.tipTitle,
+                                exact: val.toFixed(kpi.dec) + '%',
+                                formula: kpi.formula,
+                                calc: `${a.toLocaleString()} ÷ ${b.toLocaleString()} × 100 = ${pct}%`,
+                                color: valColor,
+                              }
+                            })() : null
+
                             return (
                               <td key={e.name + kpi.key + group.label}
-                                className={`px-1.5 py-1.5 text-center ${ki === 4 ? 'border-r' : ''} ${isLight ? 'border-black/5' : 'border-white/5'}`}
-                                style={{ background: bg }}>
+                                className={`px-1.5 py-2 text-right ${ki === 4 && ei < entityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/5' : 'border-white/5'}`}
+                                style={{ background: bg, fontSize: 11 }}
+                                onMouseEnter={e2 => { if (tipContent) setGridTip({ ...tipContent, x: e2.clientX + 14, y: e2.clientY + 14 }) }}
+                                onMouseLeave={() => setGridTip(null)}
+                              >
                                 {val != null ? (
-                                  <div className="flex items-center justify-center gap-0.5">
-                                    <span className={txt}>
-                                      {kpi.key === 'unsubRate' ? val.toFixed(2) : val.toFixed(1)}%
-                                    </span>
-                                    {trend && (
-                                      <span style={{ color: trend.color, fontSize: 7, lineHeight: 1 }}>{trend.arrow}</span>
-                                    )}
-                                  </div>
+                                  <span className="inline-flex items-center gap-0.5 justify-end" style={{ color: valColor }}>
+                                    {val.toFixed(kpi.dec)}%
+                                    {trend && <span style={{ color: trend.color, fontSize: 7, lineHeight: 1 }}>{trend.arrow}</span>}
+                                  </span>
                                 ) : (
-                                  <span className={isLight ? 'text-gray-300' : 'text-white/20'}>—</span>
+                                  <span style={{ opacity: 0.3 }}>—</span>
                                 )}
                               </td>
                             )
@@ -1063,8 +1087,57 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                         )}
                       </tr>
                     ))}
+                    {/* TOTAL row */}
+                    <tr style={{ background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}` }}>
+                      <td className={`px-3 py-2.5 text-[10px] font-mono font-bold tracking-widest uppercase border-r ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
+                        Total
+                      </td>
+                      {entityData.flatMap((e, ei) =>
+                        GRID_KPIS.map((kpi, ki) => {
+                          const r   = aggDates(e.byDate, activeDates)
+                          const val = r ? (r[kpi.key] as number | undefined) ?? null : null
+                          const valColor = kpi.key === 'bounceRate' && val != null
+                            ? val > 10 ? '#ff6b77' : val > 2 ? '#ffe066' : kpi.color
+                            : kpi.key === 'deliveryRate' && val != null && val < 95 ? '#ffe066' : kpi.color
+
+                          const tipContent = val != null && r ? (() => {
+                            const { a, b } = kpi.rawFn(r)
+                            const pct = b > 0 ? (a / b * 100).toFixed(kpi.dec) : '—'
+                            return { title: kpi.tipTitle, exact: val.toFixed(kpi.dec) + '%', formula: kpi.formula, calc: `${a.toLocaleString()} ÷ ${b.toLocaleString()} × 100 = ${pct}%`, color: valColor }
+                          })() : null
+
+                          return (
+                            <td key={e.name + kpi.key + 'total'}
+                              className={`px-1.5 py-2.5 text-right font-bold ${ki === 4 && ei < entityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/5' : 'border-white/5'}`}
+                              style={{ fontSize: 11 }}
+                              onMouseEnter={e2 => { if (tipContent) setGridTip({ ...tipContent, x: e2.clientX + 14, y: e2.clientY + 14 }) }}
+                              onMouseLeave={() => setGridTip(null)}
+                            >
+                              {val != null ? (
+                                <span style={{ color: valColor }}>{val.toFixed(kpi.dec)}%</span>
+                              ) : (
+                                <span style={{ opacity: 0.3 }}>—</span>
+                              )}
+                            </td>
+                          )
+                        })
+                      )}
+                    </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* Grid tooltip */}
+          {gridTip && (
+            <div className="fixed z-[9999] pointer-events-none" style={{ left: gridTip.x, top: gridTip.y, minWidth: 230 }}>
+              <div className="rounded-xl shadow-2xl p-4" style={{ background: '#1a1e26', border: '1px solid rgba(255,255,255,0.14)' }}>
+                <div className="text-[9px] font-mono tracking-widest uppercase mb-2" style={{ color: '#6b7280' }}>{gridTip.title}</div>
+                <div className="text-2xl font-bold font-mono text-white mb-3">{gridTip.exact}</div>
+                <div className="text-[9px] font-mono tracking-widest uppercase mb-1.5" style={{ color: '#ffd166' }}>Formula</div>
+                <div className="text-[11px] font-mono mb-1" style={{ color: gridTip.color }}>{gridTip.formula}</div>
+                <div className="text-[11px] font-mono" style={{ color: gridTip.color }}>{gridTip.calc}</div>
               </div>
             </div>
           )}
