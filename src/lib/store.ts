@@ -72,7 +72,7 @@ export const useDashboardStore = create<DashboardState>()(
       toggleTheme: () => set(s => ({ isLight: !s.isLight })),
 
       // Navigation
-      activeView: 'home',
+      activeView: 'mailmodo',
       setView: (v) => set({ activeView: v }),
 
       // Dashboard filters
