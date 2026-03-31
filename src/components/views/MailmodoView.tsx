@@ -143,12 +143,43 @@ function destroyAll(ref: React.MutableRefObject<(Chart | null)[]>) {
   ref.current = ref.current.map(() => null)
 }
 
+function buildIpAggByDate(
+  providers: MmData['providers'],
+  subDomains: string[],
+): Record<string, DateMetrics> {
+  const allDates = new Set<string>()
+  subDomains.forEach(d => Object.keys(providers[d]?.byDate || {}).forEach(dt => allDates.add(dt)))
+  const byDate: Record<string, DateMetrics> = {}
+  allDates.forEach(date => {
+    let sent = 0, delivered = 0, opened = 0, clicked = 0, bounced = 0, unsubscribed = 0, complained = 0
+    subDomains.forEach(dom => {
+      const m = providers[dom]?.byDate?.[date]
+      if (!m) return
+      sent += m.sent || 0; delivered += m.delivered || 0; opened += m.opened || 0
+      clicked += m.clicked || 0; bounced += m.bounced || 0
+      unsubscribed += m.unsubscribed || 0; complained += m.complained || 0
+    })
+    if (!sent) return
+    byDate[date] = {
+      sent, delivered, opened, clicked, bounced, unsubscribed, complained,
+      deliveryRate: (delivered / sent) * 100, successRate: (delivered / sent) * 100,
+      openRate: delivered > 0 ? (opened / delivered) * 100 : 0,
+      clickRate: opened > 0 ? (clicked / opened) * 100 : 0,
+      bounceRate: (bounced / sent) * 100,
+      unsubRate: opened > 0 ? (unsubscribed / opened) * 100 : 0,
+      complaintRate: delivered > 0 ? (complained / delivered) * 100 : 0,
+    }
+  })
+  return byDate
+}
+
 /* ─────────────────────────────────────────────────────────────────
    MAIN VIEW
 ───────────────────────────────────────────────────────────────── */
 export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo' }) {
   const store     = useDashboardStore()
   const isLight   = store.isLight
+  const ipmData   = store.ipmData
   const allEsps   = Object.keys(store.espData)
   const espList   = filter === 'ongage'
     ? allEsps.filter(e => e === 'Ongage')
@@ -211,8 +242,8 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   }
 
   // ── Tab / row ────────────────────────────────────────────────────
-  const mmTab        = (store.mmTab === 'ip' ? 'provider' : store.mmTab) as 'provider' | 'domain'
-  const setMmTab     = (t: 'provider' | 'domain') => store.setMmTab(t as MmTabType)
+  const mmTab        = store.mmTab === 'domain' ? 'domain' : 'ip' as MmTabType
+  const setMmTab     = (t: MmTabType) => store.setMmTab(t)
   const selectedRow  = store.mmSelectedRow
   const setSelected  = store.setMmSelectedRow
 
@@ -226,19 +257,31 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
 
-  function entityColor(name: string, idx: number) {
-    if (mmTab === 'provider') return PROVIDER_COLORS[name] || IP_COLOR_PALETTE[idx % IP_COLOR_PALETTE.length]
-    return DOMAIN_COLORS[name] || IP_COLOR_PALETTE[idx % IP_COLOR_PALETTE.length]
-  }
-
-  const rawNames   = mmTab === 'provider' ? Object.keys(data.providers || {}) : Object.keys(data.domains || {})
-  const entityData = rawNames
-    .map((name, idx) => {
-      const bd = mmTab === 'provider' ? data.providers[name]?.byDate : data.domains[name]?.byDate
-      return { name, color: entityColor(name, idx), byDate: bd || {}, data: aggDates(bd || {}, activeDates) }
+  // ── IP entity data ───────────────────────────────────────────────
+  const espIpmRecords = ipmData.filter(r => r.esp === selectedEsp)
+  const ipDomainsMap: Record<string, string[]> = {}
+  espIpmRecords.forEach(r => {
+    if (!ipDomainsMap[r.ip]) ipDomainsMap[r.ip] = []
+    if (!ipDomainsMap[r.ip].includes(r.domain)) ipDomainsMap[r.ip].push(r.domain)
+  })
+  const ipEntityData = Object.entries(ipDomainsMap)
+    .map(([ip, subDomains], idx) => {
+      const byDate = buildIpAggByDate(data.providers, subDomains)
+      return { name: ip, subDomains, color: IP_COLOR_PALETTE[idx % IP_COLOR_PALETTE.length], byDate, data: aggDates(byDate, activeDates) }
     })
     .filter(e => e.data && e.data.sent > 0)
     .sort((a, b) => (b.data?.sent ?? 0) - (a.data?.sent ?? 0))
+
+  // ── Domain entity data ───────────────────────────────────────────
+  const domainEntityData = Object.keys(data.domains || {})
+    .map((name, idx) => {
+      const bd = data.domains[name]?.byDate
+      return { name, subDomains: [] as string[], color: DOMAIN_COLORS[name] || IP_COLOR_PALETTE[idx % IP_COLOR_PALETTE.length], byDate: bd || {}, data: aggDates(bd || {}, activeDates) }
+    })
+    .filter(e => e.data && e.data.sent > 0)
+    .sort((a, b) => (b.data?.sent ?? 0) - (a.data?.sent ?? 0))
+
+  const entityData = mmTab === 'ip' ? ipEntityData : domainEntityData
 
   const entityNamesKey = entityData.map(e => e.name).join(',')
   const aggOverall     = aggDates(data.overallByDate, activeDates)
@@ -424,7 +467,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   // ── Pie charts ───────────────────────────────────────────────────
   useEffect(() => {
     destroyAll(pieInsts)
-    if (mmTab !== 'provider' || !entityData.length || !activeDates.length) return
+    if (mmTab !== 'ip' || !entityData.length || !activeDates.length) return
 
     const PIE_KEYS: (keyof DateMetrics)[] = ['sent', 'opened', 'clicked']
     PIE_KEYS.forEach((mk, i) => {
@@ -485,10 +528,12 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const divBdr  = { borderColor: isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.07)' }
   const tabBdr  = isLight ? 'border-black/15' : 'border-white/13'
 
-  const tabLabel    = mmTab === 'provider' ? 'IP Address' : 'Domain'
-  const tabLabelShort = mmTab === 'provider' ? 'IP' : 'Domain'
-  const selectedBD  = selectedRow
-    ? (mmTab === 'provider' ? data.providers[selectedRow] : data.domains[selectedRow])?.byDate ?? {}
+  const tabLabel      = mmTab === 'ip' ? 'IP Address' : 'Sending Domain'
+  const tabLabelShort = mmTab === 'ip' ? 'IP' : 'Domain'
+  const selectedBD    = selectedRow
+    ? mmTab === 'ip'
+      ? buildIpAggByDate(data.providers, ipEntityData.find(e => e.name === selectedRow)?.subDomains ?? [])
+      : data.domains[selectedRow]?.byDate ?? {}
     : {}
 
   // ── Range label ──────────────────────────────────────────────────
@@ -581,7 +626,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
 
           {/* ── Tab Switcher ──────────────────────────────────────── */}
           <div className="flex items-center gap-1">
-            {(['provider', 'domain'] as const).map(tab => (
+            {(['ip', 'domain'] as const).map(tab => (
               <button key={tab} onClick={() => setMmTab(tab)}
                 className={`px-3 py-1.5 rounded-lg border text-[10px] font-mono uppercase tracking-wider transition-all
                   ${mmTab === tab
@@ -589,7 +634,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     : isLight ? 'border-black/15 text-gray-500 hover:border-black/30' : 'border-white/13 text-[#a8b0be] hover:border-white/25'
                   }`}
               >
-                {tab === 'provider' ? 'Email Provider' : 'Sending Domain'}
+                {tab === 'ip' ? 'IP Address' : 'Sending Domain'}
               </button>
             ))}
           </div>
@@ -670,13 +715,20 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                   <div style={{ height: 200 }}>
                     <canvas ref={el => { kpiRefs.current[i] = el }} />
                   </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3">
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3">
                     {entityData.map(e => (
-                      <div key={e.name} className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: e.color }} />
-                        <span className={`text-[9px] font-mono ${muted}`}>
-                          {e.name.length > 22 ? e.name.slice(0, 20) + '…' : e.name}
-                        </span>
+                      <div key={e.name} className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: e.color }} />
+                          <span className={`text-[9px] font-mono font-semibold ${muted}`}>
+                            {e.name.length > 22 ? e.name.slice(0, 20) + '…' : e.name}
+                          </span>
+                        </div>
+                        {mmTab === 'ip' && e.subDomains && e.subDomains.map(d => (
+                          <div key={d} className="flex items-center gap-1 ml-3.5">
+                            <span className={`text-[8px] font-mono opacity-60 ${muted}`}>↳ {d}</span>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
@@ -685,10 +737,10 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             </div>
           </div>
 
-          {/* ── Distribution Pies (provider tab only) ─────────────── */}
-          {mmTab === 'provider' && entityData.length > 0 && (
+          {/* ── Distribution Pies (IP tab only) ─────────────────── */}
+          {mmTab === 'ip' && entityData.length > 0 && (
             <div className={`${card} p-4`}>
-              <div className={`text-xs font-medium mb-4 ${txt}`}>Distribution by Provider</div>
+              <div className={`text-xs font-medium mb-4 ${txt}`}>Distribution by IP</div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {(['Sent', 'Opens', 'Clicks'] as const).map((title, idx) => {
                   const mk = (['sent', 'opened', 'clicked'] as const)[idx]
@@ -724,7 +776,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           <div className={`${card} overflow-hidden`}>
             <div className="px-4 py-3 border-b flex items-center justify-between" style={divBdr}>
               <span className={`text-[10px] font-mono uppercase tracking-wider ${muted}`}>
-                {mmTab === 'provider' ? 'Email Provider Summary' : 'Sending Domain Summary'}
+                {mmTab === 'ip' ? 'IP Address Summary' : 'Sending Domain Summary'}
               </span>
               <span className={`text-[10px] font-mono ${muted}`}>Click row → isolate rate trend & daily breakdown</span>
             </div>
@@ -732,7 +784,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               <table className="w-full border-collapse" style={{ minWidth: 940 }}>
                 <thead className={isLight ? 'bg-gray-50' : 'bg-[#181c22]'}>
                   <tr>
-                    {['Provider / Domain','Sent','Delivered','Opens','Clicks','Bounced','Unsubs','Success%','Open%','CTR%','Bounce%','Unsub%'].map((h, i) => (
+                    {[mmTab === 'ip' ? 'IP Address' : 'Sending Domain','Sent','Delivered','Opens','Clicks','Bounced','Unsubs','Success%','Open%','CTR%','Bounce%','Unsub%'].map((h, i) => (
                       <th key={h}
                         className={`px-3 py-2.5 text-[9px] font-mono tracking-wider uppercase border-b
                           ${i === 0 ? 'text-left' : 'text-right'}
