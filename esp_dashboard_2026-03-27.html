@@ -5516,7 +5516,10 @@ function parseGenericESP(rows, espName) {
   return { byDate, dates, totalRows: rows.length, skipped, newDates: [], format: 'generic' };
 }
 
-/* ── Replace parsed data into mmData (overwrite per date) ── */
+/* ── Load parsed data into mmData ──────────────────────────
+   • New dates  → add fresh, existing data untouched
+   • Existing dates → wipe that date's slice, write fresh from new file
+   ────────────────────────────────────────────────────────── */
 function mergeIntoMmData(result, espName) {
   const { byDate, dates } = result;
   const newDates = [];
@@ -5525,54 +5528,43 @@ function mergeIntoMmData(result, espName) {
     const parsed = byDate[date];
     if (!parsed) return;
 
-    // Track if this is a new date
     const isNew = !mmData.dates.includes(date);
     if (isNew) {
       mmData.dates.push(date);
       mmData.datesFull.push({ label: date, year: 2026 });
       newDates.push(date);
+    } else {
+      // Existing date — wipe stale slice so re-upload replaces instead of accumulating.
+      // Track which providers/domains had data for this date so we can recalc their overall.
+      Object.values(mmData.providers).forEach(p => { delete p.byDate[date]; });
+      Object.values(mmData.domains).forEach(d  => { delete d.byDate[date]; });
+      delete mmData.overallByDate[date];
     }
 
-    // Wipe existing data for this date so re-uploads replace rather than accumulate
-    Object.values(mmData.providers).forEach(p => { delete p.byDate[date]; });
-    Object.values(mmData.domains).forEach(d => { delete d.byDate[date]; });
-    delete mmData.overallByDate[date];
-
-    // Write providers (fresh — no prior data for this date)
+    // Write providers for this date
     Object.entries(parsed.providers).forEach(([provider, stats]) => {
       if (!mmData.providers[provider]) {
         mmData.providers[provider] = { overall: {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0}, byDate: {} };
       }
       mmData.providers[provider].byDate[date] = {
-        sent: stats.sent,
-        delivered: stats.delivered,
-        opened: stats.opened,
-        clicked: stats.clicked,
-        bounced: stats.bounced,
-        unsubscribed: stats.unsubscribed||0
+        sent: stats.sent, delivered: stats.delivered, opened: stats.opened,
+        clicked: stats.clicked, bounced: stats.bounced, unsubscribed: stats.unsubscribed||0
       };
-      mmData.providers[provider].overall = recalcOverall(mmData.providers[provider].byDate);
     });
 
-    // Write domains (fresh)
+    // Write domains for this date
     Object.entries(parsed.domains).forEach(([domain, stats]) => {
       if (!mmData.domains[domain]) {
         mmData.domains[domain] = { overall: {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0}, byDate: {} };
       }
       mmData.domains[domain].byDate[date] = {
-        sent: stats.sent,
-        delivered: stats.delivered,
-        opened: stats.opened,
-        clicked: stats.clicked,
-        bounced: stats.bounced,
-        unsubscribed: stats.unsubscribed||0
+        sent: stats.sent, delivered: stats.delivered, opened: stats.opened,
+        clicked: stats.clicked, bounced: stats.bounced, unsubscribed: stats.unsubscribed||0
       };
-      mmData.domains[domain].overall = recalcOverall(mmData.domains[domain].byDate);
     });
 
-    // Write overallByDate (fresh)
-    const allProviders = Object.values(parsed.providers);
-    mmData.overallByDate[date] = allProviders.reduce((a,p)=>({
+    // Write overallByDate
+    mmData.overallByDate[date] = Object.values(parsed.providers).reduce((a,p)=>({
       sent:        a.sent        + p.sent,
       delivered:   a.delivered   + p.delivered,
       opened:      a.opened      + p.opened,
@@ -5581,6 +5573,10 @@ function mergeIntoMmData(result, espName) {
       unsubscribed:a.unsubscribed+ (p.unsubscribed||0)
     }), {sent:0,delivered:0,opened:0,clicked:0,bounced:0,unsubscribed:0});
   });
+
+  // Recalculate overall for every touched provider/domain once, after all dates are written
+  Object.values(mmData.providers).forEach(p => { p.overall = recalcOverall(p.byDate); });
+  Object.values(mmData.domains).forEach(d   => { d.overall = recalcOverall(d.byDate); });
 
   // Sort dates chronologically
   mmData.dates.sort((a,b)=>new Date('2026 '+a)-new Date('2026 '+b));
@@ -6148,12 +6144,12 @@ function persistLoad() {
   } catch(e) {
     console.warn('Could not load upload history:', e.message);
   }
-  // Restore data separately
+  // Restore data separately — always restore if saved data exists, regardless of date count
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return false;
     const saved = JSON.parse(raw);
-    if (saved.dates && saved.dates.length > mmData.dates.length) {
+    if (saved.dates && saved.dates.length > 0) {
       mmData.dates         = saved.dates;
       mmData.datesFull     = saved.datesFull;
       mmData.providers     = saved.providers;
