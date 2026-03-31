@@ -6,21 +6,19 @@ import { aggDates, fmtN, fmtP, getGridColor, getTextColor, CHART_TOOLTIP_OPTS } 
 import { PROVIDER_COLORS, DOMAIN_COLORS, IP_COLOR_PALETTE, ESP_COLORS } from '@/lib/data'
 import type { MmData, MmTabType, DateMetrics } from '@/lib/types'
 
+/* ─────────────────────────────────────────────────────────────────
+   CONSTANTS
+───────────────────────────────────────────────────────────────── */
 const EMPTY: MmData = {
   dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {},
 }
-
-const VOL_COLORS = {
-  sent: '#6b7280', delivered: '#7c5cfc', opened: '#00e5c3', clicked: '#ffd166',
-}
-const RATE_COLORS = {
-  successRate: '#7c5cfc', openRate: '#00e5c3', clickRate: '#ffd166', bounceRate: '#ff4757',
-}
+const VOL_COLORS  = { sent: '#6b7280', delivered: '#7c5cfc', opened: '#00e5c3', clicked: '#ffd166' }
+const RATE_COLORS = { successRate: '#7c5cfc', openRate: '#00e5c3', clickRate: '#ffd166', bounceRate: '#ff4757' }
 const KPI_DEFS = [
-  { key: 'openRate'  as keyof DateMetrics, label: 'Open Rate %',   color: '#00e5c3' },
-  { key: 'clickRate' as keyof DateMetrics, label: 'CTR %',         color: '#ffd166' },
-  { key: 'bounceRate'as keyof DateMetrics, label: 'Bounce Rate %', color: '#ff4757' },
-  { key: 'unsubRate' as keyof DateMetrics, label: 'Unsub Rate %',  color: '#ff9a5c' },
+  { key: 'openRate'   as keyof DateMetrics, label: 'Open Rate %',   color: '#00e5c3' },
+  { key: 'clickRate'  as keyof DateMetrics, label: 'CTR %',         color: '#ffd166' },
+  { key: 'bounceRate' as keyof DateMetrics, label: 'Bounce Rate %', color: '#ff4757' },
+  { key: 'unsubRate'  as keyof DateMetrics, label: 'Unsub Rate %',  color: '#ff9a5c' },
 ]
 const GRID_KPIS = [
   { key: 'deliveryRate' as keyof DateMetrics, label: 'Sr%',  color: '#b39dff' },
@@ -29,9 +27,21 @@ const GRID_KPIS = [
   { key: 'bounceRate'   as keyof DateMetrics, label: 'Br%',  color: '#ff6b77' },
   { key: 'unsubRate'    as keyof DateMetrics, label: 'Ubr%', color: '#ff9a5c' },
 ]
+const BAD_METRICS = new Set(['bounceRate', 'unsubRate'])
+const MONTHS_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const DAYS_SHORT   = ['Su','Mo','Tu','We','Th','Fr','Sa']
 
-type EmbedView = 'date' | 'provider'
+/* ─────────────────────────────────────────────────────────────────
+   TYPES
+───────────────────────────────────────────────────────────────── */
+type Granularity = 'daily' | 'weekly' | 'monthly'
+type EmbedView   = 'date' | 'provider'
+interface DateGroup { label: string; dates: string[] }
 
+/* ─────────────────────────────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────────────────────────────── */
 function lds(label: string, data: (number | null)[], color: string, dash?: number[]) {
   return {
     label, data,
@@ -46,44 +56,288 @@ function lds(label: string, data: (number | null)[], color: string, dash?: numbe
   }
 }
 
-function heatBg(key: keyof DateMetrics, val: number | null | undefined): string {
-  if (val == null) return 'transparent'
-  if (key === 'deliveryRate' || key === 'successRate') {
-    return val >= 97 ? 'rgba(0,229,195,.13)' : val >= 85 ? 'rgba(255,209,102,.13)' : 'rgba(255,71,87,.13)'
+function groupDates(
+  dates: string[],
+  gran: Granularity,
+  datesFull: { label: string; year: number; iso: string }[],
+): DateGroup[] {
+  if (gran === 'daily') return dates.map(d => ({ label: d, dates: [d] }))
+
+  const isoMap: Record<string, string> = {}
+  datesFull.forEach(df => { if (df.iso) isoMap[df.label] = df.iso })
+
+  if (gran === 'weekly') {
+    const groups: DateGroup[] = []
+    for (const d of dates) {
+      const iso = isoMap[d]
+      if (!iso) { groups.push({ label: d, dates: [d] }); continue }
+      const dt        = new Date(iso + 'T00:00:00')
+      const wStart    = new Date(dt)
+      wStart.setDate(dt.getDate() - dt.getDay())
+      const wKey      = wStart.toISOString().slice(0, 10)
+      const last      = groups[groups.length - 1]
+      // Store wKey as a temp identifier on first date, then compare
+      if (last && (last as DateGroup & { _wKey?: string })._wKey === wKey) {
+        last.dates.push(d)
+      } else {
+        const g: DateGroup & { _wKey?: string } = { label: d, dates: [d], _wKey: wKey }
+        groups.push(g)
+      }
+    }
+    // Clean up temp key
+    groups.forEach(g => { delete (g as DateGroup & { _wKey?: string })._wKey })
+    return groups
   }
-  if (key === 'openRate') {
-    return val >= 60 ? 'rgba(0,229,195,.13)' : val >= 30 ? 'rgba(255,209,102,.13)' : 'rgba(255,71,87,.13)'
+
+  if (gran === 'monthly') {
+    const map = new Map<string, DateGroup>()
+    for (const d of dates) {
+      const df = datesFull.find(x => x.label === d)
+      if (!df) continue
+      const [mon]  = d.split(' ')
+      const key    = `${mon} ${df.year}`
+      if (!map.has(key)) map.set(key, { label: key, dates: [] })
+      map.get(key)!.dates.push(d)
+    }
+    return Array.from(map.values())
   }
-  if (key === 'clickRate') {
-    return val >= 85 ? 'rgba(0,229,195,.13)' : val >= 60 ? 'rgba(255,209,102,.13)' : 'rgba(255,71,87,.13)'
-  }
-  if (key === 'bounceRate') {
-    return val <= 1 ? 'rgba(0,229,195,.13)' : val <= 5 ? 'rgba(255,209,102,.13)' : 'rgba(255,71,87,.13)'
-  }
-  if (key === 'unsubRate') {
-    return val <= 0.1 ? 'rgba(0,229,195,.13)' : val <= 0.5 ? 'rgba(255,209,102,.13)' : 'rgba(255,71,87,.13)'
-  }
+
+  return dates.map(d => ({ label: d, dates: [d] }))
+}
+
+function minMaxHeat(kpiKey: string, val: number, minV: number, maxV: number): string {
+  if (maxV === minV) return 'transparent'
+  let score = (val - minV) / (maxV - minV)
+  if (BAD_METRICS.has(kpiKey)) score = 1 - score
+  if (score >= 0.75) return 'rgba(0,229,195,0.14)'
+  if (score >= 0.5)  return 'rgba(0,229,195,0.07)'
+  if (score <= 0.25) return 'rgba(255,71,87,0.16)'
+  if (score <= 0.5)  return 'rgba(255,160,60,0.10)'
   return 'transparent'
 }
 
-function destroyAll(insts: React.MutableRefObject<(Chart | null)[]>) {
-  insts.current.forEach(c => { if (c) c.destroy() })
-  insts.current = insts.current.map(() => null)
+function trendArrow(cur: number | null, prev: number | null, kpiKey: string) {
+  if (cur == null || prev == null) return null
+  const diff = cur - prev
+  if (Math.abs(diff) < 0.01) return null
+  const good = BAD_METRICS.has(kpiKey) ? diff < 0 : diff > 0
+  return { arrow: good ? '▲' : '▼', color: good ? '#00e5c3' : '#ff4757' }
 }
 
+function destroyAll(ref: React.MutableRefObject<(Chart | null)[]>) {
+  ref.current.forEach(c => c?.destroy())
+  ref.current = ref.current.map(() => null)
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   CALENDAR PICKER
+───────────────────────────────────────────────────────────────── */
+function CalendarPicker({
+  value, onChange, isLight,
+}: { value: string; onChange: (iso: string) => void; isLight: boolean }) {
+  const MIN_YEAR = 2025
+  const MAX_YEAR = new Date().getFullYear() + 3
+
+  const toDate    = (iso: string) => iso ? new Date(iso + 'T00:00:00') : new Date()
+  const initYear  = () => toDate(value).getFullYear()
+  const initMonth = () => toDate(value).getMonth()
+
+  const [open,       setOpen]       = useState(false)
+  const [viewYear,   setViewYear]   = useState(initYear)
+  const [viewMonth,  setViewMonth]  = useState(initMonth)
+  const [yearMode,   setYearMode]   = useState(false)
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  // Sync calendar view when value changes externally
+  useEffect(() => {
+    if (value) {
+      const d = toDate(value)
+      setViewYear(d.getFullYear())
+      setViewMonth(d.getMonth())
+    }
+  }, [value])
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false); setYearMode(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  function prevMonth() {
+    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) }
+    else setViewMonth(m => m - 1)
+  }
+  function nextMonth() {
+    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0) }
+    else setViewMonth(m => m + 1)
+  }
+  function selectDay(day: number) {
+    const iso = `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+    onChange(iso); setOpen(false); setYearMode(false)
+  }
+  function isSelected(day: number) {
+    if (!value) return false
+    return value === `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+  }
+
+  const firstDay    = new Date(viewYear, viewMonth, 1).getDay()
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+  const cells: (number | null)[] = [
+    ...Array(firstDay).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ]
+
+  const displayVal = value
+    ? toDate(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : 'Pick date'
+
+  const popBg  = isLight ? '#ffffff'               : '#181c22'
+  const popBdr = isLight ? 'rgba(0,0,0,.14)'       : 'rgba(255,255,255,.12)'
+  const btn    = isLight
+    ? 'bg-white border-black/20 text-gray-800 hover:border-black/40'
+    : 'bg-[#1e232b] border-white/18 text-white hover:border-white/30'
+  const dayCls = (selected: boolean, disabled: boolean) => {
+    if (selected)  return 'bg-[#7c5cfc] text-white font-bold'
+    if (disabled)  return 'opacity-25 cursor-not-allowed text-gray-400'
+    return isLight ? 'text-gray-700 hover:bg-gray-100' : 'text-[#c8cdd6] hover:bg-white/8'
+  }
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        onClick={() => { setOpen(o => !o); setYearMode(false) }}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all ${btn}`}
+        style={{ minWidth: 138 }}
+      >
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+          <rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M1 7h14" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M5 1v4M11 1v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+        {displayVal}
+      </button>
+
+      {open && (
+        <div
+          className="absolute z-50 shadow-2xl rounded-xl overflow-hidden"
+          style={{ top: '100%', left: 0, marginTop: 8, width: 268, background: popBg, border: `1px solid ${popBdr}` }}
+        >
+          {yearMode ? (
+            /* ── Year grid ── */
+            <div className="p-4">
+              <div className={`text-[9px] font-mono uppercase tracking-widest mb-3 ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
+                Select Year
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) => MIN_YEAR + i).map(y => (
+                  <button
+                    key={y}
+                    onClick={() => { setViewYear(y); setYearMode(false) }}
+                    className={`py-1.5 rounded-lg text-[11px] font-mono transition-all
+                      ${y === viewYear
+                        ? 'bg-[#7c5cfc] text-white font-bold'
+                        : isLight ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-white/6 text-[#c8cdd6] hover:bg-white/10'
+                      }`}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* ── Month header ── */}
+              <div className={`flex items-center justify-between px-3 py-2.5 border-b`} style={{ borderColor: popBdr }}>
+                <button
+                  onClick={prevMonth}
+                  disabled={viewYear <= MIN_YEAR && viewMonth === 0}
+                  className={`w-7 h-7 flex items-center justify-center rounded-md text-base transition-all
+                    ${isLight ? 'hover:bg-gray-100 text-gray-500' : 'hover:bg-white/8 text-[#c8cdd6]'}`}
+                >‹</button>
+                <button
+                  onClick={() => setYearMode(true)}
+                  className={`text-xs font-mono font-bold transition-colors hover:text-[#7c5cfc] ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}
+                >
+                  {MONTHS_FULL[viewMonth]} {viewYear}
+                </button>
+                <button
+                  onClick={nextMonth}
+                  className={`w-7 h-7 flex items-center justify-center rounded-md text-base transition-all
+                    ${isLight ? 'hover:bg-gray-100 text-gray-500' : 'hover:bg-white/8 text-[#c8cdd6]'}`}
+                >›</button>
+              </div>
+
+              {/* ── Day-of-week labels ── */}
+              <div className="grid grid-cols-7 px-3 pt-2 pb-1">
+                {DAYS_SHORT.map(d => (
+                  <div key={d} className={`text-center text-[9px] font-mono uppercase ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>{d}</div>
+                ))}
+              </div>
+
+              {/* ── Day cells ── */}
+              <div className="grid grid-cols-7 px-3 pb-3 gap-y-0.5">
+                {cells.map((day, i) => (
+                  <div key={i} className="flex items-center justify-center h-8">
+                    {day != null && (
+                      <button
+                        onClick={() => !(viewYear < MIN_YEAR) && selectDay(day)}
+                        className={`w-7 h-7 rounded-full text-[11px] font-mono transition-all ${dayCls(isSelected(day), viewYear < MIN_YEAR)}`}
+                      >
+                        {day}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Month quick-nav ── */}
+              <div className={`grid grid-cols-4 gap-1 px-3 pb-3 pt-1 border-t`} style={{ borderColor: popBdr }}>
+                {MONTHS_SHORT.map((m, mi) => (
+                  <button
+                    key={m}
+                    onClick={() => setViewMonth(mi)}
+                    className={`py-1 rounded text-[9px] font-mono transition-all
+                      ${mi === viewMonth
+                        ? 'bg-[#4a2fa0] text-white'
+                        : isLight ? 'text-gray-500 hover:bg-gray-100' : 'text-[#6b7280] hover:bg-white/6'
+                      }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MAIN VIEW
+───────────────────────────────────────────────────────────────── */
 export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo' }) {
-  const store = useDashboardStore()
-  const isLight = store.isLight
-  const allEspList = Object.keys(store.espData)
-  const espList = filter === 'ongage'
-    ? allEspList.filter(e => e === 'Ongage')
+  const store     = useDashboardStore()
+  const isLight   = store.isLight
+  const allEsps   = Object.keys(store.espData)
+  const espList   = filter === 'ongage'
+    ? allEsps.filter(e => e === 'Ongage')
     : filter === 'mailmodo'
-      ? allEspList.filter(e => e !== 'Ongage')
-      : allEspList
+      ? allEsps.filter(e => e !== 'Ongage')
+      : allEsps
 
-  const [selectedEsp, setSelectedEsp] = useState<string>('')
-  const [embedView, setEmbedView] = useState<EmbedView>('date')
+  const [selectedEsp, setSelectedEsp] = useState('')
+  const [granularity, setGranularity] = useState<Granularity>('daily')
+  const [embedView,   setEmbedView]   = useState<EmbedView>('date')
 
+  // ── Pick initial ESP ────────────────────────────────────────────
   useEffect(() => {
     if (!selectedEsp || !espList.includes(selectedEsp)) {
       const def = store.reviewEsp && espList.includes(store.reviewEsp)
@@ -94,6 +348,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
 
   useEffect(() => { store.setMmSelectedRow(null) }, [selectedEsp]) // eslint-disable-line
 
+  // ── Data & range ────────────────────────────────────────────────
   const data: MmData = store.espData[selectedEsp] ?? EMPTY
   const fromIdx = store.espRanges[selectedEsp]?.fromIdx ?? 0
   const toIdx   = store.espRanges[selectedEsp]?.toIdx   ?? Math.max(0, data.dates.length - 1)
@@ -118,28 +373,42 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
     for (let i = r; i >= 0; i--) { if (data.datesFull[i].iso <= iso) { r = i; break } }
     return r
   }
+  function handleFrom(iso: string) {
+    setFromDate(iso)
+    if (iso) setRange(findFrom(iso), toIdx)
+  }
+  function handleTo(iso: string) {
+    setToDate(iso)
+    if (iso) setRange(fromIdx, findTo(iso))
+  }
+  function handleAll() {
+    setRange(0, data.dates.length - 1)
+    setFromDate(data.datesFull[0]?.iso || '')
+    setToDate(data.datesFull[data.datesFull.length - 1]?.iso || '')
+  }
 
-  const mmTab          = (store.mmTab === 'ip' ? 'provider' : store.mmTab) as 'provider' | 'domain'
-  const setMmTab       = (t: 'provider' | 'domain') => store.setMmTab(t as MmTabType)
-  const mmSelectedRow  = store.mmSelectedRow
-  const setSelected    = store.setMmSelectedRow
+  // ── Tab / row ────────────────────────────────────────────────────
+  const mmTab        = (store.mmTab === 'ip' ? 'provider' : store.mmTab) as 'provider' | 'domain'
+  const setMmTab     = (t: 'provider' | 'domain') => store.setMmTab(t as MmTabType)
+  const selectedRow  = store.mmSelectedRow
+  const setSelected  = store.setMmSelectedRow
+
+  // ── Computed: dates, groups, entities ───────────────────────────
+  const safeTo      = Math.min(toIdx, data.dates.length - 1)
+  const activeDates = data.dates.slice(fromIdx, safeTo + 1)
+  const dateGroups  = groupDates(activeDates, granularity, data.datesFull)
+  const groupsKey   = dateGroups.map(g => g.label).join(',')
+  const datesKey    = activeDates.join(',')
 
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
-
-  const safeTo     = Math.min(toIdx, data.dates.length - 1)
-  const activeDates = data.dates.slice(fromIdx, safeTo + 1)
-  const datesKey   = activeDates.join(',')
 
   function entityColor(name: string, idx: number) {
     if (mmTab === 'provider') return PROVIDER_COLORS[name] || IP_COLOR_PALETTE[idx % IP_COLOR_PALETTE.length]
     return DOMAIN_COLORS[name] || IP_COLOR_PALETTE[idx % IP_COLOR_PALETTE.length]
   }
 
-  const rawNames = mmTab === 'provider'
-    ? Object.keys(data.providers || {})
-    : Object.keys(data.domains  || {})
-
+  const rawNames   = mmTab === 'provider' ? Object.keys(data.providers || {}) : Object.keys(data.domains || {})
   const entityData = rawNames
     .map((name, idx) => {
       const bd = mmTab === 'provider' ? data.providers[name]?.byDate : data.domains[name]?.byDate
@@ -151,9 +420,25 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const entityNamesKey = entityData.map(e => e.name).join(',')
   const aggOverall     = aggDates(data.overallByDate, activeDates)
 
-  /* ── Chart refs ─────────────────────────────────── */
-  const volRef  = useRef<HTMLCanvasElement>(null)
-  const volInst = useRef<Chart | null>(null)
+  // ── Grid col-stats (min/max per entity×kpi across date groups) ──
+  const colStats: Record<string, Record<string, { min: number; max: number }>> = {}
+  const gridTop5 = entityData.slice(0, 5)
+  gridTop5.forEach(e => {
+    colStats[e.name] = {}
+    GRID_KPIS.forEach(kpi => {
+      const vals = dateGroups
+        .map(g => { const r = aggDates(e.byDate, g.dates); return r ? (r[kpi.key] as number) : null })
+        .filter((v): v is number => v != null)
+      colStats[e.name][kpi.key as string] = {
+        min: vals.length ? Math.min(...vals) : 0,
+        max: vals.length ? Math.max(...vals) : 0,
+      }
+    })
+  })
+
+  // ── Chart refs ───────────────────────────────────────────────────
+  const volRef   = useRef<HTMLCanvasElement>(null)
+  const volInst  = useRef<Chart | null>(null)
   const rateRef  = useRef<HTMLCanvasElement>(null)
   const rateInst = useRef<Chart | null>(null)
   const kpiRefs  = useRef<(HTMLCanvasElement | null)[]>([null, null, null, null])
@@ -161,23 +446,20 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const pieRefs  = useRef<(HTMLCanvasElement | null)[]>([null, null, null])
   const pieInsts = useRef<(Chart | null)[]>([null, null, null])
 
-  /* ── Volume chart ────────────────────────────────── */
+  // ── Volume chart ─────────────────────────────────────────────────
   useEffect(() => {
-    if (!volRef.current || !activeDates.length) {
-      if (volInst.current) { volInst.current.destroy(); volInst.current = null }
-      return
-    }
     if (volInst.current) { volInst.current.destroy(); volInst.current = null }
+    if (!volRef.current || !dateGroups.length) return
     const od = data.overallByDate
     volInst.current = new Chart(volRef.current, {
       type: 'line',
       data: {
-        labels: activeDates,
+        labels: dateGroups.map(g => g.label),
         datasets: [
-          lds('Sent',      activeDates.map(d => od[d]?.sent      ?? null), VOL_COLORS.sent),
-          lds('Delivered', activeDates.map(d => od[d]?.delivered ?? null), VOL_COLORS.delivered),
-          lds('Opens',     activeDates.map(d => od[d]?.opened    ?? null), VOL_COLORS.opened),
-          lds('Clicks',    activeDates.map(d => od[d]?.clicked   ?? null), VOL_COLORS.clicked),
+          lds('Sent',      dateGroups.map(g => aggDates(od, g.dates)?.sent      ?? null), VOL_COLORS.sent),
+          lds('Delivered', dateGroups.map(g => aggDates(od, g.dates)?.delivered ?? null), VOL_COLORS.delivered),
+          lds('Opens',     dateGroups.map(g => aggDates(od, g.dates)?.opened    ?? null), VOL_COLORS.opened),
+          lds('Clicks',    dateGroups.map(g => aggDates(od, g.dates)?.clicked   ?? null), VOL_COLORS.clicked),
         ],
       },
       options: {
@@ -187,35 +469,32 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           tooltip: { ...CHART_TOOLTIP_OPTS, callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtN(ctx.parsed.y ?? 0)}` } },
         },
         scales: {
-          x: { ticks: { color: tc, font: { size: 9 } }, grid: { display: false } },
+          x: { ticks: { color: tc, font: { size: 9 }, maxRotation: 30 }, grid: { display: false } },
           y: { ticks: { color: tc, font: { size: 9 }, callback: v => fmtN(+v) }, grid: { color: gc }, border: { display: false } },
         },
       },
     })
     return () => { volInst.current?.destroy(); volInst.current = null }
-  }, [datesKey, selectedEsp, isLight]) // eslint-disable-line
+  }, [groupsKey, selectedEsp, isLight]) // eslint-disable-line
 
-  /* ── Rate trend chart ────────────────────────────── */
+  // ── Rate trend chart ─────────────────────────────────────────────
   useEffect(() => {
-    if (!rateRef.current || !activeDates.length) {
-      if (rateInst.current) { rateInst.current.destroy(); rateInst.current = null }
-      return
-    }
     if (rateInst.current) { rateInst.current.destroy(); rateInst.current = null }
+    if (!rateRef.current || !dateGroups.length) return
 
-    const src = mmSelectedRow
-      ? (mmTab === 'provider' ? data.providers[mmSelectedRow]?.byDate : data.domains[mmSelectedRow]?.byDate) ?? {}
+    const src = selectedRow
+      ? (mmTab === 'provider' ? data.providers[selectedRow]?.byDate : data.domains[selectedRow]?.byDate) ?? {}
       : data.overallByDate
 
     rateInst.current = new Chart(rateRef.current, {
       type: 'line',
       data: {
-        labels: activeDates,
+        labels: dateGroups.map(g => g.label),
         datasets: [
-          lds('Success %', activeDates.map(d => src[d]?.deliveryRate ?? null), RATE_COLORS.successRate),
-          lds('Open %',    activeDates.map(d => src[d]?.openRate     ?? null), RATE_COLORS.openRate),
-          lds('CTR %',     activeDates.map(d => src[d]?.clickRate    ?? null), RATE_COLORS.clickRate,  [4, 4]),
-          lds('Bounce %',  activeDates.map(d => src[d]?.bounceRate   ?? null), RATE_COLORS.bounceRate, [2, 2]),
+          lds('Success %', dateGroups.map(g => aggDates(src, g.dates)?.deliveryRate ?? null), RATE_COLORS.successRate),
+          lds('Open %',    dateGroups.map(g => aggDates(src, g.dates)?.openRate     ?? null), RATE_COLORS.openRate),
+          lds('CTR %',     dateGroups.map(g => aggDates(src, g.dates)?.clickRate    ?? null), RATE_COLORS.clickRate,  [4, 4]),
+          lds('Bounce %',  dateGroups.map(g => aggDates(src, g.dates)?.bounceRate   ?? null), RATE_COLORS.bounceRate, [2, 2]),
         ],
       },
       options: {
@@ -225,15 +504,15 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           tooltip: { ...CHART_TOOLTIP_OPTS, callbacks: { label: ctx => `${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toFixed(1)}%` } },
         },
         scales: {
-          x: { ticks: { color: tc, font: { size: 9 } }, grid: { display: false } },
+          x: { ticks: { color: tc, font: { size: 9 }, maxRotation: 30 }, grid: { display: false } },
           y: { min: 0, ticks: { color: tc, font: { size: 9 }, callback: v => v + '%' }, grid: { color: gc }, border: { display: false } },
         },
       },
     })
     return () => { rateInst.current?.destroy(); rateInst.current = null }
-  }, [datesKey, selectedEsp, mmSelectedRow, mmTab, isLight]) // eslint-disable-line
+  }, [groupsKey, selectedEsp, selectedRow, mmTab, isLight]) // eslint-disable-line
 
-  /* ── KPI charts ──────────────────────────────────── */
+  // ── KPI charts ───────────────────────────────────────────────────
   useEffect(() => {
     destroyAll(kpiInsts)
     if (!activeDates.length || !entityData.length) return
@@ -241,16 +520,15 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
     KPI_DEFS.forEach((kpi, i) => {
       const canvas = kpiRefs.current[i]
       if (!canvas) return
-
       if (embedView === 'date') {
         kpiInsts.current[i] = new Chart(canvas, {
           type: 'line',
           data: {
-            labels: activeDates,
+            labels: dateGroups.map(g => g.label),
             datasets: entityData.map(e =>
-              lds(e.name, activeDates.map(d => {
-                const r = e.byDate[d]
-                return r ? (r[kpi.key] as number ?? null) : null
+              lds(e.name, dateGroups.map(g => {
+                const r = aggDates(e.byDate, g.dates)
+                return r ? ((r[kpi.key] as number) ?? null) : null
               }), e.color)
             ),
           },
@@ -261,7 +539,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               tooltip: { ...CHART_TOOLTIP_OPTS, callbacks: { label: ctx => `${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toFixed(1)}%` } },
             },
             scales: {
-              x: { ticks: { color: tc, font: { size: 9 } }, grid: { display: false } },
+              x: { ticks: { color: tc, font: { size: 9 }, maxRotation: 30 }, grid: { display: false } },
               y: { min: 0, ticks: { color: tc, font: { size: 9 }, callback: v => v + '%' }, grid: { color: gc }, border: { display: false } },
             },
           },
@@ -294,35 +572,32 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
       }
     })
     return () => { destroyAll(kpiInsts) }
-  }, [datesKey, selectedEsp, mmTab, isLight, embedView, entityNamesKey]) // eslint-disable-line
+  }, [groupsKey, selectedEsp, mmTab, isLight, embedView, entityNamesKey]) // eslint-disable-line
 
-  /* ── Pie charts ──────────────────────────────────── */
+  // ── Pie charts ───────────────────────────────────────────────────
   useEffect(() => {
     destroyAll(pieInsts)
     if (mmTab !== 'provider' || !entityData.length || !activeDates.length) return
 
-    const PIE_METRICS: (keyof DateMetrics)[] = ['sent', 'opened', 'clicked']
-
-    PIE_METRICS.forEach((metricKey, i) => {
+    const PIE_KEYS: (keyof DateMetrics)[] = ['sent', 'opened', 'clicked']
+    PIE_KEYS.forEach((mk, i) => {
       const canvas = pieRefs.current[i]
       if (!canvas) return
-
-      const vals  = entityData.map(e => (e.data?.[metricKey] as number) ?? 0)
+      const vals  = entityData.map(e => (e.data?.[mk] as number) ?? 0)
       const total = vals.reduce((a, b) => a + b, 0)
 
       const centerPlugin = {
-        id: `center_${i}`,
+        id: `pie_center_${i}`,
         beforeDraw(chart: Chart) {
           const { ctx, chartArea } = chart
           if (!chartArea) return
           const cx = (chartArea.left + chartArea.right) / 2
-          const cy = (chartArea.top + chartArea.bottom) / 2
+          const cy = (chartArea.top  + chartArea.bottom) / 2
           ctx.save()
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
           ctx.fillStyle = isLight ? '#111827' : '#f0f2f5'
           ctx.font = 'bold 14px "Space Mono", monospace'
-          ctx.fillText(fmtN(total), cx, cy - 6)
+          ctx.fillText(fmtN(total), cx, cy - 7)
           ctx.font = '8px "Space Mono", monospace'
           ctx.fillStyle = isLight ? '#6b7280' : '#a8b0be'
           ctx.fillText('TOTAL', cx, cy + 8)
@@ -331,96 +606,99 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pieConfig: any = {
+      const cfg: any = {
         type: 'doughnut',
         data: {
           labels: entityData.map(e => e.name),
-          datasets: [{
-            data: vals,
-            backgroundColor: entityData.map(e => e.color + 'cc'),
-            borderColor: 'transparent',
-            hoverOffset: 8,
-          }],
+          datasets: [{ data: vals, backgroundColor: entityData.map(e => e.color + 'cc'), borderColor: 'transparent', hoverOffset: 8 }],
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          cutout: '66%',
+          cutout: '66%', responsive: true, maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
             tooltip: {
               ...CHART_TOOLTIP_OPTS,
-              callbacks: {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                label: (ctx: any) => {
-                  const v = ctx.parsed
-                  const pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0.0'
-                  return `${ctx.label}: ${fmtN(v)} (${pct}%)`
-                },
-              },
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              callbacks: { label: (ctx: any) => `${ctx.label}: ${fmtN(ctx.parsed)} (${total > 0 ? (ctx.parsed / total * 100).toFixed(1) : '0.0'}%)` },
             },
           },
         },
         plugins: [centerPlugin],
       }
-      pieInsts.current[i] = new Chart(canvas, pieConfig)
+      pieInsts.current[i] = new Chart(canvas, cfg)
     })
     return () => { destroyAll(pieInsts) }
   }, [datesKey, selectedEsp, mmTab, isLight, entityNamesKey]) // eslint-disable-line
 
-  /* ── Styles ──────────────────────────────────────── */
-  const card   = `rounded-xl border ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`
-  const sel    = `px-3 py-1.5 rounded-lg border text-xs font-mono outline-none appearance-none ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`
-  const muted  = isLight ? 'text-gray-500' : 'text-[#a8b0be]'
-  const txt    = isLight ? 'text-gray-900' : 'text-[#f0f2f5]'
-  const divBdr = { borderColor: isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.07)' }
+  // ── Style shorthands ─────────────────────────────────────────────
+  const card    = `rounded-xl border ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`
+  const selCls  = `px-3 py-1.5 rounded-lg border text-xs font-mono outline-none appearance-none ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`
+  const muted   = isLight ? 'text-gray-500' : 'text-[#a8b0be]'
+  const txt     = isLight ? 'text-gray-900' : 'text-[#f0f2f5]'
+  const divBdr  = { borderColor: isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.07)' }
+  const tabBdr  = isLight ? 'border-black/15' : 'border-white/13'
 
-  const tabLabel   = mmTab === 'provider' ? 'Provider' : 'Domain'
-  const gridTop5   = entityData.slice(0, 5)
-
-  const selectedByDate = mmSelectedRow
-    ? (mmTab === 'provider' ? data.providers[mmSelectedRow] : data.domains[mmSelectedRow])?.byDate ?? {}
+  const tabLabel    = mmTab === 'provider' ? 'Provider' : 'Domain'
+  const selectedBD  = selectedRow
+    ? (mmTab === 'provider' ? data.providers[selectedRow] : data.domains[selectedRow])?.byDate ?? {}
     : {}
 
+  // ── Range label ──────────────────────────────────────────────────
+  const rangeLabel = activeDates.length > 0
+    ? `${activeDates[0]} – ${activeDates[activeDates.length - 1]} · ${fmtN(aggOverall?.sent ?? 0)} sent`
+    : 'No date range selected'
+
+  /* ──────────────────────────────────────────────────────────────
+     RENDER
+  ─────────────────────────────────────────────────────────────── */
   return (
     <div className="p-6 space-y-5">
 
-      {/* ── Header ──────────────────────────────────── */}
+      {/* ── Header ───────────────────────────────────────────────── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className={`text-xl font-bold tracking-tight ${txt}`}>Mailmodo Review</h1>
-          <p className={`text-xs mt-1 font-mono ${muted}`}>
-            {aggOverall
-              ? `${activeDates[0]} – ${activeDates[activeDates.length - 1]} · ${fmtN(aggOverall.sent)} records`
-              : 'Provider & domain deliverability'}
-          </p>
+          <p className={`text-[11px] mt-1 font-mono ${muted}`}>{rangeLabel}</p>
         </div>
+
         <div className="flex items-center gap-2 flex-wrap">
+          {/* ESP selector */}
           {espList.length > 1 && (
-            <select value={selectedEsp} onChange={e => setSelectedEsp(e.target.value)} className={sel}>
+            <select value={selectedEsp} onChange={e => setSelectedEsp(e.target.value)} className={selCls}>
               {espList.map(e => <option key={e} value={e}>{e}</option>)}
             </select>
           )}
-          <input type="date" value={fromDate} min="2025-01-01"
-            onChange={e => { setFromDate(e.target.value); if (e.target.value) setRange(findFrom(e.target.value), toIdx) }}
-            className={sel} />
+
+          {/* Calendar pickers */}
+          <CalendarPicker value={fromDate} onChange={iso => handleFrom(iso)} isLight={isLight} />
           <span className={`text-xs ${muted}`}>→</span>
-          <input type="date" value={toDate} min="2025-01-01"
-            onChange={e => { setToDate(e.target.value); if (e.target.value) setRange(fromIdx, findTo(e.target.value)) }}
-            className={sel} />
+          <CalendarPicker value={toDate}   onChange={iso => handleTo(iso)}   isLight={isLight} />
           <button
-            onClick={() => {
-              setRange(0, data.dates.length - 1)
-              setFromDate(data.datesFull[0]?.iso || '')
-              setToDate(data.datesFull[data.datesFull.length - 1]?.iso || '')
-            }}
+            onClick={handleAll}
             className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all
-              ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}>
-            All
-          </button>
+              ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}
+          >All</button>
+
+          {/* Granularity toggle */}
+          <div className={`flex rounded-lg border overflow-hidden ${tabBdr}`}>
+            {(['daily', 'weekly', 'monthly'] as Granularity[]).map(g => (
+              <button
+                key={g}
+                onClick={() => setGranularity(g)}
+                className={`px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-all
+                  ${granularity === g
+                    ? 'bg-[#4a2fa0] text-white'
+                    : isLight ? 'bg-white text-gray-400 hover:bg-gray-50' : 'bg-[#1e232b] text-[#6b7280] hover:bg-[#252b35]'
+                  }`}
+              >
+                {g.slice(0, 1).toUpperCase() + g.slice(1, 3)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* ── Empty state ───────────────────────────────────────────── */}
       {espList.length === 0 || data.dates.length === 0 ? (
         <div className={`${card} p-12 text-center`}>
           <div className="text-4xl mb-4">📬</div>
@@ -429,22 +707,22 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
         </div>
       ) : (
         <>
-          {/* ── KPI Cards ───────────────────────────── */}
+
+          {/* ── KPI Cards ─────────────────────────────────────────── */}
           {aggOverall && (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {[
-                { label: 'Total Sent',   val: fmtN(aggOverall.sent),          sub: `${fmtN(aggOverall.delivered)} delivered`, accent: ESP_COLORS[selectedEsp] || '#7c5cfc' },
-                { label: 'Success Rate', val: fmtP(aggOverall.deliveryRate),  sub: `delivery rate`,                            accent: '#7c5cfc' },
-                { label: 'Open Rate',    val: fmtP(aggOverall.openRate),      sub: `${fmtN(aggOverall.opened)} opens`,          accent: '#00e5c3' },
-                { label: 'CTR',          val: fmtP(aggOverall.clickRate),     sub: `${fmtN(aggOverall.clicked)} clicks`,        accent: '#ffd166' },
-                {
-                  label: 'Bounce Rate',  val: fmtP(aggOverall.bounceRate),   sub: `${fmtN(aggOverall.bounced)} bounced`,
-                  accent: aggOverall.bounceRate > 10 ? '#ff4757' : aggOverall.bounceRate > 2 ? '#ffd166' : '#00e5c3',
-                },
+                { label: 'Total Sent',   val: fmtN(aggOverall.sent),         sub: `${fmtN(aggOverall.delivered)} delivered`, accent: ESP_COLORS[selectedEsp] || '#7c5cfc' },
+                { label: 'Success Rate', val: fmtP(aggOverall.deliveryRate),  sub: 'delivery rate',                          accent: '#7c5cfc' },
+                { label: 'Open Rate',    val: fmtP(aggOverall.openRate),      sub: `${fmtN(aggOverall.opened)} opens`,        accent: '#00e5c3' },
+                { label: 'CTR',          val: fmtP(aggOverall.clickRate),     sub: `${fmtN(aggOverall.clicked)} clicks`,      accent: '#ffd166' },
+                { label: 'Bounce Rate',  val: fmtP(aggOverall.bounceRate),    sub: `${fmtN(aggOverall.bounced)} bounced`,
+                  accent: aggOverall.bounceRate > 10 ? '#ff4757' : aggOverall.bounceRate > 2 ? '#ffd166' : '#00e5c3' },
               ].map(k => (
                 <div key={k.label}
                   className={`rounded-xl border px-4 py-3 ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}
-                  style={{ borderBottom: `2px solid ${k.accent}` }}>
+                  style={{ borderBottom: `2px solid ${k.accent}` }}
+                >
                   <div className={`text-[9px] font-mono tracking-wider uppercase mb-2 ${muted}`}>{k.label}</div>
                   <div className={`text-2xl font-bold font-mono ${txt}`}>{k.val}</div>
                   <div className={`text-[10px] mt-1 ${muted}`}>{k.sub}</div>
@@ -453,7 +731,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             </div>
           )}
 
-          {/* ── Tab Switcher ────────────────────────── */}
+          {/* ── Tab Switcher ──────────────────────────────────────── */}
           <div className="flex items-center gap-1">
             {(['provider', 'domain'] as const).map(tab => (
               <button key={tab} onClick={() => setMmTab(tab)}
@@ -461,20 +739,22 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                   ${mmTab === tab
                     ? 'bg-[#4a2fa0] border-[#4a2fa0] text-white'
                     : isLight ? 'border-black/15 text-gray-500 hover:border-black/30' : 'border-white/13 text-[#a8b0be] hover:border-white/25'
-                  }`}>
+                  }`}
+              >
                 {tab === 'provider' ? 'Email Provider' : 'Sending Domain'}
               </button>
             ))}
           </div>
 
-          {/* ── Volume + Rate Charts ─────────────────── */}
+          {/* ── Volume + Rate Charts ──────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
-            {/* Volume */}
             <div className={`lg:col-span-3 ${card} p-4`}>
               <div className="mb-3">
                 <div className={`text-xs font-medium ${txt}`}>Volume Trend</div>
-                <div className={`text-[10px] font-mono mt-0.5 ${muted}`}>Sent · Delivered · Opens · Clicks — all {tabLabel}s combined</div>
+                <div className={`text-[10px] font-mono mt-0.5 ${muted}`}>
+                  Sent · Delivered · Opens · Clicks — all {tabLabel}s · {granularity}
+                </div>
               </div>
               <div style={{ height: 200 }}><canvas ref={volRef} /></div>
               <div className="flex gap-4 mt-3 flex-wrap">
@@ -487,18 +767,15 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               </div>
             </div>
 
-            {/* Rate Trend */}
             <div className={`lg:col-span-2 ${card} p-4`}>
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <div className={`text-xs font-medium ${txt}`}>
-                    Rate Trends — {mmSelectedRow ?? 'Overall'}
-                  </div>
+                  <div className={`text-xs font-medium ${txt}`}>Rate Trends — {selectedRow ?? 'Overall'}</div>
                   <div className={`text-[10px] font-mono mt-0.5 ${muted}`}>
-                    {mmSelectedRow ? 'Click row again to reset' : 'Click a table row to isolate'}
+                    {selectedRow ? 'Click row again to reset' : `Click table row to isolate · ${granularity}`}
                   </div>
                 </div>
-                {mmSelectedRow && (
+                {selectedRow && (
                   <button onClick={() => setSelected(null)}
                     className={`text-[10px] font-mono px-2 py-1 rounded border transition-all
                       ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}>
@@ -508,7 +785,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               </div>
               <div style={{ height: 200 }}><canvas ref={rateRef} /></div>
               <div className="flex gap-3 mt-3 flex-wrap">
-                {[['Success %', RATE_COLORS.successRate], ['Open %', RATE_COLORS.openRate], ['CTR %', RATE_COLORS.clickRate], ['Bounce %', RATE_COLORS.bounceRate]].map(([l, c]) => (
+                {[['Success %', RATE_COLORS.successRate],['Open %', RATE_COLORS.openRate],['CTR %', RATE_COLORS.clickRate],['Bounce %', RATE_COLORS.bounceRate]].map(([l, c]) => (
                   <div key={l} className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-sm" style={{ background: c }} />
                     <span className={`text-[10px] font-mono ${muted}`}>{l}</span>
@@ -518,18 +795,18 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             </div>
           </div>
 
-          {/* ── KPI Charts ──────────────────────────── */}
+          {/* ── KPI Charts ────────────────────────────────────────── */}
           <div className={`${card} p-4`}>
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <div>
                 <div className={`text-xs font-medium ${txt}`}>KPI Charts</div>
                 <div className={`text-[10px] font-mono mt-0.5 ${muted}`}>
                   {embedView === 'date'
-                    ? `X-axis: Dates — each line = one ${tabLabel.toLowerCase()}`
+                    ? `X-axis: ${granularity} groups — one line per ${tabLabel.toLowerCase()}`
                     : `X-axis: ${tabLabel}s — aggregate for selected period`}
                 </div>
               </div>
-              <div className={`flex rounded-lg border overflow-hidden ${isLight ? 'border-black/15' : 'border-white/13'}`}>
+              <div className={`flex rounded-lg border overflow-hidden ${tabBdr}`}>
                 {(['date', 'provider'] as EmbedView[]).map(v => (
                   <button key={v} onClick={() => setEmbedView(v)}
                     className={`px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-all
@@ -569,20 +846,19 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             </div>
           </div>
 
-          {/* ── Distribution Pies (provider tab only) ── */}
+          {/* ── Distribution Pies (provider tab only) ─────────────── */}
           {mmTab === 'provider' && entityData.length > 0 && (
             <div className={`${card} p-4`}>
               <div className={`text-xs font-medium mb-4 ${txt}`}>Distribution by Provider</div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {(['Sent', 'Opens', 'Clicks'] as const).map((title, idx) => {
-                  const metricKeys = ['sent', 'opened', 'clicked'] as const
-                  const mk = metricKeys[idx]
+                  const mk = (['sent', 'opened', 'clicked'] as const)[idx]
                   const total = entityData.reduce((s, e) => s + ((e.data?.[mk] as number) ?? 0), 0)
                   return (
                     <div key={title} className="flex flex-col items-center">
                       <div className={`text-xs font-medium mb-0.5 ${txt}`}>{title}</div>
                       <div className={`text-[10px] font-mono mb-3 ${muted}`}>share of total {title.toLowerCase()}</div>
-                      <div style={{ height: 170, width: '100%', maxWidth: 170 }}>
+                      <div style={{ height: 160, width: '100%', maxWidth: 160 }}>
                         <canvas ref={el => { pieRefs.current[idx] = el }} />
                       </div>
                       <div className="mt-3 w-full space-y-1.5">
@@ -605,22 +881,23 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             </div>
           )}
 
-          {/* ── Summary Table ────────────────────────── */}
+          {/* ── Summary Table ─────────────────────────────────────── */}
           <div className={`${card} overflow-hidden`}>
             <div className="px-4 py-3 border-b flex items-center justify-between" style={divBdr}>
               <span className={`text-[10px] font-mono uppercase tracking-wider ${muted}`}>
                 {mmTab === 'provider' ? 'Email Provider Summary' : 'Sending Domain Summary'}
               </span>
-              <span className={`text-[10px] font-mono ${muted}`}>Click row to isolate trends · click again to reset</span>
+              <span className={`text-[10px] font-mono ${muted}`}>Click row → isolate rate trend & daily breakdown</span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse" style={{ minWidth: 920 }}>
+              <table className="w-full border-collapse" style={{ minWidth: 940 }}>
                 <thead className={isLight ? 'bg-gray-50' : 'bg-[#181c22]'}>
                   <tr>
                     {['Provider / Domain','Sent','Delivered','Opens','Clicks','Bounced','Unsubs','Success%','Open%','CTR%','Bounce%','Unsub%'].map((h, i) => (
-                      <th key={h} className={`px-3 py-2.5 text-[9px] font-mono tracking-wider uppercase border-b
-                        ${i === 0 ? 'text-left' : 'text-right'}
-                        ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
+                      <th key={h}
+                        className={`px-3 py-2.5 text-[9px] font-mono tracking-wider uppercase border-b
+                          ${i === 0 ? 'text-left' : 'text-right'}
+                          ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
                         {h}
                       </th>
                     ))}
@@ -629,10 +906,11 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                 <tbody>
                   {entityData.map(({ name, data: d, color }) => (
                     <tr key={name}
-                      onClick={() => setSelected(mmSelectedRow === name ? null : name)}
+                      onClick={() => setSelected(selectedRow === name ? null : name)}
                       className={`cursor-pointer border-b last:border-0 transition-colors
                         ${isLight ? 'border-black/8 hover:bg-black/3' : 'border-white/7 hover:bg-white/3'}
-                        ${mmSelectedRow === name ? (isLight ? 'bg-[#009e88]/7' : 'bg-[#00e5c3]/4') : ''}`}>
+                        ${selectedRow === name ? (isLight ? 'bg-[#009e88]/7' : 'bg-[#00e5c3]/4') : ''}`}
+                    >
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-2">
                           <span className="w-1.5 h-5 rounded-sm flex-shrink-0" style={{ background: color }} />
@@ -657,25 +935,23 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                       </td>
                     </tr>
                   ))}
-
                   {/* Totals row */}
                   {aggOverall && (
-                    <tr className={`border-t ${isLight ? 'border-black/15 bg-gray-50' : 'border-white/12 bg-[#181c22]'}`}>
-                      <td className={`px-3 py-2.5 text-[11px] font-mono font-bold ${txt}`}>TOTAL</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono font-bold ${txt}`}>{fmtN(aggOverall.sent)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono font-bold ${txt}`}>{fmtN(aggOverall.delivered)}</td>
-                      <td className="px-3 py-2.5 text-right text-[11px] font-mono font-bold text-[#00e5c3]">{fmtN(aggOverall.opened)}</td>
-                      <td className="px-3 py-2.5 text-right text-[11px] font-mono font-bold text-[#ffd166]">{fmtN(aggOverall.clicked)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono font-bold ${aggOverall.bounced > 0 ? 'text-[#ff4757]' : txt}`}>{fmtN(aggOverall.bounced)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono font-bold ${(aggOverall.unsubscribed ?? 0) > 0 ? 'text-[#ff9a5c]' : txt}`}>{fmtN(aggOverall.unsubscribed ?? 0)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono font-bold ${txt}`}>{fmtP(aggOverall.deliveryRate)}</td>
-                      <td className="px-3 py-2.5 text-right text-[11px] font-mono font-bold text-[#00e5c3]">{fmtP(aggOverall.openRate)}</td>
-                      <td className="px-3 py-2.5 text-right text-[11px] font-mono font-bold text-[#ffd166]">{fmtP(aggOverall.clickRate)}</td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono font-bold
-                        ${aggOverall.bounceRate > 10 ? 'text-[#ff4757]' : aggOverall.bounceRate > 2 ? 'text-[#ffd166]' : txt}`}>
+                    <tr className={`border-t font-bold ${isLight ? 'border-black/15 bg-gray-50' : 'border-white/12 bg-[#181c22]'}`}>
+                      <td className={`px-3 py-2.5 text-[11px] font-mono ${txt}`}>TOTAL</td>
+                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${txt}`}>{fmtN(aggOverall.sent)}</td>
+                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${txt}`}>{fmtN(aggOverall.delivered)}</td>
+                      <td className="px-3 py-2.5 text-right text-[11px] font-mono text-[#00e5c3]">{fmtN(aggOverall.opened)}</td>
+                      <td className="px-3 py-2.5 text-right text-[11px] font-mono text-[#ffd166]">{fmtN(aggOverall.clicked)}</td>
+                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${aggOverall.bounced > 0 ? 'text-[#ff4757]' : txt}`}>{fmtN(aggOverall.bounced)}</td>
+                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${(aggOverall.unsubscribed ?? 0) > 0 ? 'text-[#ff9a5c]' : txt}`}>{fmtN(aggOverall.unsubscribed ?? 0)}</td>
+                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${txt}`}>{fmtP(aggOverall.deliveryRate)}</td>
+                      <td className="px-3 py-2.5 text-right text-[11px] font-mono text-[#00e5c3]">{fmtP(aggOverall.openRate)}</td>
+                      <td className="px-3 py-2.5 text-right text-[11px] font-mono text-[#ffd166]">{fmtP(aggOverall.clickRate)}</td>
+                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${aggOverall.bounceRate > 10 ? 'text-[#ff4757]' : aggOverall.bounceRate > 2 ? 'text-[#ffd166]' : txt}`}>
                         {fmtP(aggOverall.bounceRate)}
                       </td>
-                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono font-bold ${(aggOverall.unsubRate ?? 0) > 0 ? 'text-[#ff9a5c]' : txt}`}>
+                      <td className={`px-3 py-2.5 text-right text-[11px] font-mono ${(aggOverall.unsubRate ?? 0) > 0 ? 'text-[#ff9a5c]' : txt}`}>
                         {fmtP(aggOverall.unsubRate ?? 0, 3)}
                       </td>
                     </tr>
@@ -685,12 +961,12 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             </div>
           </div>
 
-          {/* ── Day Breakdown ────────────────────────── */}
-          {mmSelectedRow && activeDates.some(d => selectedByDate[d]) && (
+          {/* ── Day Breakdown ─────────────────────────────────────── */}
+          {selectedRow && activeDates.some(d => selectedBD[d]) && (
             <div className={`${card} overflow-hidden`}>
               <div className="px-4 py-3 border-b flex items-center justify-between" style={divBdr}>
                 <span className={`text-[10px] font-mono uppercase tracking-wider ${muted}`}>
-                  Daily Breakdown — {mmSelectedRow}
+                  Daily Breakdown — {selectedRow}
                 </span>
                 <button onClick={() => setSelected(null)}
                   className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-all
@@ -703,17 +979,18 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                   <thead className={isLight ? 'bg-gray-50' : 'bg-[#181c22]'}>
                     <tr>
                       {['Date','Sent','Delivered','Opens','Clicks','Bounced','Success%','Open%','CTR%','Bounce%'].map((h, i) => (
-                        <th key={h} className={`px-3 py-2.5 text-[9px] font-mono tracking-wider uppercase border-b
-                          ${i === 0 ? 'text-left' : 'text-right'}
-                          ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
+                        <th key={h}
+                          className={`px-3 py-2.5 text-[9px] font-mono tracking-wider uppercase border-b
+                            ${i === 0 ? 'text-left' : 'text-right'}
+                            ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
                           {h}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {activeDates.filter(d => selectedByDate[d]).map(d => {
-                      const r = selectedByDate[d]
+                    {activeDates.filter(d => selectedBD[d]).map(d => {
+                      const r = selectedBD[d]
                       return (
                         <tr key={d} className={`border-b last:border-0 ${isLight ? 'border-black/8' : 'border-white/7'}`}>
                           <td className={`px-3 py-2 text-[11px] font-mono ${txt}`}>{d}</td>
@@ -725,8 +1002,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                           <td className={`px-3 py-2 text-right text-[11px] font-mono ${r.deliveryRate < 85 ? 'text-[#ffd166]' : txt}`}>{fmtP(r.deliveryRate)}</td>
                           <td className="px-3 py-2 text-right text-[11px] font-mono text-[#00e5c3]">{fmtP(r.openRate)}</td>
                           <td className="px-3 py-2 text-right text-[11px] font-mono text-[#ffd166]">{fmtP(r.clickRate)}</td>
-                          <td className={`px-3 py-2 text-right text-[11px] font-mono
-                            ${r.bounceRate > 10 ? 'text-[#ff4757]' : r.bounceRate > 2 ? 'text-[#ffd166]' : muted}`}>
+                          <td className={`px-3 py-2 text-right text-[11px] font-mono ${r.bounceRate > 10 ? 'text-[#ff4757]' : r.bounceRate > 2 ? 'text-[#ffd166]' : muted}`}>
                             {fmtP(r.bounceRate)}
                           </td>
                         </tr>
@@ -738,38 +1014,39 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             </div>
           )}
 
-          {/* ── Daily KPIs Grid ──────────────────────── */}
-          {gridTop5.length > 0 && activeDates.length > 0 && (
+          {/* ── Daily KPIs Grid ───────────────────────────────────── */}
+          {gridTop5.length > 0 && dateGroups.length > 0 && (
             <div className={`${card} overflow-hidden`}>
               <div className="px-4 py-3 border-b" style={divBdr}>
                 <span className={`text-[10px] font-mono uppercase tracking-wider ${muted}`}>
-                  Daily KPIs Grid — by {tabLabel} · top {gridTop5.length} by volume
+                  {granularity.charAt(0).toUpperCase() + granularity.slice(1)} KPIs Grid
+                  {' '}— by {tabLabel} · top {gridTop5.length} by volume · heatmap per column
                 </span>
               </div>
               <div className="overflow-x-auto">
                 <table className="border-collapse text-[10px] font-mono"
-                  style={{ minWidth: gridTop5.length * 5 * 52 + 72 }}>
+                  style={{ minWidth: gridTop5.length * 5 * 56 + 80 }}>
                   <thead>
-                    {/* Entity name row */}
+                    {/* Entity names */}
                     <tr className={isLight ? 'bg-gray-50' : 'bg-[#181c22]'}>
-                      <th className={`px-3 py-2 text-left border-b ${isLight ? 'border-black/8' : 'border-white/7'}`} />
+                      <th className={`px-3 py-2 text-left border-b border-r ${isLight ? 'border-black/8' : 'border-white/7'}`} />
                       {gridTop5.map(e => (
                         <th key={e.name} colSpan={5}
                           className={`px-2 py-2 border-b border-r text-center ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
-                          <div className="flex items-center justify-center gap-1">
+                          <div className="flex items-center justify-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full" style={{ background: e.color }} />
-                            <span className="truncate" style={{ maxWidth: 90 }}>{e.name}</span>
+                            <span className="truncate" style={{ maxWidth: 100 }}>{e.name}</span>
                           </div>
                         </th>
                       ))}
                     </tr>
-                    {/* KPI sub-header row */}
+                    {/* KPI sub-labels */}
                     <tr className={isLight ? 'bg-gray-50' : 'bg-[#181c22]'}>
-                      <th className={`px-3 py-1 border-b ${isLight ? 'border-black/8' : 'border-white/7'}`} />
+                      <th className={`px-3 py-1.5 border-b border-r ${isLight ? 'border-black/8' : 'border-white/7'}`} />
                       {gridTop5.flatMap(e =>
                         GRID_KPIS.map((kpi, ki) => (
                           <th key={e.name + kpi.key}
-                            className={`px-1.5 py-1 border-b text-center ${ki === 4 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}
+                            className={`px-1.5 py-1.5 border-b text-center ${ki === 4 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}
                             style={{ color: kpi.color }}>
                             {kpi.label}
                           </th>
@@ -778,22 +1055,38 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     </tr>
                   </thead>
                   <tbody>
-                    {activeDates.map(d => (
-                      <tr key={d} className={`border-b last:border-0 ${isLight ? 'border-black/8' : 'border-white/7'}`}>
-                        <td className={`px-3 py-1.5 whitespace-nowrap ${txt}`}>{d}</td>
+                    {dateGroups.map((group, gi) => (
+                      <tr key={group.label} className={`border-b last:border-0 ${isLight ? 'border-black/8' : 'border-white/7'}`}>
+                        <td className={`px-3 py-1.5 whitespace-nowrap border-r ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#c8cdd6]'}`}>
+                          {group.label}
+                        </td>
                         {gridTop5.flatMap(e =>
                           GRID_KPIS.map((kpi, ki) => {
-                            const r   = e.byDate[d]
-                            const val = r ? (r[kpi.key] as number | undefined) ?? null : null
+                            const r    = aggDates(e.byDate, group.dates)
+                            const val  = r ? (r[kpi.key] as number | undefined) ?? null : null
+                            const prev = gi > 0 ? aggDates(e.byDate, dateGroups[gi - 1].dates) : null
+                            const pVal = prev ? (prev[kpi.key] as number | undefined) ?? null : null
+                            const stats = colStats[e.name]?.[kpi.key as string]
+                            const bg   = val != null && stats
+                              ? minMaxHeat(kpi.key as string, val, stats.min, stats.max)
+                              : 'transparent'
+                            const trend = trendArrow(val, pVal, kpi.key as string)
                             return (
-                              <td key={e.name + kpi.key + d}
+                              <td key={e.name + kpi.key + group.label}
                                 className={`px-1.5 py-1.5 text-center ${ki === 4 ? 'border-r' : ''} ${isLight ? 'border-black/5' : 'border-white/5'}`}
-                                style={{ background: heatBg(kpi.key, val) }}>
-                                <span className={val == null ? (isLight ? 'text-gray-300' : 'text-white/20') : txt}>
-                                  {val != null
-                                    ? (kpi.key === 'unsubRate' ? val.toFixed(2) : val.toFixed(1)) + '%'
-                                    : '—'}
-                                </span>
+                                style={{ background: bg }}>
+                                {val != null ? (
+                                  <div className="flex items-center justify-center gap-0.5">
+                                    <span className={txt}>
+                                      {kpi.key === 'unsubRate' ? val.toFixed(2) : val.toFixed(1)}%
+                                    </span>
+                                    {trend && (
+                                      <span style={{ color: trend.color, fontSize: 7, lineHeight: 1 }}>{trend.arrow}</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className={isLight ? 'text-gray-300' : 'text-white/20'}>—</span>
+                                )}
                               </td>
                             )
                           })
