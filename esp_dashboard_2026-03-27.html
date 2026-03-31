@@ -6108,8 +6108,14 @@ const STORAGE_KEY = 'espDashboard_mmData_v1';
 const HISTORY_KEY = 'espDashboard_history_v1';
 
 function persistSave() {
+  // Save history independently so a data quota failure never loses the log
   try {
-    // Only save the parts that can change (providers, domains, dates, overallByDate)
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(uploadHistory));
+  } catch(e) {
+    console.warn('Could not save upload history:', e.message);
+  }
+  // Save data separately
+  try {
     const payload = {
       dates:         mmData.dates,
       datesFull:     mmData.datesFull,
@@ -6118,23 +6124,35 @@ function persistSave() {
       overallByDate: mmData.overallByDate,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(uploadHistory));
-
-    // Database Sync
-    if (typeof sbSave === 'function' && sbConnected) {
-      sbSave().catch(err => console.error('Supabase upload sync failed:', err));
-    }
   } catch(e) {
-    console.warn('Could not save to localStorage:', e.message);
+    console.warn('Could not save data to localStorage:', e.message);
+  }
+  // Database Sync
+  if (typeof sbSave === 'function' && sbConnected) {
+    sbSave().catch(err => console.error('Supabase upload sync failed:', err));
   }
 }
 
 function persistLoad() {
+  let dataRestored = false;
+  // Always restore history first — independent of whether data exists
+  try {
+    const hist = localStorage.getItem(HISTORY_KEY);
+    if (hist) {
+      const parsed = JSON.parse(hist);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        uploadHistory = parsed;
+        renderUploadHistory();
+      }
+    }
+  } catch(e) {
+    console.warn('Could not load upload history:', e.message);
+  }
+  // Restore data separately
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return false;
     const saved = JSON.parse(raw);
-    // Merge saved data on top of seed data
     if (saved.dates && saved.dates.length > mmData.dates.length) {
       mmData.dates         = saved.dates;
       mmData.datesFull     = saved.datesFull;
@@ -6143,18 +6161,13 @@ function persistLoad() {
       mmData.overallByDate = saved.overallByDate;
       mmFromIdx = 0;
       mmToIdx   = mmData.dates.length - 1;
+      dataRestored = true;
     }
     syncEspData();
-    const hist = localStorage.getItem(HISTORY_KEY);
-    if (hist) {
-      uploadHistory = JSON.parse(hist);
-      renderUploadHistory();
-    }
-    return true;
   } catch(e) {
-    console.warn('Could not load from localStorage:', e.message);
-    return false;
+    console.warn('Could not load data from localStorage:', e.message);
   }
+  return dataRestored;
 }
 
 // Keep _origMerge for Ongage context-swap path (does not call persistSave — upload handler does)
