@@ -54,6 +54,22 @@ function lds(label: string, data: (number | null)[], color: string, dash?: numbe
   }
 }
 
+function rateDs(label: string, data: (number | null)[], color: string, dash?: number[]) {
+  return {
+    label, data,
+    borderColor: color,
+    backgroundColor: color + '28',
+    borderWidth: 2,
+    tension: 0.4,
+    pointRadius: 4,
+    pointHoverRadius: 7,
+    pointBackgroundColor: color,
+    pointBorderColor: color,
+    fill: 'origin' as const,
+    borderDash: dash ?? [],
+  }
+}
+
 function groupDates(
   dates: string[],
   gran: Granularity,
@@ -306,10 +322,10 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
       data: {
         labels: dateGroups.map(g => g.label),
         datasets: [
-          lds('Success %', dateGroups.map(g => aggDates(src, g.dates)?.deliveryRate ?? null), RATE_COLORS.successRate),
-          lds('Open %',    dateGroups.map(g => aggDates(src, g.dates)?.openRate     ?? null), RATE_COLORS.openRate),
-          lds('CTR %',     dateGroups.map(g => aggDates(src, g.dates)?.clickRate    ?? null), RATE_COLORS.clickRate,  [4, 4]),
-          lds('Bounce %',  dateGroups.map(g => aggDates(src, g.dates)?.bounceRate   ?? null), RATE_COLORS.bounceRate, [2, 2]),
+          rateDs('Success Rate', dateGroups.map(g => aggDates(src, g.dates)?.deliveryRate ?? null), RATE_COLORS.successRate),
+          rateDs('Open Rate',    dateGroups.map(g => aggDates(src, g.dates)?.openRate     ?? null), RATE_COLORS.openRate),
+          rateDs('CTR',          dateGroups.map(g => aggDates(src, g.dates)?.clickRate    ?? null), RATE_COLORS.clickRate,  [4, 4]),
+          rateDs('Bounce Rate',  dateGroups.map(g => aggDates(src, g.dates)?.bounceRate   ?? null), RATE_COLORS.bounceRate, [2, 2]),
         ],
       },
       options: {
@@ -608,7 +624,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               </div>
               <div style={{ height: 200 }}><canvas ref={rateRef} /></div>
               <div className="flex gap-3 mt-3 flex-wrap">
-                {[['Success %', RATE_COLORS.successRate],['Open %', RATE_COLORS.openRate],['CTR %', RATE_COLORS.clickRate],['Bounce %', RATE_COLORS.bounceRate]].map(([l, c]) => (
+                {[['Success Rate', RATE_COLORS.successRate],['Open Rate', RATE_COLORS.openRate],['CTR', RATE_COLORS.clickRate],['Bounce Rate', RATE_COLORS.bounceRate]].map(([l, c]) => (
                   <div key={l} className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-sm" style={{ background: c }} />
                     <span className={`text-[10px] font-mono ${muted}`}>{l}</span>
