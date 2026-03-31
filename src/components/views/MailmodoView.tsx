@@ -634,20 +634,78 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           {aggOverall && (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {[
-                { label: 'Total Sent',   val: fmtN(aggOverall.sent),         sub: `${fmtN(aggOverall.delivered)} delivered`, accent: ESP_COLORS[selectedEsp] || '#7c5cfc' },
-                { label: 'Success Rate', val: fmtP(aggOverall.deliveryRate),  sub: 'delivery rate',                          accent: '#7c5cfc' },
-                { label: 'Open Rate',    val: fmtP(aggOverall.openRate),      sub: `${fmtN(aggOverall.opened)} opens`,        accent: '#00e5c3' },
-                { label: 'CTR',          val: fmtP(aggOverall.clickRate),     sub: `${fmtN(aggOverall.clicked)} clicks`,      accent: '#ffd166' },
-                { label: 'Bounce Rate',  val: fmtP(aggOverall.bounceRate),    sub: `${fmtN(aggOverall.bounced)} bounced`,
-                  accent: aggOverall.bounceRate > 10 ? '#ff4757' : aggOverall.bounceRate > 2 ? '#ffd166' : '#00e5c3' },
+                {
+                  label: 'Total Sent', val: fmtN(aggOverall.sent),
+                  sub: `${fmtN(aggOverall.delivered)} delivered`,
+                  accent: ESP_COLORS[selectedEsp] || '#7c5cfc',
+                  tip: {
+                    title: 'TOTAL SENT', exact: aggOverall.sent.toLocaleString(),
+                    formula: 'Raw count of emails dispatched',
+                    calc: `= ${aggOverall.sent.toLocaleString()}`,
+                    color: '#00e5c3',
+                  },
+                },
+                {
+                  label: 'Success Rate', val: fmtP(aggOverall.deliveryRate),
+                  sub: 'delivery rate', accent: '#7c5cfc',
+                  tip: {
+                    title: 'SUCCESS RATE', exact: aggOverall.deliveryRate.toFixed(2) + '%',
+                    formula: 'Delivered ÷ Sent × 100',
+                    calc: `${aggOverall.delivered.toLocaleString()} ÷ ${aggOverall.sent.toLocaleString()} × 100 = ${aggOverall.deliveryRate.toFixed(2)}%`,
+                    color: '#7c5cfc',
+                  },
+                },
+                {
+                  label: 'Open Rate', val: fmtP(aggOverall.openRate),
+                  sub: `${fmtN(aggOverall.opened)} opens`, accent: '#00e5c3',
+                  tip: {
+                    title: 'OPEN RATE', exact: aggOverall.openRate.toFixed(2) + '%',
+                    formula: 'Opens ÷ Delivered × 100',
+                    calc: `${aggOverall.opened.toLocaleString()} ÷ ${aggOverall.delivered.toLocaleString()} × 100 = ${aggOverall.openRate.toFixed(2)}%`,
+                    color: '#00e5c3',
+                  },
+                },
+                {
+                  label: 'CTR', val: fmtP(aggOverall.clickRate),
+                  sub: `${fmtN(aggOverall.clicked)} clicks`, accent: '#ffd166',
+                  tip: {
+                    title: 'CTR', exact: aggOverall.clickRate.toFixed(2) + '%',
+                    formula: 'Clicks ÷ Opens × 100',
+                    calc: `${aggOverall.clicked.toLocaleString()} ÷ ${aggOverall.opened.toLocaleString()} × 100 = ${aggOverall.clickRate.toFixed(2)}%`,
+                    color: '#ffd166',
+                  },
+                },
+                {
+                  label: 'Bounce Rate', val: fmtP(aggOverall.bounceRate),
+                  sub: `${fmtN(aggOverall.bounced)} bounced`,
+                  accent: aggOverall.bounceRate > 10 ? '#ff4757' : aggOverall.bounceRate > 2 ? '#ffd166' : '#00e5c3',
+                  tip: {
+                    title: 'BOUNCE RATE', exact: aggOverall.bounceRate.toFixed(2) + '%',
+                    formula: 'Bounced ÷ Sent × 100',
+                    calc: `${aggOverall.bounced.toLocaleString()} ÷ ${aggOverall.sent.toLocaleString()} × 100 = ${aggOverall.bounceRate.toFixed(2)}%`,
+                    color: aggOverall.bounceRate > 10 ? '#ff4757' : aggOverall.bounceRate > 2 ? '#ffd166' : '#00e5c3',
+                  },
+                },
               ].map(k => (
                 <div key={k.label}
-                  className={`rounded-xl border px-4 py-3 ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}
+                  className={`relative group rounded-xl border px-4 py-3 ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}
                   style={{ borderBottom: `2px solid ${k.accent}` }}
                 >
                   <div className={`text-[9px] font-mono tracking-wider uppercase mb-2 ${muted}`}>{k.label}</div>
                   <div className={`text-2xl font-bold font-mono ${txt}`}>{k.val}</div>
                   <div className={`text-[10px] mt-1 ${muted}`}>{k.sub}</div>
+                  {/* Hover tooltip */}
+                  <div className="absolute top-full left-0 mt-2 z-50 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-150 pointer-events-none"
+                    style={{ minWidth: 230 }}>
+                    <div className="rounded-xl shadow-2xl p-4"
+                      style={{ background: '#1a1e26', border: '1px solid rgba(255,255,255,0.12)' }}>
+                      <div className="text-[9px] font-mono tracking-widest uppercase mb-2" style={{ color: '#6b7280' }}>{k.tip.title}</div>
+                      <div className="text-2xl font-bold font-mono text-white mb-3">{k.tip.exact}</div>
+                      <div className="text-[9px] font-mono tracking-widest uppercase mb-1.5" style={{ color: '#ffd166' }}>Formula</div>
+                      <div className="text-[11px] font-mono mb-1" style={{ color: k.tip.color }}>{k.tip.formula}</div>
+                      <div className="text-[11px] font-mono" style={{ color: k.tip.color }}>{k.tip.calc}</div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
