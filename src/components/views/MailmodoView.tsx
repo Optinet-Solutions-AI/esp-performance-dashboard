@@ -485,7 +485,8 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const divBdr  = { borderColor: isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.07)' }
   const tabBdr  = isLight ? 'border-black/15' : 'border-white/13'
 
-  const tabLabel    = mmTab === 'provider' ? 'Provider' : 'Domain'
+  const tabLabel    = mmTab === 'provider' ? 'IP Address' : 'Domain'
+  const tabLabelShort = mmTab === 'provider' ? 'IP' : 'Domain'
   const selectedBD  = selectedRow
     ? (mmTab === 'provider' ? data.providers[selectedRow] : data.domains[selectedRow])?.byDate ?? {}
     : {}
@@ -654,7 +655,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                         ? 'bg-[#00e5c3] text-[#0a0d12]'
                         : isLight ? 'bg-white text-gray-500 hover:bg-gray-50' : 'bg-[#1e232b] text-[#a8b0be] hover:bg-[#252b35]'
                       }`}>
-                    By {v === 'date' ? 'Date' : tabLabel}
+                    By {v === 'date' ? 'Date' : tabLabelShort}
                   </button>
                 ))}
               </div>
