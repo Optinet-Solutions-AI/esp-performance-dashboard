@@ -24,19 +24,28 @@ export const INITIAL_IPM_DATA: IpmRecord[] = []
 export const PROVIDER_COLORS: Record<string, string> = {
   'gmail.com': '#ff7b6b',
   'yahoo.com': '#a78bff',
+  'outlook.com': '#60d4f0',
+  'icloud.com': '#c5f27a',
+  'other': '#f9a8e8',
   'zohomail.in': '#ffcc44',
   'myyahoo.com': '#c4a8ff',
 }
 
 export const DOMAIN_COLORS: Record<string, string> = {
-  'alerts.dailypromosdeal.com': '#00ffd5',
-  'alerts.dealdivaz.com': '#b39dff',
-  'alerts.promoalertz.com': '#ffe066',
-  'couponsdailypromo.com': '#ff9a5c',
-  'dailypromosdeal.com': '#60d4f0',
-  'dealdivaz.com': '#ff6b77',
-  'promoalertz.com': '#c5f27a',
-  'promocouponsdaily.com': '#f9a8e8',
+  'dailypromoinfo.com': '#00ffd5',
+  'dailypromocoupon.com': '#b39dff',
+  'dailydealhive.com': '#ffe066',
+  'dealsonoffers.com': '#ff9a5c',
+  'offersontoday.com': '#60d4f0',
+  'rboy-au': '#ff6b77',
+  'alerts.dailypromosdeal.com': '#c5f27a',
+  'alerts.dealdivaz.com': '#f9a8e8',
+  'alerts.promoalertz.com': '#ffcc44',
+  'couponsdailypromo.com': '#ff7b6b',
+  'dailypromosdeal.com': '#a78bff',
+  'dealdivaz.com': '#c4a8ff',
+  'promoalertz.com': '#00e5c3',
+  'promocouponsdaily.com': '#7c5cfc',
 }
 
 export const IP_COLOR_PALETTE = [
