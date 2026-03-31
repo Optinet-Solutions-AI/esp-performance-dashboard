@@ -572,22 +572,16 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}
           >All</button>
 
-          {/* Granularity toggle */}
-          <div className={`flex rounded-lg border overflow-hidden ${tabBdr}`}>
-            {(['daily', 'weekly', 'monthly'] as Granularity[]).map(g => (
-              <button
-                key={g}
-                onClick={() => setGranularity(g)}
-                className={`px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-all
-                  ${granularity === g
-                    ? 'bg-[#4a2fa0] text-white'
-                    : isLight ? 'bg-white text-gray-400 hover:bg-gray-50' : 'bg-[#1e232b] text-[#6b7280] hover:bg-[#252b35]'
-                  }`}
-              >
-                {g.slice(0, 1).toUpperCase() + g.slice(1, 3)}
-              </button>
-            ))}
-          </div>
+          {/* Granularity dropdown */}
+          <select
+            value={granularity}
+            onChange={e => setGranularity(e.target.value as Granularity)}
+            className={selCls}
+          >
+            <option value="daily">DAY</option>
+            <option value="weekly">WEEK</option>
+            <option value="monthly">MONTH</option>
+          </select>
         </div>
       </div>
 
