@@ -1514,8 +1514,8 @@
 
     <div class="topbar" style="flex-wrap:wrap;gap:12px;">
       <div>
-        <div class="page-title">KPI Charts · Mailmodo</div>
-        <div class="page-sub" id="mmcPageSub">Feb 17 – Feb 26 2026 · by Email Provider</div>
+        <div class="page-title">KPI Charts · IP Address</div>
+        <div class="page-sub" id="mmcPageSub">Feb 17 – Feb 26 2026 · by IP Address</div>
       </div>
       <div class="topbar-actions" style="flex-wrap:wrap;gap:10px;">
         <div class="date-picker-wrap" style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:7px 14px;">
@@ -1539,7 +1539,7 @@
         <!-- View toggle -->
         <div class="kpi-view-toggle">
           <button id="mmcBtnDate"     class="kpi-view-btn active"   onclick="mmcSetView('date')">BY DATE</button>
-          <button id="mmcBtnProvider" class="kpi-view-btn inactive" onclick="mmcSetView('provider')">BY PROVIDER</button>
+          <button id="mmcBtnProvider" class="kpi-view-btn inactive" onclick="mmcSetView('provider')">BY IP</button>
         </div>
 
         <button class="btn btn-sm" onclick="showView('mailmodo')">← Deep Dive</button>
@@ -4026,15 +4026,28 @@ const mmcKpis = [
   { id:4, key:'ubr', label:'Unsub Rate %',  color:'#ff9a5c', fn:(r)=>{ const R=rates(r); return +R.ubr.toFixed(3); } },
 ];
 
-function mmcGetProviders(){
-  return Object.entries(mmData.providers)
-    .sort((a,b)=>b[1].overall.sent - a[1].overall.sent)
-    .map(([n])=>n);
+function mmcGetIps(){
+  const { sortedIps } = mmGetIpSource();
+  return sortedIps;
 }
 function mmcActiveDates(){ return mmData.dates.slice(mmcFromIdx, mmcToIdx+1); }
-function mmcRawForProvider(name, dates){
-  const src = mmData.providers[name];
-  return mmAggDates(src.byDate, dates) || src.overall;
+function mmcRawForIp(name, dates){
+  const { src } = mmGetIpSource();
+  const ipData = src[name];
+  if(!ipData) return null;
+  return mmAggDates(ipData.byDate, dates) || ipData.overall;
+}
+function mmcIpLegendHTML(ips){
+  const { colorMap } = mmGetIpSource();
+  const ipMap = mxGetIpMap(mmGetCurrentEspName());
+  return ips.map(ip=>{
+    const col = colorMap[ip]||'#888';
+    const domains = (ipMap[ip]||[]).join(', ');
+    return `<div class="legend-item" style="color:#d4dae6;flex-direction:column;align-items:flex-start;gap:2px;">
+      <div style="display:flex;align-items:center;gap:6px;"><span class="legend-sq" style="background:${col}"></span><span style="font-family:var(--mono);font-size:10px;">${ip}</span></div>
+      ${domains?`<div style="font-family:var(--mono);font-size:9px;color:#8892a4;padding-left:18px;">${domains}</div>`:''}
+    </div>`;
+  }).join('');
 }
 function mmcDestroyAll(){
   Object.values(mmcCharts).forEach(c=>{try{c.destroy();}catch(e){}});
@@ -4042,15 +4055,16 @@ function mmcDestroyAll(){
 }
 
 function mmcRenderByDate(){
-  const providers = mmcGetProviders();
-  const dates     = mmcActiveDates();
+  const ips    = mmcGetIps();
+  const dates  = mmcActiveDates();
+  const { src, colorMap } = mmGetIpSource();
   mmcKpis.forEach(kpi=>{
     const id = `${mmcNs}Chart${kpi.id}`;
     if(mmcCharts[id]){mmcCharts[id].destroy();delete mmcCharts[id];}
-    const datasets = providers.map(name=>{
-      const col = mmProviderColors[name]||'#888';
+    const datasets = ips.map(name=>{
+      const col = colorMap[name]||'#888';
       const data = dates.map(d=>{
-        const r=mmData.providers[name].byDate[d];
+        const r=src[name]?.byDate[d];
         if(!r) return null;
         return kpi.fn({sent:r.sent,delivered:r.delivered,opened:r.opened,clicked:r.clicked,bounced:r.bounced,unsubscribed:r.unsubscribed||0});
       });
@@ -4070,24 +4084,22 @@ function mmcRenderByDate(){
         }
       }
     });
-    mmcEl(`Leg${kpi.id}`).innerHTML = providers.map(n=>{
-      const col=mmProviderColors[n]||'#888';
-      return `<div class="legend-item" style="color:#d4dae6"><span class="legend-sq" style="background:${col}"></span>${n}</div>`;
-    }).join('');
+    mmcEl(`Leg${kpi.id}`).innerHTML = mmcIpLegendHTML(ips);
   });
 }
 
 function mmcRenderByProvider(){
-  const providers = mmcGetProviders();
-  const dates     = mmcActiveDates();
+  const ips    = mmcGetIps();
+  const dates  = mmcActiveDates();
+  const { colorMap } = mmGetIpSource();
   mmcKpis.forEach(kpi=>{
     const id = `${mmcNs}Chart${kpi.id}`;
     if(mmcCharts[id]){mmcCharts[id].destroy();delete mmcCharts[id];}
-    const vals   = providers.map(n=>{ const agg=mmcRawForProvider(n,dates); return agg?kpi.fn(agg):0; });
-    const colors = providers.map(n=>mmProviderColors[n]||'#888');
+    const vals   = ips.map(n=>{ const agg=mmcRawForIp(n,dates); return agg?kpi.fn(agg):0; });
+    const colors = ips.map(n=>colorMap[n]||'#888');
     mmcCharts[id] = new Chart(mmcEl(`Chart${kpi.id}`),{
       type:'bar',
-      data:{labels:providers,datasets:[{label:kpi.label,data:vals,backgroundColor:colors.map(c=>c+'cc'),borderColor:colors,borderWidth:2,borderRadius:5}]},
+      data:{labels:ips,datasets:[{label:kpi.label,data:vals,backgroundColor:colors.map(c=>c+'cc'),borderColor:colors,borderWidth:2,borderRadius:5}]},
       options:{
         responsive:true,maintainAspectRatio:false,
         plugins:{legend:{display:false},tooltip:{backgroundColor:'#13171e',titleColor:'#fff',bodyColor:'#e8ecf2',borderColor:'rgba(255,255,255,.2)',borderWidth:1,
@@ -4098,10 +4110,7 @@ function mmcRenderByProvider(){
         }
       }
     });
-    mmcEl(`Leg${kpi.id}`).innerHTML = providers.map(n=>{
-      const col=mmProviderColors[n]||'#888';
-      return `<div class="legend-item" style="color:#d4dae6"><span class="legend-sq" style="background:${col}"></span>${n}</div>`;
-    }).join('');
+    mmcEl(`Leg${kpi.id}`).innerHTML = mmcIpLegendHTML(ips);
   });
 }
 
@@ -4110,11 +4119,11 @@ function mmcRenderAll(){
   const dates = mmcActiveDates();
   const yr    = mmData.datesFull[mmcFromIdx]?.year||2026;
   const lbl   = dates.length===1?`${dates[0]} ${yr}`:`${dates[0]} – ${dates[dates.length-1]} ${yr}`;
-  mmcEl('PageSub').textContent     = `${lbl} · by Email Provider`;
+  mmcEl('PageSub').textContent     = `${lbl} · by IP Address`;
   mmcEl('RangeLabel').textContent  = `${lbl} · ${dates.length} day${dates.length>1?'s':''}`;
   mmcEl('ViewLabel').textContent   = mmcView==='date'
-    ? '↔  X-axis: Dates  ·  Each line = one Email Provider'
-    : '↔  X-axis: Email Providers  ·  Each bar = period total';
+    ? '↔  X-axis: Dates  ·  Each line = one IP'
+    : '↔  X-axis: IP Addresses  ·  Each bar = period total';
   if(mmcView==='date') mmcRenderByDate();
   else mmcRenderByProvider();
 }
