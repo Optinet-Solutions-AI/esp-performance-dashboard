@@ -54,18 +54,18 @@ function lds(label: string, data: (number | null)[], color: string, dash?: numbe
   }
 }
 
-function rateDs(label: string, data: (number | null)[], color: string, dash?: number[]) {
+function rateDs(label: string, data: (number | null)[], color: string, dash?: number[], filled = true) {
   return {
     label, data,
     borderColor: color,
-    backgroundColor: color + '28',
+    backgroundColor: filled ? color + '28' : 'transparent',
     borderWidth: 2,
     tension: 0.4,
     pointRadius: 4,
     pointHoverRadius: 7,
     pointBackgroundColor: color,
     pointBorderColor: color,
-    fill: 'origin' as const,
+    fill: filled ? ('origin' as const) : false,
     borderDash: dash ?? [],
   }
 }
@@ -368,7 +368,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               rateDs(e.name, dateGroups.map(g => {
                 const r = aggDates(e.byDate, g.dates)
                 return r ? ((r[kpi.key] as number) ?? null) : null
-              }), e.color)
+              }), e.color, [], false)
             ),
           },
           options: {
