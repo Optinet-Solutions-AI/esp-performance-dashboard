@@ -144,7 +144,7 @@ function destroyAll(ref: React.MutableRefObject<(Chart | null)[]>) {
 }
 
 function buildIpAggByDate(
-  providers: MmData['providers'],
+  providers: MmData['domains'],
   subDomains: string[],
 ): Record<string, DateMetrics> {
   const allDates = new Set<string>()
@@ -293,7 +293,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   })
   const ipEntityData = Object.entries(ipDomainsMap)
     .map(([ip, subDomains], idx) => {
-      const byDate = buildIpAggByDate(data.providers, subDomains)
+      const byDate = buildIpAggByDate(data.domains, subDomains)
       return { name: ip, subDomains, color: IP_COLOR_PALETTE[idx % IP_COLOR_PALETTE.length], byDate, data: aggDates(byDate, activeDates) }
     })
     .filter(e => e.data && e.data.sent > 0)
@@ -558,7 +558,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const tabLabelShort = mmTab === 'ip' ? 'IP' : 'Domain'
   const selectedBD    = selectedRow
     ? mmTab === 'ip'
-      ? buildIpAggByDate(data.providers, ipEntityData.find(e => e.name === selectedRow)?.subDomains ?? [])
+      ? buildIpAggByDate(data.domains, ipEntityData.find(e => e.name === selectedRow)?.subDomains ?? [])
       : data.domains[selectedRow]?.byDate ?? {}
     : {}
 
