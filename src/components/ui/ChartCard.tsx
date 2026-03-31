@@ -54,8 +54,9 @@ export default function ChartCard({ title, subtitle, children, legend, className
 }
 
 export function LegendItem({ color, label }: { color: string; label: string }) {
+  const isLight = useDashboardStore(s => s.isLight)
   return (
-    <div className="flex items-center gap-2 text-[11px] font-mono text-[#a8b0be]">
+    <div className={`flex items-center gap-2 text-[11px] font-mono ${isLight ? 'text-gray-500' : 'text-[#a8b0be]'}`}>
       <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color }} />
       {label}
     </div>

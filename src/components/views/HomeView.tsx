@@ -101,7 +101,7 @@ export default function HomeView() {
   }, [isLight, JSON.stringify(espSentMap)])
 
   const latest = uploadHistory[0]
-  const muted = isLight ? '#9ca3af' : '#5a6478'
+  const muted = isLight ? '#6b7280' : '#5a6478'
   const textMain = isLight ? '#111827' : '#f0f2f5'
   const cardBg = isLight ? '#ffffff' : '#111418'
   const cardBorder = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'

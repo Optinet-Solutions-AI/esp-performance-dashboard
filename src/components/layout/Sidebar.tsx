@@ -21,7 +21,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   const bg = isLight ? '#ffffff' : '#0e1116'
   const borderColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)'
-  const mutedColor = isLight ? '#9ca3af' : '#4a5568'
+  const mutedColor = isLight ? '#6b7280' : '#4a5568'
   const textColor = isLight ? '#374151' : '#8a94a6'
   const textHover = isLight ? '#111827' : '#d4dae6'
   const activeAccent = '#00e5c3'
