@@ -273,11 +273,19 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { ...CHART_TOOLTIP_OPTS, callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtN(ctx.parsed.y ?? 0)}` } },
+          tooltip: {
+            ...CHART_TOOLTIP_OPTS,
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              title: (items: any[]) => items[0]?.label ?? '',
+              label: (ctx: any) => `${ctx.dataset.label}: ${fmtN(ctx.parsed.y ?? 0)}`,
+            },
+          },
         },
         scales: {
           x: { ticks: { color: tc, font: { size: 9 }, maxRotation: 30 }, grid: { display: false } },
-          y: { ticks: { color: tc, font: { size: 9 }, callback: v => fmtN(+v) }, grid: { color: gc }, border: { display: false } },
+          y: { ticks: { color: tc, font: { size: 9 }, callback: (v: any) => fmtN(+v) }, grid: { color: gc }, border: { display: false } },
         },
       },
     })
@@ -554,9 +562,9 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           </div>
 
           {/* ── Volume + Rate Charts ──────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div className="flex flex-col gap-4">
 
-            <div className={`lg:col-span-3 ${card} p-4`}>
+            <div className={`${card} p-4`}>
               <div className="mb-3">
                 <div className={`text-xs font-medium ${txt}`}>Volume Trend</div>
                 <div className={`text-[10px] font-mono mt-0.5 ${muted}`}>
@@ -574,7 +582,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               </div>
             </div>
 
-            <div className={`lg:col-span-2 ${card} p-4`}>
+            <div className={`${card} p-4`}>
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className={`text-xs font-medium ${txt}`}>Rate Trends — {selectedRow ?? 'Overall'}</div>
