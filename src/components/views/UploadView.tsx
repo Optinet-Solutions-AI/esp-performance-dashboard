@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { parseFile, mergeIntoMmData } from '@/lib/parsers'
-import { buildProviderDomains, syncEspFromData, mergeMmData } from '@/lib/utils'
+import { buildProviderDomains, syncEspFromData, overwriteMmData } from '@/lib/utils'
 import { ESP_COLORS } from '@/lib/data'
 import type { MmData } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
@@ -75,23 +75,11 @@ export default function UploadView() {
 
       const freshEmpty = (): MmData => ({ dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} })
 
-      // Delete all existing uploads for this ESP before inserting new data
-      const { error: deleteError, count } = await supabase
-        .from('uploads')
-        .delete({ count: 'exact' })
-        .eq('esp', esp)
-
-      if (deleteError) {
-        addLog(`⚠️ Override failed: ${deleteError.message}`)
-      } else if (count && count > 0) {
-        addLog(`🔄 Replaced ${count} existing upload(s) for ${esp}`)
-      }
-
       // Compute solo data for this upload only
       const { data: soloData } = mergeIntoMmData(freshEmpty(), parsed, esp)
       soloData.providerDomains = buildProviderDomains(soloData)
 
-      // Save new upload to DB
+      // Save new upload to DB — always insert, never delete previous uploads
       const category = esp === 'Ongage' ? 'ongage' : 'mailmodo'
       const { error: insertError } = await supabase.from('uploads').insert({
         esp, category, filename: file.name,
@@ -104,7 +92,7 @@ export default function UploadView() {
         addLog('☁️ Saved to database.')
       }
 
-      // Rebuild this ESP's data fresh from all remaining DB uploads
+      // Rebuild this ESP's data from all uploads in order — later uploads override earlier ones for same dates
       const { data: allUploads } = await supabase
         .from('uploads')
         .select('solo_data')
@@ -114,7 +102,7 @@ export default function UploadView() {
       let merged = freshEmpty()
       if (allUploads?.length) {
         for (const row of allUploads) {
-          if (row.solo_data) merged = mergeMmData(merged, row.solo_data as MmData)
+          if (row.solo_data) merged = overwriteMmData(merged, row.solo_data as MmData)
         }
       }
       merged.providerDomains = buildProviderDomains(merged)

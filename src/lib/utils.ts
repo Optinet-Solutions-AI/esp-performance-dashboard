@@ -234,6 +234,74 @@ export function mergeMmData(a: MmData, b: MmData): MmData {
   return merged
 }
 
+/**
+ * Apply `override` on top of `base` using last-write-wins per date.
+ * For every date in override: wipe that date from base, then write the new data.
+ * Dates not covered by override are left untouched in base.
+ * This prevents double-counting when re-uploading the same date range.
+ */
+export function overwriteMmData(base: MmData, override: MmData): MmData {
+  const result: MmData = {
+    dates: [...base.dates],
+    datesFull: [...base.datesFull],
+    providers: JSON.parse(JSON.stringify(base.providers)),
+    domains:   JSON.parse(JSON.stringify(base.domains)),
+    overallByDate: { ...base.overallByDate },
+    providerDomains: {},
+  }
+
+  override.dates.forEach(date => {
+    // Add date to result if genuinely new
+    if (!result.dates.includes(date)) {
+      result.dates.push(date)
+      const df = override.datesFull.find(d => d.label === date)
+      if (df) result.datesFull.push(df)
+    }
+
+    // Wipe this date's slice from all existing providers/domains/overall
+    Object.values(result.providers).forEach(p => { delete p.byDate[date] })
+    Object.values(result.domains).forEach(d  => { delete d.byDate[date] })
+    delete result.overallByDate[date]
+
+    // Write fresh data for this date from override
+    Object.entries(override.providers).forEach(([name, data]) => {
+      if (!data.byDate[date]) return
+      if (!result.providers[name]) result.providers[name] = { overall: {} as DateMetrics, byDate: {} }
+      result.providers[name].byDate[date] = data.byDate[date]
+    })
+    Object.entries(override.domains).forEach(([name, data]) => {
+      if (!data.byDate[date]) return
+      if (!result.domains[name]) result.domains[name] = { overall: {} as DateMetrics, byDate: {} }
+      result.domains[name].byDate[date] = data.byDate[date]
+    })
+    if (override.overallByDate[date]) result.overallByDate[date] = override.overallByDate[date]
+  })
+
+  // Sort dates chronologically
+  const dfMap: Record<string, { label: string; year: number; iso: string }> = {}
+  result.datesFull.forEach(df => { dfMap[df.label] = df })
+  result.dates.sort((x, y) => {
+    const xy = dfMap[x]?.year || 2025, yy = dfMap[y]?.year || 2025
+    if (xy !== yy) return xy - yy
+    const [xm, xd] = x.split(' '), [ym, yd] = y.split(' ')
+    return (MONTHS_UTIL.indexOf(xm) * 31 + parseInt(xd)) - (MONTHS_UTIL.indexOf(ym) * 31 + parseInt(yd))
+  })
+  result.datesFull = result.dates.map(d => dfMap[d]).filter(Boolean)
+
+  // Recalculate overall for every provider/domain
+  Object.values(result.providers).forEach(p => {
+    const vals = Object.values(p.byDate)
+    p.overall = vals.length ? vals.reduce((acc, m) => mergeMetrics(acc, m)) : p.overall
+  })
+  Object.values(result.domains).forEach(d => {
+    const vals = Object.values(d.byDate)
+    d.overall = vals.length ? vals.reduce((acc, m) => mergeMetrics(acc, m)) : d.overall
+  })
+
+  result.providerDomains = buildProviderDomains(result)
+  return result
+}
+
 export function exportCSV(rows: EspRecord[]): void {
   const headers = ['ESP', 'Sent', 'Delivered', 'Delivery%', 'Opens', 'Open%', 'Clicks', 'Click%', 'Bounced', 'Bounce%', 'Unsub']
   const data = rows.map(d => [
