@@ -5307,7 +5307,7 @@ function uploadProcess() {
         if (_activeReviewCtx === 'ongage' && _savedMmCtx) {
           const _s = mmData, _f = mmFromIdx, _t = mmToIdx;
           mmData = _savedMmCtx.data; mmFromIdx = _savedMmCtx.fromIdx; mmToIdx = _savedMmCtx.toIdx;
-          mergeIntoMmData(result, uploadEsp); // includes persistSave
+          mergeIntoMmData(result, uploadEsp);
           _savedMmCtx.fromIdx = mmFromIdx; _savedMmCtx.toIdx = mmToIdx;
           mmData = _s; mmFromIdx = _f; mmToIdx = _t;
         } else {
@@ -5330,12 +5330,13 @@ function uploadProcess() {
       document.getElementById('uploadStep4').style.display = 'block';
       document.getElementById('uploadStep4').scrollIntoView({behavior:'smooth', block:'nearest'});
 
-      // Record in history
+      // Record in history — saved AFTER entry is added so it persists on reload
       uploadHistory.unshift({
         esp: uploadEsp, file: uploadFile.name, rows: result.totalRows,
         dates: result.dates, time: new Date().toLocaleTimeString(), newDates: result.newDates.length
       });
       renderUploadHistory();
+      persistSave();
 
       // Trigger dashboard refresh
       mmRenderAll();
@@ -6156,12 +6157,8 @@ function persistLoad() {
   }
 }
 
-// Patch mergeIntoMmData to auto-save after each upload
+// Keep _origMerge for Ongage context-swap path (does not call persistSave — upload handler does)
 const _origMerge = mergeIntoMmData;
-mergeIntoMmData = function(result, espName) {
-  _origMerge(result, espName);
-  persistSave();
-};
 
 function persistClear() {
   if (!confirm('This will remove all uploaded data and reset the dashboard to its original state. Continue?')) return;
