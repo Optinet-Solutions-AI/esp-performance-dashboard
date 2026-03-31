@@ -110,12 +110,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
       {/* Nav */}
       <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
-        <SectionLabel text="Main" />
-        <NavItem id="home" label="Overview" icon={iconHome} />
-        <NavItem id="dashboard" label="Dashboard" icon={iconDash} />
-        <NavItem id="performance" label="Performance" icon={iconPerf} />
-        <NavItem id="daily" label="Daily Report" icon={iconCal} />
-
         <SectionLabel text="Providers" />
 
         {/* Email Providers group */}
