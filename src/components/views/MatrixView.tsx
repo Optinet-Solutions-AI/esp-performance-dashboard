@@ -94,7 +94,7 @@ export default function MatrixView() {
           <span className={`text-[10px] font-mono uppercase tracking-wider ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>From</span>
           <CalendarPicker value={fromDate} onChange={handleFrom} isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} />
           <span className={`text-xs ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>→</span>
-          <CalendarPicker value={toDate}   onChange={handleTo}   isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} />
+          <CalendarPicker value={toDate}   onChange={handleTo}   isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} align="right" />
           <button
             onClick={handleAll}
             className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all

@@ -479,7 +479,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           {/* Calendar pickers */}
           <CalendarPicker value={fromDate} onChange={iso => handleFrom(iso)} isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} />
           <span className={`text-xs ${muted}`}>→</span>
-          <CalendarPicker value={toDate}   onChange={iso => handleTo(iso)}   isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} />
+          <CalendarPicker value={toDate}   onChange={iso => handleTo(iso)}   isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} align="right" />
           <button
             onClick={handleAll}
             className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all

@@ -5,13 +5,14 @@ const MONTHS_FULL = ['January','February','March','April','May','June','July','A
 const DAYS_SHORT  = ['Su','Mo','Tu','We','Th','Fr','Sa']
 
 export default function CalendarPicker({
-  value, onChange, isLight, rangeStart, rangeEnd,
+  value, onChange, isLight, rangeStart, rangeEnd, align = 'left',
 }: {
   value: string
   onChange: (iso: string) => void
   isLight: boolean
   rangeStart?: string
   rangeEnd?: string
+  align?: 'left' | 'right'
 }) {
   const MIN_YEAR = 2025
   const toDate   = (iso: string) => new Date(iso + 'T00:00:00')
@@ -114,7 +115,7 @@ export default function CalendarPicker({
       {open && (
         <div
           className="absolute z-50 shadow-2xl rounded-xl overflow-hidden"
-          style={{ top: '100%', left: 0, marginTop: 8, width: 262, background: popBg, border: `1px solid ${popBdr}` }}
+          style={{ top: '100%', ...(align === 'right' ? { right: 0 } : { left: 0 }), marginTop: 8, width: 262, background: popBg, border: `1px solid ${popBdr}` }}
         >
           {/* ── Nav header ── */}
           <div className="flex items-center justify-between px-2 py-2.5 border-b" style={{ borderColor: popBdr }}>
