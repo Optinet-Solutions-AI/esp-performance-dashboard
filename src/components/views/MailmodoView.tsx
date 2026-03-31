@@ -195,6 +195,13 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const [kpiTooltip, setKpiTooltip] = useState<{ idx: number; x: number; y: number } | null>(null)
 
   useEffect(() => {
+    if (!kpiTooltip) return
+    const move = (e: MouseEvent) => setKpiTooltip(t => t ? { ...t, x: e.clientX + 14, y: e.clientY + 14 } : null)
+    window.addEventListener('mousemove', move)
+    return () => window.removeEventListener('mousemove', move)
+  }, [!!kpiTooltip]) // eslint-disable-line
+
+  useEffect(() => {
     if (!granOpen) return
     const handler = (e: MouseEvent) => {
       if (granRef.current && !granRef.current.contains(e.target as Node)) setGranOpen(false)
@@ -668,10 +675,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                   <div key={k.label}
                     className={`cursor-default rounded-xl border px-4 py-3 ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}
                     style={{ borderBottom: `2px solid ${k.accent}` }}
-                    onMouseEnter={e => {
-                      const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                      setKpiTooltip({ idx, x: r.left, y: r.bottom + 8 })
-                    }}
+                    onMouseEnter={e => setKpiTooltip({ idx, x: e.clientX + 14, y: e.clientY + 14 })}
                     onMouseLeave={() => setKpiTooltip(null)}
                   >
                     <div className={`text-[9px] font-mono tracking-wider uppercase mb-2 ${muted}`}>{k.label}</div>
