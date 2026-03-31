@@ -16,10 +16,10 @@ const EMPTY: MmData = {
 const VOL_COLORS  = { sent: '#6b7280', delivered: '#7c5cfc', opened: '#00e5c3', clicked: '#ffd166' }
 const RATE_COLORS = { successRate: '#7c5cfc', openRate: '#00e5c3', clickRate: '#ffd166', bounceRate: '#ff4757' }
 const KPI_DEFS = [
-  { key: 'openRate'   as keyof DateMetrics, label: 'Open Rate %',   color: '#00e5c3' },
-  { key: 'clickRate'  as keyof DateMetrics, label: 'CTR %',         color: '#ffd166' },
-  { key: 'bounceRate' as keyof DateMetrics, label: 'Bounce Rate %', color: '#ff4757' },
-  { key: 'unsubRate'  as keyof DateMetrics, label: 'Unsub Rate %',  color: '#ff9a5c' },
+  { key: 'openRate'   as keyof DateMetrics, label: 'Open Rate %',   color: '#00e5c3', formula: 'Opens ÷ Delivered × 100' },
+  { key: 'clickRate'  as keyof DateMetrics, label: 'CTR %',         color: '#ffd166', formula: 'Clicks ÷ Opens × 100'    },
+  { key: 'bounceRate' as keyof DateMetrics, label: 'Bounce Rate %', color: '#ff4757', formula: 'Bounced ÷ Sent × 100'    },
+  { key: 'unsubRate'  as keyof DateMetrics, label: 'Unsub Rate %',  color: '#ff9a5c', formula: 'Unsubscribed ÷ Opens × 100' },
 ]
 const GRID_KPIS = [
   { key: 'deliveryRate' as keyof DateMetrics, label: 'Sr%',  color: '#b39dff' },
@@ -365,7 +365,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           data: {
             labels: dateGroups.map(g => g.label),
             datasets: entityData.map(e =>
-              lds(e.name, dateGroups.map(g => {
+              rateDs(e.name, dateGroups.map(g => {
                 const r = aggDates(e.byDate, g.dates)
                 return r ? ((r[kpi.key] as number) ?? null) : null
               }), e.color)
@@ -375,11 +375,19 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             responsive: true, maintainAspectRatio: false,
             plugins: {
               legend: { display: false },
-              tooltip: { ...CHART_TOOLTIP_OPTS, callbacks: { label: ctx => `${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toFixed(1)}%` } },
+              tooltip: {
+                ...CHART_TOOLTIP_OPTS,
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                  title: (items: any[]) => items[0]?.label ?? '',
+                  label: (ctx: any) => `${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toFixed(1)}%`,
+                },
+              },
             },
             scales: {
               x: { ticks: { color: tc, font: { size: 9 }, maxRotation: 30 }, grid: { display: false } },
-              y: { min: 0, ticks: { color: tc, font: { size: 9 }, callback: v => v + '%' }, grid: { color: gc }, border: { display: false } },
+              y: { min: 0, ticks: { color: tc, font: { size: 9 }, callback: (v: any) => v + '%' }, grid: { color: gc }, border: { display: false } },
             },
           },
         })
@@ -637,20 +645,13 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           {/* ── KPI Charts ────────────────────────────────────────── */}
           <div className={`${card} p-4`}>
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <div>
-                <div className={`text-xs font-medium ${txt}`}>KPI Charts</div>
-                <div className={`text-[10px] font-mono mt-0.5 ${muted}`}>
-                  {embedView === 'date'
-                    ? `X-axis: ${granularity} groups — one line per ${tabLabel.toLowerCase()}`
-                    : `X-axis: ${tabLabel}s — aggregate for selected period`}
-                </div>
-              </div>
-              <div className={`flex rounded-lg border overflow-hidden ${tabBdr}`}>
+              <div className={`text-xs font-semibold ${txt}`}>KPI Charts · {tabLabel}</div>
+              <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)' }}>
                 {(['date', 'provider'] as EmbedView[]).map(v => (
                   <button key={v} onClick={() => setEmbedView(v)}
-                    className={`px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-all
+                    className={`px-3 py-1.5 text-[10px] font-mono font-semibold uppercase tracking-wider transition-all
                       ${embedView === v
-                        ? 'bg-[#4a2fa0] text-white'
+                        ? 'bg-[#00e5c3] text-[#0a0d12]'
                         : isLight ? 'bg-white text-gray-500 hover:bg-gray-50' : 'bg-[#1e232b] text-[#a8b0be] hover:bg-[#252b35]'
                       }`}>
                     By {v === 'date' ? 'Date' : tabLabel}
@@ -660,26 +661,24 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {KPI_DEFS.map((kpi, i) => (
-                <div key={kpi.key as string}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: kpi.color }} />
-                    <span className={`text-[11px] font-medium ${txt}`}>{kpi.label}</span>
+                <div key={kpi.key as string} className={`rounded-xl border p-4 ${isLight ? 'border-black/8 bg-white' : 'border-white/7 bg-[#0e1117]'}`}>
+                  <div className="mb-3">
+                    <div className={`text-xs font-semibold ${txt}`}>{kpi.label}</div>
+                    <div className={`text-[10px] font-mono mt-0.5 ${muted}`}>{kpi.formula}</div>
                   </div>
-                  <div style={{ height: 180 }}>
+                  <div style={{ height: 200 }}>
                     <canvas ref={el => { kpiRefs.current[i] = el }} />
                   </div>
-                  {embedView === 'date' && (
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
-                      {entityData.map(e => (
-                        <div key={e.name} className="flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: e.color }} />
-                          <span className={`text-[9px] font-mono ${muted}`}>
-                            {e.name.length > 20 ? e.name.slice(0, 18) + '…' : e.name}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3">
+                    {entityData.map(e => (
+                      <div key={e.name} className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: e.color }} />
+                        <span className={`text-[9px] font-mono ${muted}`}>
+                          {e.name.length > 22 ? e.name.slice(0, 20) + '…' : e.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
