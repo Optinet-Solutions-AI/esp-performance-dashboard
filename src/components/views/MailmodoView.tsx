@@ -133,44 +133,39 @@ function destroyAll(ref: React.MutableRefObject<(Chart | null)[]>) {
    CALENDAR PICKER
 ───────────────────────────────────────────────────────────────── */
 function CalendarPicker({
-  value, onChange, isLight,
-}: { value: string; onChange: (iso: string) => void; isLight: boolean }) {
+  value, onChange, isLight, rangeStart, rangeEnd,
+}: {
+  value: string
+  onChange: (iso: string) => void
+  isLight: boolean
+  rangeStart?: string
+  rangeEnd?: string
+}) {
   const MIN_YEAR = 2025
-  const MAX_YEAR = new Date().getFullYear() + 3
+  const toDate   = (iso: string) => new Date(iso + 'T00:00:00')
 
-  const toDate    = (iso: string) => iso ? new Date(iso + 'T00:00:00') : new Date()
-  const initYear  = () => toDate(value).getFullYear()
-  const initMonth = () => toDate(value).getMonth()
-
-  const [open,       setOpen]       = useState(false)
-  const [viewYear,   setViewYear]   = useState(initYear)
-  const [viewMonth,  setViewMonth]  = useState(initMonth)
-  const [yearMode,   setYearMode]   = useState(false)
+  const [open,      setOpen]      = useState(false)
+  const [viewYear,  setViewYear]  = useState(() => value ? toDate(value).getFullYear() : new Date().getFullYear())
+  const [viewMonth, setViewMonth] = useState(() => value ? toDate(value).getMonth()    : new Date().getMonth())
   const wrapRef = useRef<HTMLDivElement>(null)
 
-  // Sync calendar view when value changes externally
   useEffect(() => {
-    if (value) {
-      const d = toDate(value)
-      setViewYear(d.getFullYear())
-      setViewMonth(d.getMonth())
-    }
+    if (value) { const d = toDate(value); setViewYear(d.getFullYear()); setViewMonth(d.getMonth()) }
   }, [value])
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false); setYearMode(false)
-      }
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
+  function prevYear()  { setViewYear(y => Math.max(MIN_YEAR, y - 1)) }
+  function nextYear()  { setViewYear(y => y + 1) }
   function prevMonth() {
-    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) }
+    if (viewMonth === 0) { if (viewYear > MIN_YEAR) { setViewYear(y => y - 1); setViewMonth(11) } }
     else setViewMonth(m => m - 1)
   }
   function nextMonth() {
@@ -179,11 +174,22 @@ function CalendarPicker({
   }
   function selectDay(day: number) {
     const iso = `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-    onChange(iso); setOpen(false); setYearMode(false)
+    onChange(iso); setOpen(false)
   }
-  function isSelected(day: number) {
-    if (!value) return false
-    return value === `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+
+  const dayIso = (day: number) =>
+    `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+
+  const isSelected  = (day: number) => !!value && value === dayIso(day)
+  const isRangeEdge = (day: number) => {
+    const iso = dayIso(day)
+    return (!!rangeStart && iso === rangeStart) || (!!rangeEnd && iso === rangeEnd)
+  }
+  const isInRange = (day: number) => {
+    if (!rangeStart || !rangeEnd) return false
+    const iso = dayIso(day); const lo = rangeStart < rangeEnd ? rangeStart : rangeEnd
+    const hi  = rangeStart < rangeEnd ? rangeEnd   : rangeStart
+    return iso > lo && iso < hi
   }
 
   const firstDay    = new Date(viewYear, viewMonth, 1).getDay()
@@ -194,126 +200,107 @@ function CalendarPicker({
   ]
 
   const displayVal = value
-    ? toDate(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    ? toDate(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : 'Pick date'
 
-  const popBg  = isLight ? '#ffffff'               : '#181c22'
-  const popBdr = isLight ? 'rgba(0,0,0,.14)'       : 'rgba(255,255,255,.12)'
-  const btn    = isLight
-    ? 'bg-white border-black/20 text-gray-800 hover:border-black/40'
-    : 'bg-[#1e232b] border-white/18 text-white hover:border-white/30'
-  const dayCls = (selected: boolean, disabled: boolean) => {
-    if (selected)  return 'bg-[#7c5cfc] text-white font-bold'
-    if (disabled)  return 'opacity-25 cursor-not-allowed text-gray-400'
+  const popBg  = isLight ? '#ffffff'         : '#181c22'
+  const popBdr = isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'
+  const btnCls = isLight
+    ? 'bg-white border-black/20 text-gray-800 hover:border-violet-400'
+    : 'bg-[#1e232b] border-white/18 text-white hover:border-[#7c5cfc]'
+  const navBtnCls = isLight ? 'text-gray-500 hover:bg-gray-100' : 'text-[#c8cdd6] hover:bg-white/8'
+
+  function dayCls(day: number) {
+    if (isSelected(day) || isRangeEdge(day)) return 'bg-[#7c5cfc] text-white font-bold z-10 relative'
+    if (isInRange(day)) return isLight ? 'text-gray-700 hover:bg-violet-100' : 'text-[#c8cdd6] hover:bg-[#7c5cfc]/20'
     return isLight ? 'text-gray-700 hover:bg-gray-100' : 'text-[#c8cdd6] hover:bg-white/8'
+  }
+
+  function rangeBg(day: number): string {
+    if (!rangeStart || !rangeEnd) return 'transparent'
+    const iso = dayIso(day)
+    const lo  = rangeStart < rangeEnd ? rangeStart : rangeEnd
+    const hi  = rangeStart < rangeEnd ? rangeEnd   : rangeStart
+    if (iso < lo || iso > hi) return 'transparent'
+    const rangeColor = isLight ? 'rgba(124,92,252,0.12)' : 'rgba(124,92,252,0.18)'
+    return rangeColor
   }
 
   return (
     <div ref={wrapRef} className="relative">
       <button
-        onClick={() => { setOpen(o => !o); setYearMode(false) }}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all ${btn}`}
-        style={{ minWidth: 138 }}
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono font-semibold transition-all ${btnCls}`}
+        style={{ minWidth: 96 }}
       >
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-          <rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M1 7h14" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M5 1v4M11 1v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
         {displayVal}
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="opacity-60">
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </button>
 
       {open && (
         <div
           className="absolute z-50 shadow-2xl rounded-xl overflow-hidden"
-          style={{ top: '100%', left: 0, marginTop: 8, width: 268, background: popBg, border: `1px solid ${popBdr}` }}
+          style={{ top: '100%', left: 0, marginTop: 8, width: 262, background: popBg, border: `1px solid ${popBdr}` }}
         >
-          {yearMode ? (
-            /* ── Year grid ── */
-            <div className="p-4">
-              <div className={`text-[9px] font-mono uppercase tracking-widest mb-3 ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
-                Select Year
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) => MIN_YEAR + i).map(y => (
+          {/* ── Nav header ── */}
+          <div className={`flex items-center justify-between px-2 py-2.5 border-b`} style={{ borderColor: popBdr }}>
+            {/* prev year */}
+            <button
+              onClick={prevYear}
+              disabled={viewYear <= MIN_YEAR}
+              className={`w-7 h-7 flex items-center justify-center rounded-md text-sm transition-all disabled:opacity-30 ${navBtnCls}`}
+            >«</button>
+            {/* prev month */}
+            <button
+              onClick={prevMonth}
+              disabled={viewYear <= MIN_YEAR && viewMonth === 0}
+              className={`w-7 h-7 flex items-center justify-center rounded-md text-base transition-all disabled:opacity-30 ${navBtnCls}`}
+            >‹</button>
+
+            <span className={`text-xs font-mono font-bold ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}>
+              {MONTHS_FULL[viewMonth]} {viewYear}
+            </span>
+
+            {/* next month */}
+            <button
+              onClick={nextMonth}
+              className={`w-7 h-7 flex items-center justify-center rounded-md text-base transition-all ${navBtnCls}`}
+            >›</button>
+            {/* next year */}
+            <button
+              onClick={nextYear}
+              className={`w-7 h-7 flex items-center justify-center rounded-md text-sm transition-all ${navBtnCls}`}
+            >»</button>
+          </div>
+
+          {/* ── Day-of-week labels ── */}
+          <div className="grid grid-cols-7 px-2 pt-2 pb-0.5">
+            {DAYS_SHORT.map(d => (
+              <div key={d} className={`text-center text-[9px] font-mono font-semibold uppercase tracking-wide ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>{d}</div>
+            ))}
+          </div>
+
+          {/* ── Day cells ── */}
+          <div className="grid grid-cols-7 px-2 pb-3 gap-y-0.5">
+            {cells.map((day, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-center h-8"
+                style={{ background: day != null ? rangeBg(day) : 'transparent' }}
+              >
+                {day != null && (
                   <button
-                    key={y}
-                    onClick={() => { setViewYear(y); setYearMode(false) }}
-                    className={`py-1.5 rounded-lg text-[11px] font-mono transition-all
-                      ${y === viewYear
-                        ? 'bg-[#7c5cfc] text-white font-bold'
-                        : isLight ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-white/6 text-[#c8cdd6] hover:bg-white/10'
-                      }`}
+                    onClick={() => selectDay(day)}
+                    className={`w-7 h-7 rounded-full text-[11px] font-mono transition-all ${dayCls(day)}`}
                   >
-                    {y}
+                    {day}
                   </button>
-                ))}
+                )}
               </div>
-            </div>
-          ) : (
-            <>
-              {/* ── Month header ── */}
-              <div className={`flex items-center justify-between px-3 py-2.5 border-b`} style={{ borderColor: popBdr }}>
-                <button
-                  onClick={prevMonth}
-                  disabled={viewYear <= MIN_YEAR && viewMonth === 0}
-                  className={`w-7 h-7 flex items-center justify-center rounded-md text-base transition-all
-                    ${isLight ? 'hover:bg-gray-100 text-gray-500' : 'hover:bg-white/8 text-[#c8cdd6]'}`}
-                >‹</button>
-                <button
-                  onClick={() => setYearMode(true)}
-                  className={`text-xs font-mono font-bold transition-colors hover:text-[#7c5cfc] ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}
-                >
-                  {MONTHS_FULL[viewMonth]} {viewYear}
-                </button>
-                <button
-                  onClick={nextMonth}
-                  className={`w-7 h-7 flex items-center justify-center rounded-md text-base transition-all
-                    ${isLight ? 'hover:bg-gray-100 text-gray-500' : 'hover:bg-white/8 text-[#c8cdd6]'}`}
-                >›</button>
-              </div>
-
-              {/* ── Day-of-week labels ── */}
-              <div className="grid grid-cols-7 px-3 pt-2 pb-1">
-                {DAYS_SHORT.map(d => (
-                  <div key={d} className={`text-center text-[9px] font-mono uppercase ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>{d}</div>
-                ))}
-              </div>
-
-              {/* ── Day cells ── */}
-              <div className="grid grid-cols-7 px-3 pb-3 gap-y-0.5">
-                {cells.map((day, i) => (
-                  <div key={i} className="flex items-center justify-center h-8">
-                    {day != null && (
-                      <button
-                        onClick={() => !(viewYear < MIN_YEAR) && selectDay(day)}
-                        className={`w-7 h-7 rounded-full text-[11px] font-mono transition-all ${dayCls(isSelected(day), viewYear < MIN_YEAR)}`}
-                      >
-                        {day}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* ── Month quick-nav ── */}
-              <div className={`grid grid-cols-4 gap-1 px-3 pb-3 pt-1 border-t`} style={{ borderColor: popBdr }}>
-                {MONTHS_SHORT.map((m, mi) => (
-                  <button
-                    key={m}
-                    onClick={() => setViewMonth(mi)}
-                    className={`py-1 rounded text-[9px] font-mono transition-all
-                      ${mi === viewMonth
-                        ? 'bg-[#4a2fa0] text-white'
-                        : isLight ? 'text-gray-500 hover:bg-gray-100' : 'text-[#6b7280] hover:bg-white/6'
-                      }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -670,9 +657,9 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           )}
 
           {/* Calendar pickers */}
-          <CalendarPicker value={fromDate} onChange={iso => handleFrom(iso)} isLight={isLight} />
+          <CalendarPicker value={fromDate} onChange={iso => handleFrom(iso)} isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} />
           <span className={`text-xs ${muted}`}>→</span>
-          <CalendarPicker value={toDate}   onChange={iso => handleTo(iso)}   isLight={isLight} />
+          <CalendarPicker value={toDate}   onChange={iso => handleTo(iso)}   isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} />
           <button
             onClick={handleAll}
             className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all
