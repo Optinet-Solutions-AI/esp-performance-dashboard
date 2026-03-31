@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { fmtP } from '@/lib/utils'
 import { PROVIDER_COLORS } from '@/lib/data'
+import CalendarPicker from '@/components/ui/CalendarPicker'
 
 const EMPTY_DATA = { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
 
@@ -21,8 +22,35 @@ export default function MatrixView() {
 
   const data = store.espData[selectedEsp] ?? EMPTY_DATA
   const fromIdx = store.espRanges[selectedEsp]?.fromIdx ?? 0
-  const toIdx = store.espRanges[selectedEsp]?.toIdx ?? 0
+  const toIdx   = store.espRanges[selectedEsp]?.toIdx   ?? Math.max(0, data.dates.length - 1)
   const setRange = (from: number, to: number) => store.setEspRange(selectedEsp, from, to)
+
+  const [fromDate, setFromDate] = useState('')
+  const [toDate,   setToDate]   = useState('')
+
+  useEffect(() => {
+    if (data.datesFull.length) {
+      setFromDate(data.datesFull[fromIdx]?.iso || '')
+      setToDate(data.datesFull[Math.min(toIdx, data.datesFull.length - 1)]?.iso || '')
+    }
+  }, [selectedEsp, data.datesFull.length]) // eslint-disable-line
+
+  function findFrom(iso: string) {
+    const i = data.datesFull.findIndex(d => d.iso >= iso)
+    return i === -1 ? 0 : i
+  }
+  function findTo(iso: string) {
+    let r = data.datesFull.length - 1
+    for (let i = r; i >= 0; i--) { if (data.datesFull[i].iso <= iso) { r = i; break } }
+    return r
+  }
+  function handleFrom(iso: string) { setFromDate(iso); if (iso) setRange(findFrom(iso), toIdx) }
+  function handleTo(iso: string)   { setToDate(iso);   if (iso) setRange(fromIdx, findTo(iso)) }
+  function handleAll() {
+    setRange(0, data.dates.length - 1)
+    setFromDate(data.datesFull[0]?.iso || '')
+    setToDate(data.datesFull[data.datesFull.length - 1]?.iso || '')
+  }
 
   const providers = Object.keys(data.providers || {})
   const domains = Object.keys(data.domains || {})
@@ -41,9 +69,6 @@ export default function MatrixView() {
     return 'bg-[#00e5c3]/10 text-[#00e5c3]'
   }
 
-  const selectCls = `px-3 py-1.5 rounded-lg border text-xs font-mono outline-none appearance-none
-    ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`
-
   return (
     <div className="p-6">
       <div className="flex items-start justify-between mb-5">
@@ -57,27 +82,21 @@ export default function MatrixView() {
         </div>
         <div className="flex items-center gap-2">
           {espList.length > 0 && (
-            <select value={selectedEsp} onChange={e => setSelectedEsp(e.target.value)} className={selectCls}>
+            <select
+              value={selectedEsp}
+              onChange={e => setSelectedEsp(e.target.value)}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-mono outline-none appearance-none
+                ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`}
+            >
               {espList.map(e => <option key={e} value={e}>{e}</option>)}
             </select>
           )}
-          <select
-            value={fromIdx}
-            onChange={e => setRange(Number(e.target.value), toIdx)}
-            className={selectCls}
-          >
-            {data.dates.map((d, i) => <option key={d} value={i}>{d}</option>)}
-          </select>
+          <span className={`text-[10px] font-mono uppercase tracking-wider ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>From</span>
+          <CalendarPicker value={fromDate} onChange={handleFrom} isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} />
           <span className={`text-xs ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>→</span>
-          <select
-            value={toIdx}
-            onChange={e => setRange(fromIdx, Number(e.target.value))}
-            className={selectCls}
-          >
-            {data.dates.map((d, i) => <option key={d} value={i}>{d}</option>)}
-          </select>
+          <CalendarPicker value={toDate}   onChange={handleTo}   isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} />
           <button
-            onClick={() => setRange(0, data.dates.length - 1)}
+            onClick={handleAll}
             className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all
               ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}
           >
