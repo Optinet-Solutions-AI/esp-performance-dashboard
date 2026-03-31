@@ -130,6 +130,17 @@ function minMaxHeat(kpiKey: string, val: number, minV: number, maxV: number): st
   return 'transparent'
 }
 
+function ipHeat(kpiKey: string, val: number, minV: number, maxV: number): string {
+  if (maxV === minV) return 'transparent'
+  let score = (val - minV) / (maxV - minV)
+  if (BAD_METRICS.has(kpiKey)) score = 1 - score
+  if (score >= 0.75) return 'rgba(4,120,87,0.52)'
+  if (score >= 0.5)  return 'rgba(4,100,70,0.28)'
+  if (score <= 0.25) return 'rgba(120,20,30,0.55)'
+  if (score <= 0.5)  return 'rgba(100,50,0,0.28)'
+  return 'transparent'
+}
+
 function trendArrow(cur: number | null, prev: number | null, kpiKey: string) {
   if (cur == null || prev == null) return null
   const diff = cur - prev
@@ -999,21 +1010,27 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                 <span className={`text-[10px] font-mono uppercase tracking-wider ${muted}`}>
                   Daily KPIs by IP Address
                   {activeDates.length > 0 && ` · ${activeDates[0]} – ${activeDates[activeDates.length - 1]}`}
-                  {' · ordered by volume'}
                 </span>
               </div>
               <div className="overflow-x-auto">
-                <table className="border-collapse text-[10px] font-mono" style={{ minWidth: ipEntityData.length * 5 * 52 + 72 }}>
+                <table className="w-full border-collapse text-[10px] font-mono" style={{ minWidth: ipEntityData.length * 5 * 80 + 100 }}>
+                  <colgroup>
+                    <col style={{ width: 100 }} />
+                    {ipEntityData.flatMap(e => GRID_KPIS.map(kpi => (
+                      <col key={e.name + kpi.key} />
+                    )))}
+                  </colgroup>
                   <thead>
                     <tr style={{ background: isLight ? '#f1f3f7' : '#181c22' }}>
-                      <th className={`px-3 py-2.5 text-left text-[9px] tracking-widest uppercase border-b border-r ${isLight ? 'border-black/8 text-gray-500' : 'border-white/7 text-[#6b7280]'}`}
-                        style={{ minWidth: 70 }}>Date</th>
+                      <th className={`px-3 py-2.5 text-left text-[9px] tracking-widest uppercase border-b border-r ${isLight ? 'border-black/8 text-gray-500' : 'border-white/7 text-[#6b7280]'}`}>
+                        Date
+                      </th>
                       {ipEntityData.map((e, ei) => (
                         <th key={e.name} colSpan={5}
-                          className={`px-2 py-2.5 border-b text-center ${ei < ipEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}>
+                          className={`px-3 py-2.5 border-b text-center ${ei < ipEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}>
                           <div className="flex items-center justify-center gap-1.5">
                             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: e.color }} />
-                            <span className="text-[10px] font-semibold tracking-wide uppercase truncate" style={{ color: e.color, maxWidth: 140 }}>{e.name}</span>
+                            <span className="text-[10px] font-semibold tracking-wide uppercase" style={{ color: e.color }}>{e.name}</span>
                           </div>
                         </th>
                       ))}
@@ -1023,8 +1040,8 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                       {ipEntityData.flatMap((e, ei) =>
                         GRID_KPIS.map((kpi, ki) => (
                           <th key={e.name + kpi.key}
-                            className={`px-1.5 py-1.5 text-right border-b ${ki === 4 && ei < ipEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}
-                            style={{ color: kpi.color, fontSize: 9, letterSpacing: '0.06em' }}>
+                            className={`px-3 py-2 text-right border-b ${ki === 4 && ei < ipEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}
+                            style={{ color: kpi.color, fontSize: 9, letterSpacing: '0.08em' }}>
                             {kpi.label}
                           </th>
                         ))
@@ -1035,7 +1052,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     {dateGroups.map((group, gi) => (
                       <tr key={group.label}
                         className={`border-b last:border-0 transition-colors ${isLight ? 'border-black/7 hover:bg-black/3' : 'border-white/5 hover:bg-white/3'}`}>
-                        <td className={`px-3 py-2 whitespace-nowrap font-semibold border-r ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#c8cdd6]'}`}
+                        <td className={`px-3 py-2.5 whitespace-nowrap font-semibold border-r ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#c8cdd6]'}`}
                           style={{ fontSize: 11 }}>
                           {group.label}
                         </td>
@@ -1046,7 +1063,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                             const prev  = gi > 0 ? aggDates(e.byDate, dateGroups[gi - 1].dates) : null
                             const pVal  = prev ? (prev[kpi.key] as number | undefined) ?? null : null
                             const stats = colStats[e.name]?.[kpi.key as string]
-                            const bg    = val != null && stats ? minMaxHeat(kpi.key as string, val, stats.min, stats.max) : 'transparent'
+                            const bg    = val != null && stats ? ipHeat(kpi.key as string, val, stats.min, stats.max) : 'transparent'
                             const trend = trendArrow(val, pVal, kpi.key as string)
                             const valColor = kpi.key === 'bounceRate' && val != null
                               ? val > 10 ? '#ff6b77' : val > 2 ? '#ffe066' : kpi.color
@@ -1067,7 +1084,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
 
                             return (
                               <td key={e.name + kpi.key + group.label}
-                                className={`px-1.5 py-2 text-right ${ki === 4 && ei < ipEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/5' : 'border-white/5'}`}
+                                className={`px-3 py-2.5 text-right ${ki === 4 && ei < ipEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/5' : 'border-white/5'}`}
                                 style={{ background: bg, fontSize: 11 }}
                                 onMouseEnter={e2 => { if (tipContent) setGridTip({ ...tipContent, x: e2.clientX + 14, y: e2.clientY + 14 }) }}
                                 onMouseLeave={() => setGridTip(null)}
@@ -1106,7 +1123,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
 
                           return (
                             <td key={e.name + kpi.key + 'ip-total'}
-                              className={`px-1.5 py-2.5 text-right font-bold ${ki === 4 && ei < ipEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/5' : 'border-white/5'}`}
+                              className={`px-3 py-2.5 text-right font-bold ${ki === 4 && ei < ipEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/5' : 'border-white/5'}`}
                               style={{ fontSize: 11 }}
                               onMouseEnter={e2 => { if (tipContent) setGridTip({ ...tipContent, x: e2.clientX + 14, y: e2.clientY + 14 }) }}
                               onMouseLeave={() => setGridTip(null)}
