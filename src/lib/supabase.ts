@@ -4,3 +4,7 @@ export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
+
+export async function addLog(action: 'upload' | 'download' | 'delete', target: string, details?: string) {
+  await supabase.from('logs').insert({ action, target, details })
+}

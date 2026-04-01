@@ -163,13 +163,15 @@ function extractSendingDomain(campaignName: string): string {
 
 function mergeMetrics(
   target: DateMetrics,
-  src: { sent?: number; delivered?: number; opened?: number; clicked?: number; bounced?: number; unsubscribed?: number }
+  src: { sent?: number; delivered?: number; opened?: number; clicked?: number; bounced?: number; hardBounced?: number; softBounced?: number; unsubscribed?: number }
 ) {
   target.sent += src.sent || 0
   target.delivered += src.delivered || 0
   target.opened += src.opened || 0
   target.clicked += src.clicked || 0
   target.bounced += src.bounced || 0
+  target.hardBounced = (target.hardBounced || 0) + (src.hardBounced || 0)
+  target.softBounced = (target.softBounced || 0) + (src.softBounced || 0)
   target.unsubscribed = (target.unsubscribed || 0) + (src.unsubscribed || 0)
 }
 
@@ -182,7 +184,7 @@ function recalcRates(m: DateMetrics): void {
 }
 
 function blankMetrics(): DateMetrics {
-  return { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, unsubscribed: 0, complained: 0, deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0 }
+  return { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, hardBounced: 0, softBounced: 0, unsubscribed: 0, complained: 0, deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0 }
 }
 
 export async function parseFile(file: File, espName?: string): Promise<ParseResult> {
@@ -251,19 +253,32 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
     const bucket = byDate[dateStr]
     bucket.rows++
 
+    const isBounced = isMailmodo
+      ? (row['bounced'] === '1' || row['bounced'] === 'true' || row['bounced'] === 'TRUE') ? 1 : 0
+      : Number(row['bounced'] || row['bounce'] || 0)
+    const isHard = isMailmodo
+      ? (row['ishardbounced'] === '1' || row['ishardbounced'] === 'true' || row['ishardbounced'] === 'TRUE' || row['is-hard-bounced'] === '1' || row['is-hard-bounced'] === 'true' || row['is-hard-bounced'] === 'TRUE') ? 1 : 0
+      : Number(row['hard_bounced'] || row['hardbounced'] || row['hard-bounced'] || 0)
+    const hardBounced = isBounced > 0 ? Math.min(isHard, isBounced) : 0
+    const softBounced = isBounced > 0 ? isBounced - hardBounced : 0
+
     const metrics = isMailmodo ? {
       sent: 1,
       delivered: (row['delivery'] === 'TRUE' || row['delivery'] === 'true' || row['delivery'] === '1' || Number(row['delivery'] || 0) > 0) ? 1 : 0,
       opened: (Number(row['opens-html'] || 0) + Number(row['opens-amp'] || 0)) > 0 ? 1 : 0,
       clicked: (Number(row['clicks-html'] || 0) + Number(row['clicks-amp'] || 0)) > 0 ? 1 : 0,
-      bounced: (row['bounced'] === '1' || row['bounced'] === 'true' || row['bounced'] === 'TRUE') ? 1 : 0,
+      bounced: isBounced,
+      hardBounced,
+      softBounced,
       unsubscribed: (row['unsubscribed'] === '1' || row['unsubscribed'] === 'true' || row['unsubscribed'] === 'TRUE') ? 1 : 0,
     } : {
       sent: Number(row['sent'] || 1),
       delivered: Number(row['delivered'] || 0),
       opened: Number(row['opens'] || row['opened'] || 0),
       clicked: Number(row['clicks'] || row['clicked'] || 0),
-      bounced: Number(row['bounced'] || row['bounce'] || 0),
+      bounced: isBounced,
+      hardBounced,
+      softBounced,
       unsubscribed: Number(row['unsubscribed'] || row['unsub'] || 0),
     }
 

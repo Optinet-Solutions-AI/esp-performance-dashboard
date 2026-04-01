@@ -1,20 +1,21 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
-import { fmtN, fmtP, aggDates } from '@/lib/utils'
+import { fmtN, fmtP, aggDates, fmtDateLabel } from '@/lib/utils'
 import { ESP_COLORS } from '@/lib/data'
 import CalendarPicker from '@/components/ui/CalendarPicker'
 import type { MmData, DateMetrics, IpmRecord } from '@/lib/types'
 
 const EMPTY_DATA: MmData = { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
 
-interface Agg { sent: number; delivered: number; opened: number; clicked: number; bounced: number; unsubscribed: number; complained: number }
+interface Agg { sent: number; delivered: number; opened: number; clicked: number; bounced: number; hardBounced: number; softBounced: number; unsubscribed: number; complained: number }
 
-function emptyAgg(): Agg { return { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, unsubscribed: 0, complained: 0 } }
+function emptyAgg(): Agg { return { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, hardBounced: 0, softBounced: 0, unsubscribed: 0, complained: 0 } }
 
 function addAgg(t: Agg, a: Agg) {
   t.sent += a.sent; t.delivered += a.delivered; t.opened += a.opened
-  t.clicked += a.clicked; t.bounced += a.bounced; t.unsubscribed += a.unsubscribed; t.complained += a.complained
+  t.clicked += a.clicked; t.bounced += a.bounced; t.hardBounced += a.hardBounced; t.softBounced += a.softBounced
+  t.unsubscribed += a.unsubscribed; t.complained += a.complained
 }
 
 function mxAgg(byDate: Record<string, DateMetrics>, dates: string[]): Agg {
@@ -23,6 +24,7 @@ function mxAgg(byDate: Record<string, DateMetrics>, dates: string[]): Agg {
     const r = byDate[d]; if (!r) return
     z.sent += r.sent || 0; z.delivered += r.delivered || 0; z.opened += r.opened || 0
     z.clicked += r.clicked || 0; z.bounced += r.bounced || 0
+    z.hardBounced += r.hardBounced || 0; z.softBounced += r.softBounced || 0
     z.unsubscribed += (r.unsubscribed || 0); z.complained += (r.complained || 0)
   })
   return z
@@ -127,8 +129,9 @@ export default function MatrixView() {
       <>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.sent)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.sr, true, 80, 95)) }}>{fmtMx(agg.delivered)}</td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}></td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.br, false, 5, 10)) }}>{fmtMx(agg.bounced)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.softBounced)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.br, false, 5, 10)) }}>{fmtMx(agg.hardBounced)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.or, true, 30, 60)) }}>{fmtMx(agg.opened)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.or, true, 30, 60)) }}>{R.or > 0 ? R.or.toFixed(1) + '%' : ''}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.ctr, true, 20, 50)) }}>{fmtMx(agg.clicked)}</td>
@@ -194,14 +197,17 @@ export default function MatrixView() {
       const espKey = `esp||${espName}`
       const espEx = !!expanded[espKey]
 
-      // ESP header row
+      // ESP header row — sticky when expanded so user can collapse without scrolling up
+      const stickyStyle: React.CSSProperties = espEx
+        ? { position: 'sticky', top: 0, zIndex: 10, background: isLight ? '#f1f3f7' : '#141820', boxShadow: `0 1px 3px ${isLight ? 'rgba(0,0,0,.1)' : 'rgba(0,0,0,.4)'}` }
+        : {}
       rows.push(
-        <tr key={espKey} className="cursor-pointer" style={{ borderBottom: `1px solid ${bdr}` }} onClick={() => toggle(espKey)}>
-          <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, color: txt }}>
+        <tr key={espKey} className="cursor-pointer" style={{ borderBottom: `1px solid ${bdr}`, ...stickyStyle }} onClick={() => toggle(espKey)}>
+          <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, color: txt, ...(espEx ? { background: isLight ? '#f1f3f7' : '#141820' } : {}) }}>
             <ToggleBtn expanded={espEx} label={<span style={{ color: espColor, fontWeight: 700 }}>{espName}</span>} count={`${sortedIps.length} IPs`} />
           </td>
-          <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}` }}></td>
-          <DataRow agg={espTot} />
+          <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, ...(espEx ? { background: isLight ? '#f1f3f7' : '#141820' } : {}) }}></td>
+          <DataRow agg={espTot} bg={espEx ? (isLight ? '#f1f3f7' : '#141820') : undefined} />
         </tr>
       )
 
@@ -359,7 +365,7 @@ export default function MatrixView() {
           </h1>
           <p className="text-sm mt-1" style={{ color: muted }}>
             ESP → IP → From Domain → Email Provider
-            {activeDates.length > 0 && ` · ${activeDates[0]} – ${activeDates[activeDates.length - 1]}`}
+            {activeDates.length > 0 && ` · ${fmtDateLabel(activeDates[0], data.datesFull)} – ${fmtDateLabel(activeDates[activeDates.length - 1], data.datesFull)}`}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -388,6 +394,7 @@ export default function MatrixView() {
                 <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, minWidth: 160 }}>Email Provider</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt }}>Sent</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt }}>Delivered</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Total Bounces</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt }}>Soft Bounce</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt }}>Hard Bounce</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt }}>Opens</th>

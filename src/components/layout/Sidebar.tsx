@@ -165,6 +165,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         <NavItem id="matrix" label="Deliverability" icon={iconGrid} />
         <NavItem id="datamgmt" label="Data Mgmt" icon={iconDb} />
         <NavItem id="ipmatrix" label="IPs Matrix" icon={iconIP} />
+        <NavItem id="logs" label="Logs" icon={iconChart} />
 
         {/* Active ESP list */}
         {(() => {

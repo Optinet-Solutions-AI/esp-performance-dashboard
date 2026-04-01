@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Chart } from 'chart.js/auto'
 import { useDashboardStore } from '@/lib/store'
-import { aggDates, fmtN, fmtP, getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
+import { aggDates, fmtN, fmtP, fmtDateLabel, getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
 import { PROVIDER_COLORS, DOMAIN_COLORS, IP_COLOR_PALETTE, ESP_COLORS } from '@/lib/data'
 import type { MmData, MmTabType, DateMetrics } from '@/lib/types'
 import CalendarPicker from '@/components/ui/CalendarPicker'
@@ -280,7 +280,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   }
 
   // ── Tab / row ────────────────────────────────────────────────────
-  const mmTab        = store.mmTab === 'domain' ? 'domain' : 'ip' as MmTabType
+  const mmTab        = 'ip' as MmTabType  // domain tab hidden for now
   const setMmTab     = (t: MmTabType) => store.setMmTab(t)
   const selectedRow  = store.mmSelectedRow
   const setSelected  = store.setMmSelectedRow
@@ -289,6 +289,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const safeTo      = Math.min(toIdx, data.dates.length - 1)
   const activeDates = data.dates.slice(fromIdx, safeTo + 1)
   const dateGroups  = groupDates(activeDates, granularity, data.datesFull)
+  const fmtDL = (label: string) => fmtDateLabel(label, data.datesFull)
   const groupsKey   = dateGroups.map(g => g.label).join(',')
   const datesKey    = activeDates.join(',')
 
@@ -357,7 +358,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
     volInst.current = new Chart(volRef.current, {
       type: 'line',
       data: {
-        labels: dateGroups.map(g => g.label),
+        labels: dateGroups.map(g => fmtDL(g.label)),
         datasets: [
           lds('Sent',      dateGroups.map(g => aggDates(od, g.dates)?.sent      ?? null), VOL_COLORS.sent),
           lds('Delivered', dateGroups.map(g => aggDates(od, g.dates)?.delivered ?? null), VOL_COLORS.delivered),
@@ -402,7 +403,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
     rateInst.current = new Chart(rateRef.current, {
       type: 'line',
       data: {
-        labels: dateGroups.map(g => g.label),
+        labels: dateGroups.map(g => fmtDL(g.label)),
         datasets: [
           rateDs('Success Rate', rateMetrics.map(r => r?.deliveryRate ?? null), RATE_COLORS.successRate),
           rateDs('Open Rate',    rateMetrics.map(r => r?.openRate     ?? null), RATE_COLORS.openRate),
@@ -465,7 +466,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
         kpiInsts.current[i] = new Chart(canvas, {
           type: 'line',
           data: {
-            labels: dateGroups.map(g => g.label),
+            labels: dateGroups.map(g => fmtDL(g.label)),
             datasets: entityData.map((e, ei) =>
               rateDs(e.name, kpiMetricsPerEntity[ei].map(r => r ? ((r[kpi.key] as number) ?? null) : null), kpi.color, [], false)
             ),
@@ -598,7 +599,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
 
   // ── Range label ──────────────────────────────────────────────────
   const rangeLabel = activeDates.length > 0
-    ? `${activeDates[0]} – ${activeDates[activeDates.length - 1]} · ${fmtN(aggOverall?.sent ?? 0)} sent`
+    ? `${fmtDL(activeDates[0])} – ${fmtDL(activeDates[activeDates.length - 1])} · ${fmtN(aggOverall?.sent ?? 0)} sent`
     : 'No date range selected'
 
   /* ──────────────────────────────────────────────────────────────
@@ -746,17 +747,11 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
 
           {/* ── Tab Switcher ──────────────────────────────────────── */}
           <div className="flex items-center gap-1">
-            {(['ip', 'domain'] as const).map(tab => (
-              <button key={tab} onClick={() => setMmTab(tab)}
-                className={`px-3 py-1.5 rounded-lg border text-[10px] font-mono uppercase tracking-wider transition-all
-                  ${mmTab === tab
-                    ? 'bg-[#4a2fa0] border-[#4a2fa0] text-white'
-                    : isLight ? 'border-black/15 text-gray-500 hover:border-black/30' : 'border-white/13 text-[#a8b0be] hover:border-white/25'
-                  }`}
-              >
-                {tab === 'ip' ? 'IP Address' : 'Sending Domain'}
-              </button>
-            ))}
+            <button
+              className="px-3 py-1.5 rounded-lg border text-[10px] font-mono uppercase tracking-wider bg-[#4a2fa0] border-[#4a2fa0] text-white"
+            >
+              IP Address
+            </button>
           </div>
 
           {/* ── Volume + Rate Charts ──────────────────────────────── */}
@@ -1063,7 +1058,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               <div className="px-4 py-3 border-b" style={divBdr}>
                 <span className={`text-[10px] font-mono uppercase tracking-wider ${muted}`}>
                   Daily KPIs by IP Address
-                  {activeDates.length > 0 && ` · ${activeDates[0]} – ${activeDates[activeDates.length - 1]}`}
+                  {activeDates.length > 0 && ` · ${fmtDL(activeDates[0])} – ${fmtDL(activeDates[activeDates.length - 1])}`}
                 </span>
               </div>
               <div className="overflow-x-auto">
@@ -1108,7 +1103,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                         className={`border-b last:border-0 transition-colors ${isLight ? 'border-black/7 hover:bg-black/3' : 'border-white/5 hover:bg-white/3'}`}>
                         <td className={`px-3 py-2.5 whitespace-nowrap font-semibold border-r ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#c8cdd6]'}`}
                           style={{ fontSize: 11 }}>
-                          {group.label}
+                          {fmtDL(group.label)}
                         </td>
                         {ipEntityData.flatMap((e, ei) =>
                           GRID_KPIS.map((kpi, ki) => {

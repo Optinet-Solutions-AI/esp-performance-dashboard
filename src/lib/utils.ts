@@ -6,6 +6,24 @@ export const fmtN = (n: number): string => {
 
 export const fmtP = (n: number, d = 1): string => n.toFixed(d) + '%'
 
+const MONTHS_FMT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+/** Convert "Mar 11" + year → "11/03/2026" */
+export function fmtDateLabel(label: string, datesFull?: { label: string; year: number; iso: string }[]): string {
+  const df = datesFull?.find(d => d.label === label)
+  if (df?.iso) {
+    const [y, m, d] = df.iso.split('-')
+    return `${d}/${m}/${y}`
+  }
+  // Fallback: parse "Mar 11" manually
+  const parts = label.split(' ')
+  if (parts.length === 2) {
+    const mIdx = MONTHS_FMT.indexOf(parts[0])
+    if (mIdx >= 0) return `${parts[1].padStart(2, '0')}/${String(mIdx + 1).padStart(2, '0')}/2026`
+  }
+  return label
+}
+
 export function getEspStatus(bounceRate: number, deliveryRate: number): EspStatus {
   if (bounceRate > 10 || deliveryRate < 70) return 'critical'
   if (bounceRate > 2 || deliveryRate < 95) return 'warn'
@@ -17,7 +35,7 @@ export function aggDates(
   dates: string[]
 ): DateMetrics | null {
   let sent = 0, delivered = 0, opened = 0, clicked = 0,
-    bounced = 0, unsubscribed = 0, complained = 0
+    bounced = 0, hardBounced = 0, softBounced = 0, unsubscribed = 0, complained = 0
 
   dates.forEach(d => {
     const r = byDate[d]
@@ -27,6 +45,8 @@ export function aggDates(
     opened += r.opened || 0
     clicked += r.clicked || 0
     bounced += r.bounced || 0
+    hardBounced += r.hardBounced || 0
+    softBounced += r.softBounced || 0
     unsubscribed += r.unsubscribed || 0
     complained += r.complained || 0
   })
@@ -34,7 +54,7 @@ export function aggDates(
   if (sent === 0) return null
 
   return {
-    sent, delivered, opened, clicked, bounced, unsubscribed, complained,
+    sent, delivered, opened, clicked, bounced, hardBounced, softBounced, unsubscribed, complained,
     deliveryRate: (delivered / sent) * 100,
     successRate: (delivered / sent) * 100,
     openRate: delivered > 0 ? (opened / delivered) * 100 : 0,
@@ -121,10 +141,12 @@ function mergeMetrics(a: DateMetrics, b: DateMetrics): DateMetrics {
   const opened = (a.opened || 0) + (b.opened || 0)
   const clicked = (a.clicked || 0) + (b.clicked || 0)
   const bounced = (a.bounced || 0) + (b.bounced || 0)
+  const hardBounced = (a.hardBounced || 0) + (b.hardBounced || 0)
+  const softBounced = (a.softBounced || 0) + (b.softBounced || 0)
   const unsubscribed = (a.unsubscribed || 0) + (b.unsubscribed || 0)
   const complained = (a.complained || 0) + (b.complained || 0)
   return {
-    sent, delivered, opened, clicked, bounced, unsubscribed, complained,
+    sent, delivered, opened, clicked, bounced, hardBounced, softBounced, unsubscribed, complained,
     deliveryRate: sent > 0 ? (delivered / sent) * 100 : 0,
     successRate: sent > 0 ? (delivered / sent) * 100 : 0,
     openRate: delivered > 0 ? (opened / delivered) * 100 : 0,

@@ -32,6 +32,8 @@ export interface DateMetrics {
   opened: number
   clicked: number
   bounced: number
+  hardBounced?: number
+  softBounced?: number
   unsubscribed?: number
   complained?: number
   deliveryRate: number
@@ -97,6 +99,14 @@ export interface UploadHistoryEntry {
   newDates: number
 }
 
+export interface LogEntry {
+  id: string
+  action: 'upload' | 'download' | 'delete'
+  target: string
+  details?: string
+  created_at: string
+}
+
 export type ViewName =
   | 'home'
   | 'dashboard'
@@ -108,5 +118,6 @@ export type ViewName =
   | 'matrix'
   | 'datamgmt'
   | 'ipmatrix'
+  | 'logs'
 
 export type MmTabType = 'ip' | 'provider' | 'domain'

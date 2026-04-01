@@ -5,7 +5,7 @@ import { parseFile, mergeIntoMmData } from '@/lib/parsers'
 import { buildProviderDomains, syncEspFromData, overwriteMmData } from '@/lib/utils'
 import { ESP_COLORS } from '@/lib/data'
 import type { MmData } from '@/lib/types'
-import { supabase } from '@/lib/supabase'
+import { supabase, addLog as logToDb } from '@/lib/supabase'
 
 const ESP_LIST = ['Mailmodo', 'Ongage', 'Hotsol', 'MMS', 'Moosend', 'Omnisend', 'Klaviyo', 'Brevo']
 
@@ -130,6 +130,7 @@ export default function UploadView() {
 
       setResult({ rows: parsed.totalRows, dates: parsed.dates, newDates: parsed.dates.length })
       addLog('✨ Done! Dashboard updated.')
+      logToDb('upload', `${esp} — ${file.name}`, `${parsed.totalRows} rows, ${parsed.dates.length} dates`)
       setStep(4)
     } catch (err) {
       addLog(`❌ Error: ${err instanceof Error ? err.message : String(err)}`)
@@ -168,6 +169,7 @@ export default function UploadView() {
       }
 
       await fetchHistory()
+      logToDb('delete', `${record.esp} — ${record.filename}`, `${record.rows} rows removed`)
     } catch {
       // ignore
     } finally {
@@ -402,14 +404,31 @@ export default function UploadView() {
                       {rec.esp} · {rec.filename}
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDelete(rec)}
-                    disabled={deleting === rec.id}
-                    className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all
-                      border border-[#ff4757]/40 text-[#ff4757] hover:bg-[#ff4757]/10 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {deleting === rec.id ? 'Deleting…' : 'Delete'}
-                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={async () => {
+                        const { data: row } = await supabase.from('uploads').select('solo_data').eq('id', rec.id).single()
+                        if (row?.solo_data) {
+                          const blob = new Blob([JSON.stringify(row.solo_data, null, 2)], { type: 'application/json' })
+                          const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+                          a.download = `${rec.esp}_${rec.filename.replace(/\.[^.]+$/, '')}.json`; a.click()
+                          logToDb('download', `${rec.esp} — ${rec.filename}`, 'Upload data exported as JSON')
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all border
+                        ${isLight ? 'border-black/15 text-gray-500 hover:border-[#7c5cfc] hover:text-[#7c5cfc]' : 'border-white/13 text-[#a8b0be] hover:border-[#7c5cfc] hover:text-[#7c5cfc]'}`}
+                    >
+                      Download
+                    </button>
+                    <button
+                      onClick={() => handleDelete(rec)}
+                      disabled={deleting === rec.id}
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all
+                        border border-[#ff4757]/40 text-[#ff4757] hover:bg-[#ff4757]/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {deleting === rec.id ? 'Deleting…' : 'Delete'}
+                    </button>
+                  </div>
                 </div>
                 <div className="px-5 py-3 flex flex-wrap gap-3">
                   <span className={`px-2.5 py-1 rounded-lg font-mono text-[11px] ${isLight ? 'bg-gray-100 text-gray-600' : 'bg-white/5 text-[#8a94a6]'}`}>
