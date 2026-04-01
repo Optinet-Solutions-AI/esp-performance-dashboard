@@ -1096,10 +1096,13 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                             const stats = colStats[e.name]?.[kpi.key as string]
                             const bg    = val != null && stats ? ipHeat(kpi.key as string, val, stats.min, stats.max) : 'transparent'
                             const trend = trendArrow(val, pVal, kpi.key as string)
-                            const valColor = kpi.key === 'bounceRate' && val != null
-                              ? val > 10 ? '#ff6b77' : val > 2 ? '#ffe066' : kpi.color
-                              : kpi.key === 'deliveryRate' && val != null && val < 95
-                                ? '#ffe066' : kpi.color
+                            const hasHeatBg = bg !== 'transparent'
+                            const valColor = isLight && hasHeatBg
+                              ? (kpi.key === 'bounceRate' && val != null && val > 10 ? '#991b1b' : kpi.key === 'bounceRate' && val != null && val > 2 ? '#92400e' : '#111827')
+                              : kpi.key === 'bounceRate' && val != null
+                                ? val > 10 ? '#ff6b77' : val > 2 ? '#ffe066' : kpi.color
+                                : kpi.key === 'deliveryRate' && val != null && val < 95
+                                  ? '#ffe066' : kpi.color
 
                             const tipContent = val != null && r ? (() => {
                               const { a, b } = kpi.rawFn(r)
@@ -1142,9 +1145,11 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                         GRID_KPIS.map((kpi, ki) => {
                           const r   = aggDates(e.byDate, activeDates)
                           const val = r ? (r[kpi.key] as number | undefined) ?? null : null
-                          const valColor = kpi.key === 'bounceRate' && val != null
-                            ? val > 10 ? '#ff6b77' : val > 2 ? '#ffe066' : kpi.color
-                            : kpi.key === 'deliveryRate' && val != null && val < 95 ? '#ffe066' : kpi.color
+                          const valColor = isLight
+                            ? (kpi.key === 'bounceRate' && val != null && val > 10 ? '#991b1b' : kpi.key === 'bounceRate' && val != null && val > 2 ? '#92400e' : '#111827')
+                            : kpi.key === 'bounceRate' && val != null
+                              ? val > 10 ? '#ff6b77' : val > 2 ? '#ffe066' : kpi.color
+                              : kpi.key === 'deliveryRate' && val != null && val < 95 ? '#ffe066' : kpi.color
 
                           const tipContent = val != null && r ? (() => {
                             const { a, b } = kpi.rawFn(r)
