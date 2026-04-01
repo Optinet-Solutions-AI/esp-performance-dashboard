@@ -55,6 +55,7 @@ export default function MatrixView() {
 
   const [selectedEsp, setSelectedEsp] = useState<string>('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [tip, setTip] = useState<{ title: string; exact: string; formula: string; calc: string; x: number; y: number } | null>(null)
 
   useEffect(() => {
     if (!selectedEsp || !store.espData[selectedEsp]) setSelectedEsp(espList[0] || '')
@@ -118,6 +119,10 @@ export default function MatrixView() {
     return txt
   }
 
+  function showTip(e: React.MouseEvent, title: string, exact: string, formula: string, calc: string) {
+    setTip({ title, exact, formula, calc, x: e.clientX + 14, y: e.clientY + 14 })
+  }
+
   function DataRow({ agg, isTotal, isFdTotal, bg }: { agg: Agg; isTotal?: boolean; isFdTotal?: boolean; bg?: string }) {
     const R = rates(agg)
     const fw = isTotal || isFdTotal ? 'font-bold' : ''
@@ -126,20 +131,23 @@ export default function MatrixView() {
     if (isTotal) { style.background = isLight ? '#e8eaef' : '#1a1e26'; style.borderTop = `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}` }
     if (isFdTotal) { style.background = isLight ? '#e0e3ea' : 'rgba(255,255,255,.04)'; style.borderTop = `1px solid ${bdr}` }
 
-    const orTip = agg.delivered > 0 ? `Opens ÷ Delivered × 100\n${fmtMx(agg.opened)} ÷ ${fmtMx(agg.delivered)} × 100 = ${R.or.toFixed(2)}%` : ''
-    const ctrTip = agg.opened > 0 ? `Clicks ÷ Opens × 100\n${fmtMx(agg.clicked)} ÷ ${fmtMx(agg.opened)} × 100 = ${R.ctr.toFixed(2)}%` : ''
-
     return (
       <>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.sent)}</td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.sr, true, 80, 95)) }} title={agg.sent > 0 ? `Delivered ÷ Sent × 100\n${fmtMx(agg.delivered)} ÷ ${fmtMx(agg.sent)} × 100 = ${R.sr.toFixed(2)}%` : ''}>{fmtMx(agg.delivered)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.sr, true, 80, 95)), cursor: agg.sent > 0 ? 'help' : undefined }}
+          onMouseEnter={e => { if (agg.sent > 0) showTip(e, 'SUCCESS RATE', R.sr.toFixed(2) + '%', 'Delivered ÷ Sent × 100', `${fmtMx(agg.delivered)} ÷ ${fmtMx(agg.sent)} × 100 = ${R.sr.toFixed(2)}%`) }}
+          onMouseLeave={() => setTip(null)}>{fmtMx(agg.delivered)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.br, false, 5, 10)) }}>{fmtMx(agg.bounced)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.softBounced)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.br, false, 5, 10)) }}>{fmtMx(agg.hardBounced)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.or, true, 30, 60)) }}>{fmtMx(agg.opened)}</td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.or, true, 30, 60)), cursor: orTip ? 'help' : undefined }} title={orTip}>{R.or > 0 ? R.or.toFixed(1) + '%' : ''}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.or, true, 30, 60)), cursor: R.or > 0 ? 'help' : undefined }}
+          onMouseEnter={e => { if (R.or > 0) showTip(e, 'OPEN RATE', R.or.toFixed(2) + '%', 'Opens ÷ Delivered × 100', `${fmtMx(agg.opened)} ÷ ${fmtMx(agg.delivered)} × 100 = ${R.or.toFixed(2)}%`) }}
+          onMouseLeave={() => setTip(null)}>{R.or > 0 ? R.or.toFixed(1) + '%' : ''}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.ctr, true, 20, 50)) }}>{fmtMx(agg.clicked)}</td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.ctr, true, 20, 50)), cursor: ctrTip ? 'help' : undefined }} title={ctrTip}>{R.ctr > 0 ? R.ctr.toFixed(1) + '%' : ''}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.ctr, true, 20, 50)), cursor: R.ctr > 0 ? 'help' : undefined }}
+          onMouseEnter={e => { if (R.ctr > 0) showTip(e, 'CLICK RATE', R.ctr.toFixed(2) + '%', 'Clicks ÷ Opens × 100', `${fmtMx(agg.clicked)} ÷ ${fmtMx(agg.opened)} × 100 = ${R.ctr.toFixed(2)}%`) }}
+          onMouseLeave={() => setTip(null)}>{R.ctr > 0 ? R.ctr.toFixed(1) + '%' : ''}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: (agg.complained || 0) > 0 ? (isLight ? '#991b1b' : '#ff4757') : txt }}>{fmtMx(agg.complained || 0)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.unsubscribed || 0)}</td>
       </>
@@ -450,6 +458,19 @@ export default function MatrixView() {
           </table>
         </div>
         </>
+      )}
+
+      {/* Formula tooltip */}
+      {tip && (
+        <div className="fixed z-[9999] pointer-events-none" style={{ left: tip.x, top: tip.y, minWidth: 240 }}>
+          <div className="rounded-xl shadow-2xl p-4" style={{ background: isLight ? '#ffffff' : '#1a1e26', border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.14)'}` }}>
+            <div className="text-[9px] font-mono tracking-widest uppercase mb-2" style={{ color: isLight ? '#9ca3af' : '#6b7280' }}>{tip.title}</div>
+            <div className="text-2xl font-bold font-mono mb-3" style={{ color: isLight ? '#111827' : '#ffffff' }}>{tip.exact}</div>
+            <div className="text-[9px] font-mono tracking-widest uppercase mb-1.5" style={{ color: isLight ? '#b45309' : '#ffd166' }}>Formula</div>
+            <div className="text-[11px] font-mono mb-1" style={{ color: isLight ? '#374151' : '#c8cdd6' }}>{tip.formula}</div>
+            <div className="text-[11px] font-mono" style={{ color: isLight ? '#374151' : '#c8cdd6' }}>{tip.calc}</div>
+          </div>
+        </div>
       )}
     </div>
   )
