@@ -66,7 +66,7 @@ export default function HomeView() {
           y: {
             ticks: {
               color: tc, font: { size: 10 },
-              callback: v => { const n = Number(v); return n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(0)+'K' : String(n) },
+              callback: (v: number | string) => Math.round(Number(v)).toLocaleString(),
             },
             grid: { color: gc }, border: { display: false },
           },

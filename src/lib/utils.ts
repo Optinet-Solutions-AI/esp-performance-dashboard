@@ -1,9 +1,7 @@
 import type { MmData, DateMetrics, ProviderData, EspRecord, EspStatus } from './types'
 
 export const fmtN = (n: number): string => {
-  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M'
-  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'
-  return String(Math.round(n))
+  return Math.round(n).toLocaleString()
 }
 
 export const fmtP = (n: number, d = 1): string => n.toFixed(d) + '%'
