@@ -28,6 +28,8 @@ const VIEW_LABELS: Record<string, string> = {
 export default function Page() {
   const { activeView, isLight, setEspData, setEsps, esps, setIpmData, setDmData } = useDashboardStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const sidebarWidth = sidebarCollapsed ? 60 : 240
   const [dbLoaded, setDbLoaded] = useState(false)
 
   useEffect(() => {
@@ -141,7 +143,7 @@ export default function Page() {
         />
       )}
 
-      {/* Sidebar wrapper — drawer on mobile, static in flow on desktop */}
+      {/* Sidebar wrapper — drawer on mobile */}
       <div style={{
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 40,
         width: 240, transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
@@ -150,10 +152,10 @@ export default function Page() {
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Desktop sidebar — always in flow */}
-      <div style={{ width: 240, flexShrink: 0 }} className="hidden lg:block">
+      {/* Desktop sidebar — collapsible */}
+      <div style={{ width: sidebarWidth, flexShrink: 0, transition: 'width 0.2s ease' }} className="hidden lg:block">
         <div style={{ position: 'sticky', top: 0, height: '100vh' }}>
-          <Sidebar />
+          <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(c => !c)} />
         </div>
       </div>
 
@@ -180,7 +182,7 @@ export default function Page() {
             }}
           >
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
+              <path strokeLinecap="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div>

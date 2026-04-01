@@ -10,9 +10,9 @@ const STATUS_COLORS = {
   critical:{ color: '#ff4757', bg: 'rgba(255,71,87,0.08)',  border: 'rgba(255,71,87,0.25)' },
 } as const
 
-interface SidebarProps { onClose?: () => void }
+interface SidebarProps { onClose?: () => void; collapsed?: boolean; onToggleCollapse?: () => void }
 
-export default function Sidebar({ onClose }: SidebarProps) {
+export default function Sidebar({ onClose, collapsed, onToggleCollapse }: SidebarProps) {
   const { activeView, setView, isLight, toggleTheme, esps, activeEsp, setActiveEsp } = useDashboardStore()
   const [providersOpen, setProvidersOpen] = useState(true)
   const [espListOpen, setEspListOpen] = useState(false)
@@ -34,10 +34,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
     return (
       <button
         onClick={() => navTo(id)}
+        title={collapsed ? label : undefined}
         style={{
-          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-          padding: '9px 12px', borderRadius: 12, border: 'none', cursor: 'pointer',
+          width: '100%', display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 10,
+          padding: collapsed ? '9px 0' : '9px 12px', borderRadius: 12, border: 'none', cursor: 'pointer',
           fontSize: 13, fontWeight: active ? 600 : 400, textAlign: 'left',
+          justifyContent: collapsed ? 'center' : 'flex-start',
           background: active ? activeBg : 'transparent',
           color: active ? activeText : textColor,
           transition: 'background 0.12s, color 0.12s',
@@ -48,13 +50,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
         <span style={{ width: 18, height: 18, flexShrink: 0, opacity: active ? 1 : 0.55, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {icon}
         </span>
-        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-        {active && <span style={{ width: 5, height: 5, borderRadius: '50%', background: activeAccent, flexShrink: 0 }} />}
+        {!collapsed && <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>}
+        {!collapsed && active && <span style={{ width: 5, height: 5, borderRadius: '50%', background: activeAccent, flexShrink: 0 }} />}
       </button>
     )
   }
 
   const SectionLabel = ({ text }: { text: string }) => (
+    collapsed ? <div style={{ height: 1, background: borderColor, margin: '10px 6px' }} /> :
     <div style={{
       fontSize: 9, fontFamily: 'Space Mono, monospace', letterSpacing: '0.15em',
       textTransform: 'uppercase', color: mutedColor,
@@ -80,29 +83,25 @@ export default function Sidebar({ onClose }: SidebarProps) {
       width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
       background: bg, borderRight: `1px solid ${borderColor}`,
     }}>
-      {/* Logo */}
-      <div style={{ padding: '20px 16px 16px', borderBottom: `1px solid ${borderColor}`, flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <button onClick={() => navTo('home')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
-            <div style={{ fontSize: 9, fontFamily: 'Space Mono,monospace', letterSpacing: '0.2em', textTransform: 'uppercase', color: mutedColor, marginBottom: 3 }}>
-              Email Ops
+      {/* Logo + collapse toggle */}
+      <div style={{ padding: collapsed ? '16px 8px' : '20px 16px 16px', borderBottom: `1px solid ${borderColor}`, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: collapsed ? 'center' : 'flex-start', justifyContent: collapsed ? 'center' : 'space-between' }}>
+          {collapsed ? (
+            <div style={{ fontSize: 15, fontWeight: 700, color: activeAccent, textAlign: 'center' }}>E</div>
+          ) : (
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 9, fontFamily: 'Space Mono,monospace', letterSpacing: '0.2em', textTransform: 'uppercase', color: mutedColor, marginBottom: 3 }}>
+                Email Ops
+              </div>
+              <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1 }}>
+                <span style={{ color: isLight ? '#111827' : '#f0f2f5' }}>ESP</span>
+                <span style={{ color: activeAccent }}> Control</span>
+              </div>
             </div>
-            <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1 }}>
-              <span style={{ color: isLight ? '#111827' : '#f0f2f5' }}>ESP</span>
-              <span style={{ color: activeAccent }}> Control</span>
-            </div>
-          </button>
-          {onClose && (
-            <button
-              onClick={onClose}
-              style={{
-                width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent',
-                cursor: 'pointer', color: mutedColor, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+          )}
+          {onClose && !collapsed && (
+            <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: mutedColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           )}
         </div>
@@ -113,62 +112,69 @@ export default function Sidebar({ onClose }: SidebarProps) {
         <SectionLabel text="Providers" />
 
         {/* Email Providers group */}
-        <button
-          onClick={() => setProvidersOpen(p => !p)}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-            padding: '9px 12px', borderRadius: 12, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 400, textAlign: 'left',
-            background: 'transparent', color: textColor, transition: 'background 0.12s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = hoverBg }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-        >
-          <span style={{ width: 18, height: 18, flexShrink: 0, opacity: 0.55 }}>{iconEmail}</span>
-          <span style={{ flex: 1 }}>Email Providers</span>
-          <span style={{ fontSize: 10, opacity: 0.5, transition: 'transform 0.2s', transform: providersOpen ? 'rotate(90deg)' : 'none' }}>▶</span>
-        </button>
+        {collapsed ? (
+          <>
+            <NavItem id="mailmodo" label="Mailmodo" icon={<span style={{ width: 7, height: 7, borderRadius: '50%', background: '#7c5cfc', display: 'inline-block' }} />} />
+            <NavItem id="ongage" label="Ongage" icon={<span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ffd166', display: 'inline-block' }} />} />
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => setProvidersOpen(p => !p)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 12px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                fontSize: 13, fontWeight: 400, textAlign: 'left',
+                background: 'transparent', color: textColor, transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = hoverBg }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+            >
+              <span style={{ width: 18, height: 18, flexShrink: 0, opacity: 0.55 }}>{iconEmail}</span>
+              <span style={{ flex: 1 }}>Email Providers</span>
+              <span style={{ fontSize: 10, opacity: 0.5, transition: 'transform 0.2s', transform: providersOpen ? 'rotate(90deg)' : 'none' }}>▶</span>
+            </button>
 
-        {providersOpen && (
-          <div style={{ marginLeft: 16, paddingLeft: 12, borderLeft: '1px solid rgba(0,229,195,0.2)', marginTop: 2, marginBottom: 4 }}>
-            {[
-              { id: 'mailmodo' as ViewName, label: 'Mailmodo Review', color: '#7c5cfc', ctx: 'mailmodo' as const },
-              { id: 'ongage' as ViewName, label: 'Ongage Review', color: '#ffd166', ctx: 'ongage' as const },
-            ].map(item => {
-              const active = activeView === item.id
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => navTo(item.id)}
-                  style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '8px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                    fontSize: 12.5, fontWeight: active ? 600 : 400, textAlign: 'left',
-                    background: active ? `${item.color}14` : 'transparent',
-                    color: active ? item.color : textColor,
-                    transition: 'background 0.12s, color 0.12s',
-                  }}
-                  onMouseEnter={e => { if (!active) { e.currentTarget.style.background = hoverBg; e.currentTarget.style.color = textHover } }}
-                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = textColor } }}
-                >
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: item.color, flexShrink: 0, opacity: 0.85 }} />
-                  {item.label}
-                </button>
-              )
-            })}
-          </div>
+            {providersOpen && (
+              <div style={{ marginLeft: 16, paddingLeft: 12, borderLeft: '1px solid rgba(0,229,195,0.2)', marginTop: 2, marginBottom: 4 }}>
+                {[
+                  { id: 'mailmodo' as ViewName, label: 'Mailmodo Review', color: '#7c5cfc' },
+                  { id: 'ongage' as ViewName, label: 'Ongage Review', color: '#ffd166' },
+                ].map(item => {
+                  const active = activeView === item.id
+                  return (
+                    <button key={item.id} onClick={() => navTo(item.id)}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '8px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                        fontSize: 12.5, fontWeight: active ? 600 : 400, textAlign: 'left',
+                        background: active ? `${item.color}14` : 'transparent',
+                        color: active ? item.color : textColor,
+                        transition: 'background 0.12s, color 0.12s',
+                      }}
+                      onMouseEnter={e => { if (!active) { e.currentTarget.style.background = hoverBg; e.currentTarget.style.color = textHover } }}
+                      onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = textColor } }}
+                    >
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: item.color, flexShrink: 0, opacity: 0.85 }} />
+                      {item.label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </>
         )}
 
 
         <SectionLabel text="Tools" />
         <NavItem id="upload" label="Upload Report" icon={iconUp} />
         <NavItem id="matrix" label="ESP Deliverability" icon={iconGrid} />
-        <NavItem id="datamgmt" label="Data Mgmt" icon={iconDb} />
+        <NavItem id="datamgmt" label="Data Management" icon={iconDb} />
         <NavItem id="ipmatrix" label="IPs Matrix" icon={iconIP} />
         <NavItem id="logs" label="Logs" icon={iconChart} />
 
-        {/* Active ESP list */}
-        {(() => {
+        {/* Active ESP list — hidden when collapsed */}
+        {!collapsed && (() => {
           const activeEsps = esps.filter(e => e.sent > 0)
           if (activeEsps.length === 0) return null
           return (
@@ -223,37 +229,68 @@ export default function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div style={{ flexShrink: 0, padding: '12px 8px 16px', borderTop: `1px solid ${borderColor}` }}>
+      <div style={{ flexShrink: 0, padding: collapsed ? '8px 4px 12px' : '12px 8px 16px', borderTop: `1px solid ${borderColor}` }}>
+        {/* Collapse/expand toggle */}
+        {onToggleCollapse && (
+          <button
+            onClick={onToggleCollapse}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '8px 0', borderRadius: 10, border: `1px solid ${borderColor}`, cursor: 'pointer',
+              background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
+              color: mutedColor, marginBottom: 8, transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = activeAccent; e.currentTarget.style.color = activeAccent }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = borderColor; e.currentTarget.style.color = mutedColor }}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+              style={{ transition: 'transform 0.2s', transform: collapsed ? 'rotate(180deg)' : 'none' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+
+        {/* Theme toggle */}
         <button
           onClick={toggleTheme}
           style={{
-            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '10px 14px', borderRadius: 12, border: `1px solid ${borderColor}`, cursor: 'pointer',
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between',
+            padding: collapsed ? '8px 0' : '10px 14px', borderRadius: 12, border: `1px solid ${borderColor}`, cursor: 'pointer',
             fontSize: 11, fontFamily: 'Space Mono,monospace', letterSpacing: '0.12em', textTransform: 'uppercase',
             background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
             color: textColor, transition: 'border-color 0.15s',
           }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = isLight ? '#d1d5db' : 'rgba(255,255,255,0.15)' }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = borderColor }}
+          title={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
         >
-          <span>{isLight ? '☀ Light' : '🌙 Dark'}</span>
-          <span style={{
-            width: 36, height: 20, borderRadius: 99, flexShrink: 0, position: 'relative', display: 'inline-block',
-            background: isLight ? '#00c4a7' : '#2d3748',
-            border: `1px solid ${isLight ? '#00c4a7' : 'rgba(255,255,255,0.1)'}`,
-            transition: 'background 0.2s',
-          }}>
-            <span style={{
-              width: 14, height: 14, borderRadius: '50%', position: 'absolute', top: 2,
-              left: isLight ? 19 : 2,
-              background: isLight ? '#ffffff' : '#6b7280',
-              transition: 'left 0.2s',
-            }} />
-          </span>
+          {collapsed ? (
+            <span>{isLight ? '☀' : '🌙'}</span>
+          ) : (
+            <>
+              <span>{isLight ? '☀ Light' : '🌙 Dark'}</span>
+              <span style={{
+                width: 36, height: 20, borderRadius: 99, flexShrink: 0, position: 'relative', display: 'inline-block',
+                background: isLight ? '#00c4a7' : '#2d3748',
+                border: `1px solid ${isLight ? '#00c4a7' : 'rgba(255,255,255,0.1)'}`,
+                transition: 'background 0.2s',
+              }}>
+                <span style={{
+                  width: 14, height: 14, borderRadius: '50%', position: 'absolute', top: 2,
+                  left: isLight ? 19 : 2,
+                  background: isLight ? '#ffffff' : '#6b7280',
+                  transition: 'left 0.2s',
+                }} />
+              </span>
+            </>
+          )}
         </button>
-        <div style={{ fontSize: 10, fontFamily: 'Space Mono,monospace', textAlign: 'center', marginTop: 10, color: isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.12)' }}>
-          {esps.length} provider{esps.length !== 1 ? 's' : ''} loaded
-        </div>
+        {!collapsed && (
+          <div style={{ fontSize: 10, fontFamily: 'Space Mono,monospace', textAlign: 'center', marginTop: 10, color: isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.12)' }}>
+            {esps.length} provider{esps.length !== 1 ? 's' : ''} loaded
+          </div>
+        )}
       </div>
     </aside>
   )
