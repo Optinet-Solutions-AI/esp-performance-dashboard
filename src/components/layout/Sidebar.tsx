@@ -85,24 +85,39 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
     }}>
       {/* Logo + collapse toggle */}
       <div style={{ padding: collapsed ? '16px 8px' : '20px 16px 16px', borderBottom: `1px solid ${borderColor}`, flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: collapsed ? 'center' : 'flex-start', justifyContent: collapsed ? 'center' : 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between' }}>
           {collapsed ? (
-            <div style={{ fontSize: 15, fontWeight: 700, color: activeAccent, textAlign: 'center' }}>E</div>
-          ) : (
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: 9, fontFamily: 'Space Mono,monospace', letterSpacing: '0.2em', textTransform: 'uppercase', color: mutedColor, marginBottom: 3 }}>
-                Email Ops
-              </div>
-              <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1 }}>
-                <span style={{ color: isLight ? '#111827' : '#f0f2f5' }}>ESP</span>
-                <span style={{ color: activeAccent }}> Control</span>
-              </div>
-            </div>
-          )}
-          {onClose && !collapsed && (
-            <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: mutedColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            <button onClick={onToggleCollapse} title="Expand sidebar"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: mutedColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
             </button>
+          ) : (
+            <>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: 9, fontFamily: 'Space Mono,monospace', letterSpacing: '0.2em', textTransform: 'uppercase', color: mutedColor, marginBottom: 3 }}>
+                  Email Ops
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1 }}>
+                  <span style={{ color: isLight ? '#111827' : '#f0f2f5' }}>ESP</span>
+                  <span style={{ color: activeAccent }}> Control</span>
+                </div>
+              </div>
+              {onToggleCollapse && (
+                <button onClick={onToggleCollapse} title="Collapse sidebar"
+                  style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: mutedColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+              )}
+              {onClose && (
+                <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: mutedColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -230,27 +245,6 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
 
       {/* Footer */}
       <div style={{ flexShrink: 0, padding: collapsed ? '8px 4px 12px' : '12px 8px 16px', borderTop: `1px solid ${borderColor}` }}>
-        {/* Collapse/expand toggle */}
-        {onToggleCollapse && (
-          <button
-            onClick={onToggleCollapse}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '8px 0', borderRadius: 10, border: `1px solid ${borderColor}`, cursor: 'pointer',
-              background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
-              color: mutedColor, marginBottom: 8, transition: 'border-color 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = activeAccent; e.currentTarget.style.color = activeAccent }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = borderColor; e.currentTarget.style.color = mutedColor }}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
-              style={{ transition: 'transform 0.2s', transform: collapsed ? 'rotate(180deg)' : 'none' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-        )}
-
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
