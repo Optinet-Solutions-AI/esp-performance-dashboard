@@ -160,7 +160,7 @@ export default function MatrixView() {
       if (!espData || !espData.dates.length) return
       const espColor = ESP_COLORS[espName] || '#7c5cfc'
       const ipMap = getIpMap(espName)
-      const allFromDomains = Object.keys(espData.domains || {})
+      const allFromDomains = Object.keys(espData.domains || {}).filter(d => d !== 'unknown')
 
       // Use this ESP's own dates for aggregation (filtered by the global date range if applicable)
       const espActiveDates = activeDates.length > 0 ? activeDates.filter(d => espData.dates.includes(d)) : espData.dates
