@@ -118,24 +118,28 @@ export default function MatrixView() {
     return txt
   }
 
-  function DataRow({ agg, isTotal, bg }: { agg: Agg; isTotal?: boolean; bg?: string }) {
+  function DataRow({ agg, isTotal, isFdTotal, bg }: { agg: Agg; isTotal?: boolean; isFdTotal?: boolean; bg?: string }) {
     const R = rates(agg)
-    const fw = isTotal ? 'font-bold' : ''
+    const fw = isTotal || isFdTotal ? 'font-bold' : ''
     const style: React.CSSProperties = { borderBottom: `1px solid ${bdr}` }
     if (bg) style.background = bg
     if (isTotal) { style.background = isLight ? '#e8eaef' : '#1a1e26'; style.borderTop = `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}` }
+    if (isFdTotal) { style.background = isLight ? '#e0e3ea' : 'rgba(255,255,255,.04)'; style.borderTop = `1px solid ${bdr}` }
+
+    const orTip = agg.delivered > 0 ? `Opens ÷ Delivered × 100\n${fmtMx(agg.opened)} ÷ ${fmtMx(agg.delivered)} × 100 = ${R.or.toFixed(2)}%` : ''
+    const ctrTip = agg.opened > 0 ? `Clicks ÷ Opens × 100\n${fmtMx(agg.clicked)} ÷ ${fmtMx(agg.opened)} × 100 = ${R.ctr.toFixed(2)}%` : ''
 
     return (
       <>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.sent)}</td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.sr, true, 80, 95)) }}>{fmtMx(agg.delivered)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.sr, true, 80, 95)) }} title={agg.sent > 0 ? `Delivered ÷ Sent × 100\n${fmtMx(agg.delivered)} ÷ ${fmtMx(agg.sent)} × 100 = ${R.sr.toFixed(2)}%` : ''}>{fmtMx(agg.delivered)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.br, false, 5, 10)) }}>{fmtMx(agg.bounced)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.softBounced)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.br, false, 5, 10)) }}>{fmtMx(agg.hardBounced)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.or, true, 30, 60)) }}>{fmtMx(agg.opened)}</td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.or, true, 30, 60)) }}>{R.or > 0 ? R.or.toFixed(1) + '%' : ''}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.or, true, 30, 60)), cursor: orTip ? 'help' : undefined }} title={orTip}>{R.or > 0 ? R.or.toFixed(1) + '%' : ''}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.ctr, true, 20, 50)) }}>{fmtMx(agg.clicked)}</td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.ctr, true, 20, 50)) }}>{R.ctr > 0 ? R.ctr.toFixed(1) + '%' : ''}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.ctr, true, 20, 50)), cursor: ctrTip ? 'help' : undefined }} title={ctrTip}>{R.ctr > 0 ? R.ctr.toFixed(1) + '%' : ''}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: (agg.complained || 0) > 0 ? (isLight ? '#991b1b' : '#ff4757') : txt }}>{fmtMx(agg.complained || 0)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.unsubscribed || 0)}</td>
       </>
@@ -201,7 +205,7 @@ export default function MatrixView() {
       rows.push(
         <tr key={espKey} className="cursor-pointer" style={{ borderBottom: `1px solid ${bdr}` }} onClick={() => toggle(espKey)}>
           <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, color: txt }}>
-            <ToggleBtn expanded={espEx} label={<span style={{ color: espColor, fontWeight: 700 }}>{espName}</span>} count={`${sortedIps.length} IPs`} />
+            <ToggleBtn expanded={espEx} label={<span style={{ color: espColor, fontWeight: 700 }}>{espName}</span>} />
           </td>
           <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}` }}></td>
           <DataRow agg={espTot} />
@@ -307,14 +311,13 @@ export default function MatrixView() {
 
           // From-domain total
           if (fdProviders.length > 0) {
-            const fdTotalBg = isLight ? 'rgba(0,0,0,.04)' : 'rgba(255,255,255,.04)'
             rows.push(
               <tr key={fdKey + '-total'}>
-                <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: fdTotalBg, borderTop: `1px solid ${bdr}` }}></td>
-                <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: fdTotalBg, paddingLeft: 40, fontFamily: 'var(--font-mono)', fontSize: 10, color: muted, borderTop: `1px solid ${bdr}` }}>
+                <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', borderTop: `1px solid ${bdr}` }}></td>
+                <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', paddingLeft: 40, fontFamily: 'var(--font-mono)', fontSize: 10, color: muted, borderTop: `1px solid ${bdr}` }}>
                   {fd} — total
                 </td>
-                <DataRow agg={fdAgg} bg={fdTotalBg} />
+                <DataRow agg={fdAgg} isFdTotal />
               </tr>
             )
           }

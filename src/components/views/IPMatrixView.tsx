@@ -271,9 +271,6 @@ export default function IPMatrixView() {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className={`text-xl font-bold tracking-tight ${txt}`}>IPs Matrix</h1>
-          <p className={`text-[11px] mt-1 font-mono ${muted}`}>
-            {ipmData.length} records · {allEspsSorted.length} ESPs
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <button

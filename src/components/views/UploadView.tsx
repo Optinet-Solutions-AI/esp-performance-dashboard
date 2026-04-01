@@ -31,6 +31,7 @@ export default function UploadView() {
   const [dragOver, setDragOver] = useState(false)
   const [history, setHistory] = useState<UploadRecord[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [historyEspFilter, setHistoryEspFilter] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { fetchHistory() }, [])
@@ -224,7 +225,10 @@ export default function UploadView() {
   }
 
   return (
-    <div className="view-page fade-up" style={{ maxWidth: 680 }}>
+    <div className="view-page fade-up" style={{ maxWidth: 1200 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8 items-start">
+      {/* ── LEFT: Upload Wizard ─────────────────── */}
+      <div>
       {/* Header */}
       <div className="section-title" style={{ marginBottom: 4 }}>
         <div className="section-title-bar" style={{ background: '#7c5cfc' }} />
@@ -379,21 +383,37 @@ export default function UploadView() {
         </div>
       )}
 
-      {/* Upload History */}
-      <div className="mt-8">
+      </div>{/* end left column */}
+
+      {/* ── RIGHT: Upload History ────────────────── */}
+      <div>
         <div className="section-title" style={{ marginBottom: 4 }}>
           <div className="section-title-bar" style={{ background: '#ff6b35' }} />
           <h1>Upload History</h1>
         </div>
-        <p className="section-title-sub">Manage past uploads — deleting resets all data for that ESP provider</p>
+        <p className="section-title-sub">Manage past uploads</p>
 
-        {history.length === 0 ? (
+        {/* ESP filter */}
+        <div className="mb-4">
+          <select
+            value={historyEspFilter}
+            onChange={e => setHistoryEspFilter(e.target.value)}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-mono outline-none ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`}
+          >
+            <option value="">All ESPs</option>
+            {[...new Set(history.map(h => h.esp))].sort().map(e => <option key={e} value={e}>{e}</option>)}
+          </select>
+        </div>
+
+        {(() => {
+          const filtered = historyEspFilter ? history.filter(h => h.esp === historyEspFilter) : history
+          return filtered.length === 0 ? (
           <div className={`rounded-2xl border p-8 text-center ${surface}`}>
-            <div className={`text-sm ${muted}`}>No uploads yet</div>
+            <div className={`text-sm ${muted}`}>{history.length === 0 ? 'No uploads yet' : 'No uploads for this ESP'}</div>
           </div>
         ) : (
           <div className="space-y-3">
-            {history.map(rec => (
+            {filtered.map(rec => (
               <div key={rec.id} className={`rounded-2xl border overflow-hidden ${surface}`}>
                 <div className={`px-5 py-3.5 border-b ${isLight ? 'border-black/6 bg-gray-50/60' : 'border-white/5 bg-white/[0.02]'} flex items-start justify-between gap-3`}>
                   <div>
@@ -459,8 +479,10 @@ export default function UploadView() {
               </div>
             ))}
           </div>
-        )}
-      </div>
+        )
+        })()}
+      </div>{/* end right column */}
+      </div>{/* end grid */}
     </div>
   )
 }

@@ -162,7 +162,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
         <SectionLabel text="Tools" />
         <NavItem id="upload" label="Upload Report" icon={iconUp} />
-        <NavItem id="matrix" label="Deliverability" icon={iconGrid} />
+        <NavItem id="matrix" label="ESP Deliverability" icon={iconGrid} />
         <NavItem id="datamgmt" label="Data Mgmt" icon={iconDb} />
         <NavItem id="ipmatrix" label="IPs Matrix" icon={iconIP} />
         <NavItem id="logs" label="Logs" icon={iconChart} />

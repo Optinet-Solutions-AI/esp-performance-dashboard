@@ -19,7 +19,7 @@ import LogsView from '@/components/views/LogsView'
 
 const VIEW_LABELS: Record<string, string> = {
   home: 'Overview', dashboard: 'Dashboard', mailmodo: 'Mailmodo Review',
-  ongage: 'Ongage Review', upload: 'Upload Report', matrix: 'Deliverability Matrix',
+  ongage: 'Ongage Review', upload: 'Upload Report', matrix: 'ESP Deliverability Matrix',
   datamgmt: 'Data Management', ipmatrix: 'IPs Matrix', performance: 'Performance',
   logs: 'Activity Logs',
   daily: 'Daily Report',
