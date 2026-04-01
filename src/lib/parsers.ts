@@ -150,7 +150,15 @@ function extractSendingDomain(campaignName: string): string {
   if (mEnd) return mEnd[1].toLowerCase()
   // Try domain anywhere in the string
   const m = campaignName.match(/([a-z0-9-]+\.[a-z]{2,})/i)
-  return m ? m[1].toLowerCase() : 'unknown'
+  if (m) return m[1].toLowerCase()
+  // Try underscore-separated format: "WP_march10_domainname" → "domainname.com"
+  const parts = campaignName.split(/[_\-\s]+/)
+  const last = parts[parts.length - 1]?.toLowerCase().trim()
+  if (last && last.length >= 6 && /^[a-z][a-z0-9]+$/i.test(last)) {
+    // If it looks like a domain name without TLD (all alphanumeric, 4+ chars), append .com
+    return last + '.com'
+  }
+  return 'unknown'
 }
 
 function mergeMetrics(
