@@ -142,10 +142,13 @@ function extractDomain(email: string): string {
 }
 
 function extractSendingDomain(campaignName: string): string {
-  // Try prefix format first: "domain.com - Campaign Name"
+  // Try prefix format: "domain.com - Campaign Name"
   const mPrefix = campaignName.match(/^([a-z0-9.-]+\.[a-z]{2,})\s*[-–]/i)
   if (mPrefix) return mPrefix[1].toLowerCase()
-  // Fallback: domain anywhere in the string
+  // Try domain at end: "Campaign Name - domain.com"
+  const mEnd = campaignName.match(/([a-z0-9-]+\.[a-z]{2,})$/i)
+  if (mEnd) return mEnd[1].toLowerCase()
+  // Try domain anywhere in the string
   const m = campaignName.match(/([a-z0-9-]+\.[a-z]{2,})/i)
   return m ? m[1].toLowerCase() : 'unknown'
 }
@@ -223,9 +226,16 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
     if (!email) { skipped++; skippedNoEmail++; return }
 
     const providerDomain = extractDomain(email)
-    const sendingDomain = isMailmodo
-      ? extractSendingDomain(row['campaign-name'] || '')
-      : (row['from_domain'] || row['from-domain'] || row['sending_domain'] || 'unknown')
+    // Extract sending (from) domain — check explicit columns first, then fall back to campaign name
+    const explicitFromDomain = row['from-domain'] || row['from_domain'] || row['sending_domain'] || row['sender-domain'] || ''
+    const explicitFromEmail = row['from-email'] || row['from-address'] || row['from_address'] || row['sender'] || ''
+    const sendingDomain = explicitFromDomain
+      ? explicitFromDomain.toLowerCase().trim()
+      : explicitFromEmail
+        ? extractDomain(explicitFromEmail)
+        : isMailmodo
+          ? extractSendingDomain(row['campaign-name'] || '')
+          : 'unknown'
 
     if (!byDate[dateStr]) {
       byDate[dateStr] = { rows: 0, providers: {}, domains: {}, providerDomains: {} }
