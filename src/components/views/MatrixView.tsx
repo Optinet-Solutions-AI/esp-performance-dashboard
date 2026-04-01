@@ -197,15 +197,14 @@ export default function MatrixView() {
       const espKey = `esp||${espName}`
       const espEx = !!expanded[espKey]
 
-      // ESP header row — sticky when expanded
-      const espStickyBg = isLight ? '#f1f3f7' : '#141820'
+      // ESP header row
       rows.push(
-        <tr key={espKey} className="cursor-pointer" style={{ borderBottom: `1px solid ${bdr}`, ...(espEx ? { position: 'sticky', top: 0, zIndex: 12, background: espStickyBg, boxShadow: `0 1px 3px ${isLight ? 'rgba(0,0,0,.1)' : 'rgba(0,0,0,.4)'}` } as React.CSSProperties : {}) }} onClick={() => toggle(espKey)}>
-          <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, color: txt, ...(espEx ? { background: espStickyBg } : {}) }}>
+        <tr key={espKey} className="cursor-pointer" style={{ borderBottom: `1px solid ${bdr}` }} onClick={() => toggle(espKey)}>
+          <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, color: txt }}>
             <ToggleBtn expanded={espEx} label={<span style={{ color: espColor, fontWeight: 700 }}>{espName}</span>} count={`${sortedIps.length} IPs`} />
           </td>
-          <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, ...(espEx ? { background: espStickyBg } : {}) }}></td>
-          <DataRow agg={espTot} bg={espEx ? espStickyBg : undefined} />
+          <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}` }}></td>
+          <DataRow agg={espTot} />
         </tr>
       )
 
@@ -241,14 +240,13 @@ export default function MatrixView() {
           const a = mxAgg(d.byDate, espActiveDates); return a.sent > 0
         })
 
-        const ipStickyBg = isLight ? '#edf0f4' : '#161a21'
-        const ipBgNormal = isLight ? 'rgba(0,0,0,.015)' : 'rgba(255,255,255,.015)'
+        const ipBg = isLight ? 'rgba(0,0,0,.015)' : 'rgba(255,255,255,.015)'
         const ipColor = isLight ? '#0369a1' : '#7dd3fc'
 
         rows.push(
-          <tr key={ipKey} className="cursor-pointer" style={ipEx ? { position: 'sticky', top: 38, zIndex: 11, background: ipStickyBg, boxShadow: `0 1px 2px ${isLight ? 'rgba(0,0,0,.08)' : 'rgba(0,0,0,.3)'}` } as React.CSSProperties : {}} onClick={() => toggle(ipKey)}>
-            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipEx ? ipStickyBg : ipBgNormal, color: txt }}></td>
-            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipEx ? ipStickyBg : ipBgNormal, color: txt, paddingLeft: 20 }}>
+          <tr key={ipKey} className="cursor-pointer" onClick={() => toggle(ipKey)}>
+            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt }}></td>
+            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt, paddingLeft: 20 }}>
               <ToggleBtn
                 expanded={ipEx}
                 label={isNotFound
@@ -258,7 +256,7 @@ export default function MatrixView() {
                 count={`${activeFds.length} from-domains`}
               />
             </td>
-            <DataRow agg={ipTot} bg={ipEx ? ipStickyBg : ipBgNormal} />
+            <DataRow agg={ipTot} bg={ipBg} />
           </tr>
         )
 
@@ -278,16 +276,15 @@ export default function MatrixView() {
             .map(([prov, domMap]) => ({ name: prov, agg: domMap[fd] as unknown as Agg }))
             .sort((a, b) => b.agg.sent - a.agg.sent)
 
-          const fdStickyBg = isLight ? '#e8ebf0' : '#191d25'
-          const fdBgNormal = isLight ? 'rgba(0,0,0,.025)' : 'rgba(255,255,255,.025)'
+          const fdBg = isLight ? 'rgba(0,0,0,.025)' : 'rgba(255,255,255,.025)'
 
           rows.push(
-            <tr key={fdKey} className="cursor-pointer" style={fdEx ? { position: 'sticky', top: 76, zIndex: 10, background: fdStickyBg, boxShadow: `0 1px 2px ${isLight ? 'rgba(0,0,0,.06)' : 'rgba(0,0,0,.25)'}` } as React.CSSProperties : {}} onClick={() => toggle(fdKey)}>
-              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdEx ? fdStickyBg : fdBgNormal }}></td>
-              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdEx ? fdStickyBg : fdBgNormal, paddingLeft: 40, color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+            <tr key={fdKey} className="cursor-pointer" onClick={() => toggle(fdKey)}>
+              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg }}></td>
+              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg, paddingLeft: 40, color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>
                 <ToggleBtn expanded={fdEx} label={<span style={{ color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
               </td>
-              <DataRow agg={fdAgg} bg={fdEx ? fdStickyBg : fdBgNormal} />
+              <DataRow agg={fdAgg} bg={fdBg} />
             </tr>
           )
 
@@ -351,6 +348,20 @@ export default function MatrixView() {
     return rows
   }
 
+  // Build breadcrumb of expanded rows for the floating collapse bar
+  const expandedBreadcrumbs: { key: string; label: string; color: string }[] = []
+  Object.keys(expanded).forEach(key => {
+    if (!expanded[key]) return
+    const parts = key.split('||')
+    if (parts[0] === 'esp') {
+      expandedBreadcrumbs.push({ key, label: parts[1], color: ESP_COLORS[parts[1]] || '#7c5cfc' })
+    } else if (parts[0] === 'ip') {
+      expandedBreadcrumbs.push({ key, label: parts[2], color: isLight ? '#0369a1' : '#7dd3fc' })
+    } else if (parts[0] === 'fd') {
+      expandedBreadcrumbs.push({ key, label: parts[3], color: muted })
+    }
+  })
+
   const hasData = espList.some(e => {
     const d = store.espData[e]
     return d && d.dates.length > 0 && (Object.keys(d.providers).length > 0 || Object.keys(d.domains).length > 0)
@@ -386,7 +397,29 @@ export default function MatrixView() {
           <div className="text-sm mt-2" style={{ color: muted }}>Upload data first.</div>
         </div>
       ) : (
-        <div className="rounded-xl border overflow-auto" style={{ background: surfaceBg, borderColor: bdr }}>
+        <>
+        {expandedBreadcrumbs.length > 0 && (
+          <div className="sticky top-0 z-20 flex items-center gap-2 px-4 py-2.5 rounded-t-xl border-b"
+            style={{
+              background: isLight ? '#f8f9fb' : '#141820',
+              borderColor: bdr,
+              boxShadow: `0 2px 6px ${isLight ? 'rgba(0,0,0,.08)' : 'rgba(0,0,0,.3)'}`,
+            }}>
+            <span className={`text-[9px] font-mono uppercase tracking-wider ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>Expanded:</span>
+            {expandedBreadcrumbs.map(b => (
+              <button key={b.key} onClick={() => toggle(b.key)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-mono transition-all ${isLight ? 'border-black/15 hover:bg-black/5' : 'border-white/15 hover:bg-white/5'}`}>
+                <span style={{ color: b.color, fontWeight: 600 }}>{b.label}</span>
+                <span className={`text-[9px] ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>x</span>
+              </button>
+            ))}
+            <button onClick={() => setExpanded({})}
+              className={`ml-auto px-2.5 py-1 rounded-lg border text-[9px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/15 text-gray-500 hover:border-red-300 hover:text-red-500' : 'border-white/15 text-[#6b7280] hover:border-[#ff4757] hover:text-[#ff4757]'}`}>
+              Collapse All
+            </button>
+          </div>
+        )}
+        <div className={`rounded-xl border overflow-auto ${expandedBreadcrumbs.length > 0 ? 'rounded-t-none border-t-0' : ''}`} style={{ background: surfaceBg, borderColor: bdr }}>
           <table className="w-full border-collapse" style={{ minWidth: 1100 }}>
             <thead>
               <tr style={{ background: headerBg }}>
@@ -408,6 +441,7 @@ export default function MatrixView() {
             <tbody>{buildRows()}</tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   )
