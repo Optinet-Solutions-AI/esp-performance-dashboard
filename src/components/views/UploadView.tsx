@@ -409,10 +409,25 @@ export default function UploadView() {
                       onClick={async () => {
                         const { data: row } = await supabase.from('uploads').select('solo_data').eq('id', rec.id).single()
                         if (row?.solo_data) {
-                          const blob = new Blob([JSON.stringify(row.solo_data, null, 2)], { type: 'application/json' })
+                          const d = row.solo_data as MmData
+                          const csvHeaders = ['Date','Provider','Domain','Sent','Delivered','Opened','Clicked','Bounced','Hard Bounced','Soft Bounced','Unsubscribed','Delivery Rate','Open Rate','Click Rate','Bounce Rate']
+                          const csvRows: string[] = [csvHeaders.join(',')]
+                          d.dates.forEach(date => {
+                            Object.entries(d.providers).forEach(([prov, pData]) => {
+                              const r = (pData as any).byDate?.[date]
+                              if (!r || !r.sent) return
+                              // Find which domain this provider+date belongs to (best effort)
+                              let dom = ''
+                              Object.entries(d.providerDomains || {}).forEach(([p, dMap]) => {
+                                if (p === prov) Object.keys(dMap as any).forEach(dd => { if (!dom) dom = dd })
+                              })
+                              csvRows.push([date, prov, dom, r.sent, r.delivered, r.opened, r.clicked, r.bounced, r.hardBounced||0, r.softBounced||0, r.unsubscribed||0, (r.deliveryRate||0).toFixed(2), (r.openRate||0).toFixed(2), (r.clickRate||0).toFixed(2), (r.bounceRate||0).toFixed(2)].join(','))
+                            })
+                          })
+                          const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
                           const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
-                          a.download = `${rec.esp}_${rec.filename.replace(/\.[^.]+$/, '')}.json`; a.click()
-                          logToDb('download', `${rec.esp} — ${rec.filename}`, 'Upload data exported as JSON')
+                          a.download = rec.filename.replace(/\.[^.]+$/, '') + '_export.csv'; a.click()
+                          logToDb('download', `${rec.esp} — ${rec.filename}`, 'Upload data exported as CSV')
                         }
                       }}
                       className={`px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all border
