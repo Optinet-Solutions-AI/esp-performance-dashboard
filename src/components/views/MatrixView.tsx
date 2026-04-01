@@ -197,17 +197,15 @@ export default function MatrixView() {
       const espKey = `esp||${espName}`
       const espEx = !!expanded[espKey]
 
-      // ESP header row — sticky when expanded so user can collapse without scrolling up
-      const stickyStyle: React.CSSProperties = espEx
-        ? { position: 'sticky', top: 0, zIndex: 10, background: isLight ? '#f1f3f7' : '#141820', boxShadow: `0 1px 3px ${isLight ? 'rgba(0,0,0,.1)' : 'rgba(0,0,0,.4)'}` }
-        : {}
+      // ESP header row — sticky when expanded
+      const espStickyBg = isLight ? '#f1f3f7' : '#141820'
       rows.push(
-        <tr key={espKey} className="cursor-pointer" style={{ borderBottom: `1px solid ${bdr}`, ...stickyStyle }} onClick={() => toggle(espKey)}>
-          <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, color: txt, ...(espEx ? { background: isLight ? '#f1f3f7' : '#141820' } : {}) }}>
+        <tr key={espKey} className="cursor-pointer" style={{ borderBottom: `1px solid ${bdr}`, ...(espEx ? { position: 'sticky', top: 0, zIndex: 12, background: espStickyBg, boxShadow: `0 1px 3px ${isLight ? 'rgba(0,0,0,.1)' : 'rgba(0,0,0,.4)'}` } as React.CSSProperties : {}) }} onClick={() => toggle(espKey)}>
+          <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, color: txt, ...(espEx ? { background: espStickyBg } : {}) }}>
             <ToggleBtn expanded={espEx} label={<span style={{ color: espColor, fontWeight: 700 }}>{espName}</span>} count={`${sortedIps.length} IPs`} />
           </td>
-          <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, ...(espEx ? { background: isLight ? '#f1f3f7' : '#141820' } : {}) }}></td>
-          <DataRow agg={espTot} bg={espEx ? (isLight ? '#f1f3f7' : '#141820') : undefined} />
+          <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, ...(espEx ? { background: espStickyBg } : {}) }}></td>
+          <DataRow agg={espTot} bg={espEx ? espStickyBg : undefined} />
         </tr>
       )
 
@@ -243,13 +241,14 @@ export default function MatrixView() {
           const a = mxAgg(d.byDate, espActiveDates); return a.sent > 0
         })
 
-        const ipBg = isLight ? 'rgba(0,0,0,.015)' : 'rgba(255,255,255,.015)'
+        const ipStickyBg = isLight ? '#edf0f4' : '#161a21'
+        const ipBgNormal = isLight ? 'rgba(0,0,0,.015)' : 'rgba(255,255,255,.015)'
         const ipColor = isLight ? '#0369a1' : '#7dd3fc'
 
         rows.push(
-          <tr key={ipKey} className="cursor-pointer" onClick={() => toggle(ipKey)}>
-            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt }}></td>
-            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt, paddingLeft: 20 }}>
+          <tr key={ipKey} className="cursor-pointer" style={ipEx ? { position: 'sticky', top: 38, zIndex: 11, background: ipStickyBg, boxShadow: `0 1px 2px ${isLight ? 'rgba(0,0,0,.08)' : 'rgba(0,0,0,.3)'}` } as React.CSSProperties : {}} onClick={() => toggle(ipKey)}>
+            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipEx ? ipStickyBg : ipBgNormal, color: txt }}></td>
+            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipEx ? ipStickyBg : ipBgNormal, color: txt, paddingLeft: 20 }}>
               <ToggleBtn
                 expanded={ipEx}
                 label={isNotFound
@@ -259,7 +258,7 @@ export default function MatrixView() {
                 count={`${activeFds.length} from-domains`}
               />
             </td>
-            <DataRow agg={ipTot} bg={ipBg} />
+            <DataRow agg={ipTot} bg={ipEx ? ipStickyBg : ipBgNormal} />
           </tr>
         )
 
@@ -279,15 +278,16 @@ export default function MatrixView() {
             .map(([prov, domMap]) => ({ name: prov, agg: domMap[fd] as unknown as Agg }))
             .sort((a, b) => b.agg.sent - a.agg.sent)
 
-          const fdBg = isLight ? 'rgba(0,0,0,.025)' : 'rgba(255,255,255,.025)'
+          const fdStickyBg = isLight ? '#e8ebf0' : '#191d25'
+          const fdBgNormal = isLight ? 'rgba(0,0,0,.025)' : 'rgba(255,255,255,.025)'
 
           rows.push(
-            <tr key={fdKey} className="cursor-pointer" onClick={() => toggle(fdKey)}>
-              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg }}></td>
-              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg, paddingLeft: 40, color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+            <tr key={fdKey} className="cursor-pointer" style={fdEx ? { position: 'sticky', top: 76, zIndex: 10, background: fdStickyBg, boxShadow: `0 1px 2px ${isLight ? 'rgba(0,0,0,.06)' : 'rgba(0,0,0,.25)'}` } as React.CSSProperties : {}} onClick={() => toggle(fdKey)}>
+              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdEx ? fdStickyBg : fdBgNormal }}></td>
+              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdEx ? fdStickyBg : fdBgNormal, paddingLeft: 40, color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>
                 <ToggleBtn expanded={fdEx} label={<span style={{ color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
               </td>
-              <DataRow agg={fdAgg} bg={fdBg} />
+              <DataRow agg={fdAgg} bg={fdEx ? fdStickyBg : fdBgNormal} />
             </tr>
           )
 
