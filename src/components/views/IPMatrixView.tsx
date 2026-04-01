@@ -1,9 +1,9 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { useDashboardStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
-import type { IpmRecord } from '@/lib/types'
+import type { IpmRecord, IpmUploadRecord } from '@/lib/types'
 
 /* ── Colors ─────────────────────────────────────────────────────── */
 const ESP_PALETTE: Record<string, { bg: string; text: string }> = {
@@ -79,6 +79,19 @@ export default function IPMatrixView() {
     open: false, idx: null, rec: { esp: '', ip: '', domain: '' },
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Upload history
+  const [uploadHistory, setUploadHistory] = useState<IpmUploadRecord[]>([])
+  const [deletingUpload, setDeletingUpload] = useState<string | null>(null)
+
+  useEffect(() => { fetchUploadHistory() }, [])
+
+  async function fetchUploadHistory() {
+    const { data } = await supabase
+      .from('ip_matrix_uploads')
+      .select('*')
+      .order('uploaded_at', { ascending: false })
+    if (data) setUploadHistory(data)
+  }
 
   const allEspsSorted = [...new Set(ipmData.map(r => r.esp).filter(Boolean))].sort()
 
@@ -170,13 +183,56 @@ export default function IPMatrixView() {
     })
 
     if (newRecords.length) {
-      const { data: inserted } = await supabase.from('ip_matrix').insert(newRecords).select('id, esp, ip, domain')
+      // Create upload record
+      const { data: uploadRec } = await supabase
+        .from('ip_matrix_uploads')
+        .insert({ filename: file.name, rows: newRecords.length })
+        .select('id')
+        .single()
+
+      const uploadId = uploadRec?.id
+      const recordsWithUpload = newRecords.map(r => ({ ...r, upload_id: uploadId }))
+
+      const { data: inserted } = await supabase.from('ip_matrix').insert(recordsWithUpload).select('id, esp, ip, domain, upload_id')
       if (inserted) {
-        inserted.forEach(row => addIpmRecord({ id: row.id, esp: row.esp, ip: row.ip, domain: row.domain }))
+        inserted.forEach(row => addIpmRecord({ id: row.id, upload_id: row.upload_id, esp: row.esp, ip: row.ip, domain: row.domain }))
       } else {
         newRecords.forEach(r => addIpmRecord(r))
       }
+
+      await fetchUploadHistory()
     }
+  }
+
+  async function handleDeleteUpload(upload: IpmUploadRecord) {
+    if (!confirm(`Delete this upload?\n\n"${upload.filename}" (${upload.rows} records)\n\nAll records from this file will be removed.`)) return
+    setDeletingUpload(upload.id)
+    try {
+      // Delete IP records linked to this upload (cascade handles this if FK set, but explicit is safer)
+      await supabase.from('ip_matrix').delete().eq('upload_id', upload.id)
+      await supabase.from('ip_matrix_uploads').delete().eq('id', upload.id)
+
+      // Reload all IP data from Supabase to stay in sync
+      const { data: allRows } = await supabase
+        .from('ip_matrix')
+        .select('id, esp, ip, domain, upload_id')
+        .order('created_at', { ascending: true })
+      const { setIpmData } = useDashboardStore.getState()
+      setIpmData(allRows?.map(r => ({ id: r.id, upload_id: r.upload_id, esp: r.esp, ip: r.ip, domain: r.domain ?? '' })) ?? [])
+
+      await fetchUploadHistory()
+    } catch {
+      // ignore
+    } finally {
+      setDeletingUpload(null)
+    }
+  }
+
+  function fmtDate(iso: string) {
+    return new Date(iso).toLocaleString(undefined, {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
   }
 
   /* ── Styles ────────────────────────────────────────────────────── */
@@ -458,6 +514,42 @@ export default function IPMatrixView() {
             </table>
           </div>
         </div>
+      </div>
+
+      {/* ── Upload History ────────────────────────────────────────── */}
+      <div>
+        <div className={`text-[9px] font-mono tracking-widest uppercase mb-2 ${muted}`}>Upload History</div>
+        {uploadHistory.length === 0 ? (
+          <div className={`rounded-xl border p-6 text-center ${surfaceA} ${bdr}`}>
+            <div className={`text-xs font-mono ${muted}`}>No file uploads yet</div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {uploadHistory.map(rec => (
+              <div key={rec.id} className={`rounded-xl border overflow-hidden ${surfaceA} ${bdr}`}>
+                <div className={`px-4 py-3 flex items-center justify-between gap-3`}>
+                  <div className="min-w-0 flex-1">
+                    <div className={`text-xs font-semibold truncate ${txt}`}>{rec.filename}</div>
+                    <div className={`text-[10px] font-mono mt-0.5 flex items-center gap-2 ${muted}`}>
+                      <span>{fmtDate(rec.uploaded_at)}</span>
+                      <span className={`px-1.5 py-0.5 rounded ${isLight ? 'bg-gray-100' : 'bg-white/5'}`}>
+                        {rec.rows} record{rec.rows !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteUpload(rec)}
+                    disabled={deletingUpload === rec.id}
+                    className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-wider transition-all
+                      border border-[#ff4757]/40 text-[#ff4757] hover:bg-[#ff4757]/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {deletingUpload === rec.id ? 'Deleting…' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Add / Edit Modal ─────────────────────────────────────── */}

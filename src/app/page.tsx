@@ -76,10 +76,10 @@ export default function Page() {
         // Load IP Matrix data
         const { data: ipmRows } = await supabase
           .from('ip_matrix')
-          .select('id, esp, ip, domain')
+          .select('id, esp, ip, domain, upload_id')
           .order('created_at', { ascending: true })
         if (ipmRows?.length) {
-          setIpmData(ipmRows.map(r => ({ id: r.id, esp: r.esp, ip: r.ip, domain: r.domain ?? '' })))
+          setIpmData(ipmRows.map(r => ({ id: r.id, upload_id: r.upload_id, esp: r.esp, ip: r.ip, domain: r.domain ?? '' })))
         }
 
         // Load Data Management data

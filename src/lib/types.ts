@@ -68,9 +68,17 @@ export interface MmData {
 
 export interface IpmRecord {
   id?: string
+  upload_id?: string
   esp: string
   ip: string
   domain: string
+}
+
+export interface IpmUploadRecord {
+  id: string
+  filename: string
+  rows: number
+  uploaded_at: string
 }
 
 export interface DmRecord {
