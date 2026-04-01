@@ -1,32 +1,70 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
-import { fmtP } from '@/lib/utils'
-import { PROVIDER_COLORS } from '@/lib/data'
+import { fmtN, fmtP, aggDates } from '@/lib/utils'
+import { ESP_COLORS } from '@/lib/data'
 import CalendarPicker from '@/components/ui/CalendarPicker'
+import type { MmData, DateMetrics, IpmRecord } from '@/lib/types'
 
-const EMPTY_DATA = { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
+const EMPTY_DATA: MmData = { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
+
+interface Agg { sent: number; delivered: number; opened: number; clicked: number; bounced: number; unsubscribed: number; complained: number }
+
+function emptyAgg(): Agg { return { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, unsubscribed: 0, complained: 0 } }
+
+function addAgg(t: Agg, a: Agg) {
+  t.sent += a.sent; t.delivered += a.delivered; t.opened += a.opened
+  t.clicked += a.clicked; t.bounced += a.bounced; t.unsubscribed += a.unsubscribed; t.complained += a.complained
+}
+
+function mxAgg(byDate: Record<string, DateMetrics>, dates: string[]): Agg {
+  const z = emptyAgg()
+  dates.forEach(d => {
+    const r = byDate[d]; if (!r) return
+    z.sent += r.sent || 0; z.delivered += r.delivered || 0; z.opened += r.opened || 0
+    z.clicked += r.clicked || 0; z.bounced += r.bounced || 0
+    z.unsubscribed += (r.unsubscribed || 0); z.complained += (r.complained || 0)
+  })
+  return z
+}
+
+function rates(a: Agg) {
+  return {
+    sr: a.sent > 0 ? a.delivered / a.sent * 100 : 0,
+    or: a.delivered > 0 ? a.opened / a.delivered * 100 : 0,
+    ctr: a.opened > 0 ? a.clicked / a.opened * 100 : 0,
+    br: a.sent > 0 ? a.bounced / a.sent * 100 : 0,
+  }
+}
+
+function rateCls(v: number, goodHigh: boolean, warn: number, bad: number) {
+  if (!v || isNaN(v)) return ''
+  return goodHigh
+    ? (v >= bad ? 'mx-good' : v >= warn ? 'mx-warn' : 'mx-bad')
+    : (v <= warn ? 'mx-good' : v <= bad ? 'mx-warn' : 'mx-bad')
+}
+
+function fmtMx(n: number) { return n > 0 ? n.toLocaleString() : '' }
 
 export default function MatrixView() {
   const store = useDashboardStore()
-  const { isLight } = store
+  const { isLight, ipmData } = store
   const espList = Object.keys(store.espData)
 
   const [selectedEsp, setSelectedEsp] = useState<string>('')
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    if (!selectedEsp || !store.espData[selectedEsp]) {
-      setSelectedEsp(espList[0] || '')
-    }
-  }, [espList.length])
+    if (!selectedEsp || !store.espData[selectedEsp]) setSelectedEsp(espList[0] || '')
+  }, [espList.length]) // eslint-disable-line
 
   const data = store.espData[selectedEsp] ?? EMPTY_DATA
   const fromIdx = store.espRanges[selectedEsp]?.fromIdx ?? 0
-  const toIdx   = store.espRanges[selectedEsp]?.toIdx   ?? Math.max(0, data.dates.length - 1)
+  const toIdx = store.espRanges[selectedEsp]?.toIdx ?? Math.max(0, data.dates.length - 1)
   const setRange = (from: number, to: number) => store.setEspRange(selectedEsp, from, to)
 
   const [fromDate, setFromDate] = useState('')
-  const [toDate,   setToDate]   = useState('')
+  const [toDate, setToDate] = useState('')
 
   useEffect(() => {
     if (data.datesFull.length) {
@@ -35,143 +73,327 @@ export default function MatrixView() {
     }
   }, [selectedEsp, data.datesFull.length]) // eslint-disable-line
 
-  function findFrom(iso: string) {
-    const i = data.datesFull.findIndex(d => d.iso >= iso)
-    return i === -1 ? 0 : i
-  }
-  function findTo(iso: string) {
-    let r = data.datesFull.length - 1
-    for (let i = r; i >= 0; i--) { if (data.datesFull[i].iso <= iso) { r = i; break } }
-    return r
-  }
+  function findFrom(iso: string) { const i = data.datesFull.findIndex(d => d.iso >= iso); return i === -1 ? 0 : i }
+  function findTo(iso: string) { let r = data.datesFull.length - 1; for (let i = r; i >= 0; i--) { if (data.datesFull[i].iso <= iso) { r = i; break } } return r }
   function handleFrom(iso: string) { setFromDate(iso); if (iso) setRange(findFrom(iso), toIdx) }
-  function handleTo(iso: string)   { setToDate(iso);   if (iso) setRange(fromIdx, findTo(iso)) }
+  function handleTo(iso: string) { setToDate(iso); if (iso) setRange(fromIdx, findTo(iso)) }
   function handleAll() {
     setRange(0, data.dates.length - 1)
     setFromDate(data.datesFull[0]?.iso || '')
     setToDate(data.datesFull[data.datesFull.length - 1]?.iso || '')
   }
 
-  const providers = Object.keys(data.providers || {})
-  const domains = Object.keys(data.domains || {})
+  const activeDates = data.dates.slice(fromIdx, toIdx + 1)
 
-  function getCellData(prov: string, dom: string) {
-    const pd = data.providerDomains[prov]?.[dom]
-    if (!pd || !pd.sent) return null
-    const deliveryRate = pd.sent > 0 ? (pd.delivered / pd.sent) * 100 : 0
-    const bounceRate = pd.sent > 0 ? ((pd.sent - pd.delivered) / pd.sent) * 100 : 0
-    return { ...pd, deliveryRate, bounceRate }
+  function toggle(key: string) { setExpanded(p => ({ ...p, [key]: !p[key] })) }
+
+  // Build IP → fromDomain map from ipmData for each ESP
+  function getIpMap(espName: string): Record<string, string[]> {
+    const map: Record<string, string[]> = {}
+    ipmData.filter(r => r.esp?.toLowerCase() === espName.toLowerCase()).forEach(r => {
+      if (!r.ip) return
+      if (!map[r.ip]) map[r.ip] = []
+      if (r.domain && !map[r.ip].includes(r.domain)) map[r.ip].push(r.domain)
+    })
+    return map
   }
 
-  function getCellColor(rate: number) {
-    if (rate < 85) return 'bg-[#ff4757]/15 text-[#ff4757]'
-    if (rate < 95) return 'bg-[#ffd166]/15 text-[#ffd166]'
-    return 'bg-[#00e5c3]/10 text-[#00e5c3]'
+  const txt = isLight ? '#111827' : '#f0f2f5'
+  const muted = isLight ? '#374151' : '#c8cdd6'
+  const bdr = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'
+  const headerBg = isLight ? '#f1f3f7' : '#181c22'
+  const surfaceBg = isLight ? '#ffffff' : '#111418'
+
+  const thCls = `px-3 py-2.5 text-[9px] font-mono tracking-widest uppercase text-right border-b`
+  const tdCls = `px-3 py-2.5 text-right text-[11px] font-mono border-b`
+
+  function rateColor(cls: string) {
+    if (cls === 'mx-good') return isLight ? '#047857' : '#00e5c3'
+    if (cls === 'mx-warn') return isLight ? '#92400e' : '#ffd166'
+    if (cls === 'mx-bad') return isLight ? '#991b1b' : '#ff4757'
+    return txt
   }
+
+  function DataRow({ agg, isTotal, bg }: { agg: Agg; isTotal?: boolean; bg?: string }) {
+    const R = rates(agg)
+    const fw = isTotal ? 'font-bold' : ''
+    const style: React.CSSProperties = { borderBottom: `1px solid ${bdr}` }
+    if (bg) style.background = bg
+    if (isTotal) { style.background = isLight ? '#e8eaef' : '#1a1e26'; style.borderTop = `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}` }
+
+    return (
+      <>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.sent)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.sr, true, 80, 95)) }}>{fmtMx(agg.delivered)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}></td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.br, false, 5, 10)) }}>{fmtMx(agg.bounced)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.or, true, 30, 60)) }}>{fmtMx(agg.opened)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.or, true, 30, 60)) }}>{R.or > 0 ? R.or.toFixed(1) + '%' : ''}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.ctr, true, 20, 50)) }}>{fmtMx(agg.clicked)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.ctr, true, 20, 50)) }}>{R.ctr > 0 ? R.ctr.toFixed(1) + '%' : ''}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: (agg.complained || 0) > 0 ? (isLight ? '#991b1b' : '#ff4757') : txt }}>{fmtMx(agg.complained || 0)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.unsubscribed || 0)}</td>
+      </>
+    )
+  }
+
+  function ToggleBtn({ expanded: ex, label, count }: { expanded: boolean; label: React.ReactNode; count?: string }) {
+    return (
+      <div className="flex items-center">
+        <span className={`inline-flex items-center justify-center w-[18px] h-[18px] rounded border text-[12px] font-bold mr-2 flex-shrink-0 ${isLight ? 'border-black/20 text-gray-500' : 'border-white/25 text-[#d4dae6]'}`}>
+          {ex ? '−' : '+'}
+        </span>
+        <span className="font-semibold">{label}</span>
+        {count && <span className="text-[9px] font-mono ml-1.5" style={{ color: muted }}>{count}</span>}
+      </div>
+    )
+  }
+
+  // Build all rows
+  function buildRows() {
+    const rows: React.ReactNode[] = []
+
+    espList.forEach(espName => {
+      const espData = store.espData[espName]
+      if (!espData) return
+      const espColor = ESP_COLORS[espName] || '#7c5cfc'
+      const ipMap = getIpMap(espName)
+      const allFromDomains = Object.keys(espData.domains || {})
+
+      // Map from-domains to IPs
+      const domainToIp: Record<string, string> = {}
+      Object.entries(ipMap).forEach(([ip, fds]) => { fds.forEach(fd => { domainToIp[fd] = ip }) })
+
+      // Group from-domains by IP
+      const ipGroups: Record<string, string[]> = {}
+      allFromDomains.forEach(fd => {
+        const ip = domainToIp[fd] || 'IP NOT FOUND'
+        if (!ipGroups[ip]) ipGroups[ip] = []
+        ipGroups[ip].push(fd)
+      })
+      // Add IPs from registry that have no matching from-domains
+      Object.keys(ipMap).forEach(ip => { if (!ipGroups[ip]) ipGroups[ip] = [] })
+
+      const sortedIps = Object.keys(ipGroups).sort((a, b) => {
+        if (a === 'IP NOT FOUND') return 1
+        if (b === 'IP NOT FOUND') return -1
+        return a.localeCompare(b, undefined, { numeric: true })
+      })
+
+      // ESP total
+      const espTot = emptyAgg()
+      Object.values(espData.providers || {}).forEach(p => { const a = mxAgg(p.byDate, activeDates); addAgg(espTot, a) })
+
+      if (espTot.sent === 0) return
+
+      const espKey = `esp||${espName}`
+      const espEx = !!expanded[espKey]
+
+      // ESP header row
+      rows.push(
+        <tr key={espKey} className="cursor-pointer" style={{ borderBottom: `1px solid ${bdr}` }} onClick={() => toggle(espKey)}>
+          <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, color: txt }}>
+            <ToggleBtn expanded={espEx} label={<span style={{ color: espColor, fontWeight: 700 }}>{espName}</span>} count={`${sortedIps.length} IPs`} />
+          </td>
+          <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}` }}></td>
+          <DataRow agg={espTot} />
+        </tr>
+      )
+
+      if (!espEx) {
+        rows.push(
+          <tr key={espKey + '-total'}>
+            <td className={`${tdCls} text-left font-bold`} style={{ background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}`, borderBottom: `1px solid ${bdr}`, color: espColor }}>
+              {espName} — Total
+            </td>
+            <td className={tdCls} style={{ background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}`, borderBottom: `1px solid ${bdr}` }}></td>
+            <DataRow agg={espTot} isTotal />
+          </tr>
+        )
+        return
+      }
+
+      // Level 2: IPs
+      sortedIps.forEach(ip => {
+        const fromDomains = ipGroups[ip] || []
+        const isNotFound = ip === 'IP NOT FOUND'
+
+        const ipTot = emptyAgg()
+        fromDomains.forEach(fd => {
+          const d = espData.domains[fd]
+          if (d) { const a = mxAgg(d.byDate, activeDates); addAgg(ipTot, a) }
+        })
+        if (ipTot.sent === 0) return
+
+        const ipKey = `ip||${espName}||${ip}`
+        const ipEx = !!expanded[ipKey]
+        const activeFds = fromDomains.filter(fd => {
+          const d = espData.domains[fd]; if (!d) return false
+          const a = mxAgg(d.byDate, activeDates); return a.sent > 0
+        })
+
+        const ipBg = isLight ? 'rgba(0,0,0,.015)' : 'rgba(255,255,255,.015)'
+        const ipColor = isLight ? '#0369a1' : '#7dd3fc'
+
+        rows.push(
+          <tr key={ipKey} className="cursor-pointer" onClick={() => toggle(ipKey)}>
+            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt }}></td>
+            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt, paddingLeft: 20 }}>
+              <ToggleBtn
+                expanded={ipEx}
+                label={isNotFound
+                  ? <span style={{ color: isLight ? '#b45309' : '#f59e0b', fontFamily: 'var(--font-mono)', fontSize: 11 }}>&#9888; IP NOT FOUND</span>
+                  : <span style={{ color: ipColor, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{ip}</span>
+                }
+                count={`${activeFds.length} from-domains`}
+              />
+            </td>
+            <DataRow agg={ipTot} bg={ipBg} />
+          </tr>
+        )
+
+        if (!ipEx) return
+
+        // Level 3: From Domains
+        fromDomains.forEach(fd => {
+          const fdData = espData.domains[fd]
+          const fdAgg = fdData ? mxAgg(fdData.byDate, activeDates) : emptyAgg()
+          if (fdAgg.sent === 0) return
+
+          const fdKey = `fd||${espName}||${ip}||${fd}`
+          const fdEx = !!expanded[fdKey]
+
+          const fdProviders = Object.entries(espData.providerDomains || {})
+            .filter(([, domMap]) => domMap[fd] && domMap[fd].sent > 0)
+            .map(([prov, domMap]) => ({ name: prov, agg: domMap[fd] as unknown as Agg }))
+            .sort((a, b) => b.agg.sent - a.agg.sent)
+
+          const fdBg = isLight ? 'rgba(0,0,0,.025)' : 'rgba(255,255,255,.025)'
+
+          rows.push(
+            <tr key={fdKey} className="cursor-pointer" onClick={() => toggle(fdKey)}>
+              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg }}></td>
+              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg, paddingLeft: 40, color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+                <ToggleBtn expanded={fdEx} label={<span style={{ color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
+              </td>
+              <DataRow agg={fdAgg} bg={fdBg} />
+            </tr>
+          )
+
+          if (!fdEx) return
+
+          // Level 4: Email Providers
+          fdProviders.forEach(({ name: provName, agg: provAgg }) => {
+            const provBg = isLight ? 'rgba(0,0,0,.035)' : 'rgba(255,255,255,.035)'
+            rows.push(
+              <tr key={`prov||${espName}||${ip}||${fd}||${provName}`}>
+                <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: provBg }}></td>
+                <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: provBg, paddingLeft: 60, fontFamily: 'var(--font-mono)', fontSize: 10, color: muted }}>
+                  <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, display: 'inline-block', marginRight: 7, verticalAlign: 'middle' }} />
+                  {provName}
+                </td>
+                <DataRow agg={provAgg} bg={provBg} />
+              </tr>
+            )
+          })
+
+          // From-domain total
+          if (fdProviders.length > 0) {
+            const fdTotalBg = isLight ? 'rgba(0,0,0,.04)' : 'rgba(255,255,255,.04)'
+            rows.push(
+              <tr key={fdKey + '-total'}>
+                <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: fdTotalBg, borderTop: `1px solid ${bdr}` }}></td>
+                <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: fdTotalBg, paddingLeft: 40, fontFamily: 'var(--font-mono)', fontSize: 10, color: muted, borderTop: `1px solid ${bdr}` }}>
+                  {fd} — total
+                </td>
+                <DataRow agg={fdAgg} bg={fdTotalBg} />
+              </tr>
+            )
+          }
+        })
+
+        // IP total
+        const ipTotalBg = isLight ? 'rgba(3,105,161,.07)' : 'rgba(125,211,252,.07)'
+        rows.push(
+          <tr key={ipKey + '-total'}>
+            <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: ipTotalBg, borderTop: `1px solid ${bdr}` }}></td>
+            <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: ipTotalBg, paddingLeft: 20, fontFamily: 'var(--font-mono)', fontSize: 10, color: ipColor, borderTop: `1px solid ${bdr}` }}>
+              {isNotFound ? '\u26A0 IP NOT FOUND' : ip} — total
+            </td>
+            <DataRow agg={ipTot} bg={ipTotalBg} />
+          </tr>
+        )
+      })
+
+      // ESP grand total
+      rows.push(
+        <tr key={espKey + '-grand-total'}>
+          <td className={`${tdCls} text-left font-bold`} style={{ background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}`, borderBottom: `1px solid ${bdr}`, color: espColor }}>
+            {espName} — Total
+          </td>
+          <td className={tdCls} style={{ background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}`, borderBottom: `1px solid ${bdr}` }}></td>
+          <DataRow agg={espTot} isTotal />
+        </tr>
+      )
+    })
+
+    return rows
+  }
+
+  const hasData = espList.some(e => store.espData[e]?.dates.length > 0)
 
   return (
     <div className="p-6">
-      <div className="flex items-start justify-between mb-5">
+      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
         <div>
-          <h1 className={`text-2xl font-bold tracking-tight ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>
-            Deliverability Matrix
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: txt }}>
+            ESP Deliverability Matrix
           </h1>
-          <p className={`text-sm mt-1 ${isLight ? 'text-gray-500' : 'text-[#a8b0be]'}`}>
-            Provider × Domain cross-reference
+          <p className="text-sm mt-1" style={{ color: muted }}>
+            ESP → IP → From Domain → Email Provider
+            {activeDates.length > 0 && ` · ${activeDates[0]} – ${activeDates[activeDates.length - 1]}`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {espList.length > 0 && (
-            <select
-              value={selectedEsp}
-              onChange={e => setSelectedEsp(e.target.value)}
-              className={`px-3 py-1.5 rounded-lg border text-xs font-mono outline-none appearance-none
-                ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`}
-            >
-              {espList.map(e => <option key={e} value={e}>{e}</option>)}
-            </select>
-          )}
-          <span className={`text-[10px] font-mono uppercase tracking-wider ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>From</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: muted }}>From</span>
           <CalendarPicker value={fromDate} onChange={handleFrom} isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} />
-          <span className={`text-xs ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>→</span>
-          <CalendarPicker value={toDate}   onChange={handleTo}   isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} align="right" />
-          <button
-            onClick={handleAll}
-            className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all
-              ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}
-          >
+          <span className="text-xs" style={{ color: muted }}>→</span>
+          <CalendarPicker value={toDate} onChange={handleTo} isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} align="right" />
+          <button onClick={handleAll} className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}>
             All
           </button>
         </div>
       </div>
 
-      {data.dates.length === 0 ? (
-        <div className={`rounded-xl border p-12 text-center ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}>
+      {!hasData ? (
+        <div className="rounded-xl border p-12 text-center" style={{ background: surfaceBg, borderColor: bdr }}>
           <div className="text-4xl mb-4">🔢</div>
-          <div className={`text-lg font-medium ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>No matrix data</div>
-          <div className={`text-sm mt-2 ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>Upload data first.</div>
+          <div className="text-lg font-medium" style={{ color: txt }}>No matrix data</div>
+          <div className="text-sm mt-2" style={{ color: muted }}>Upload data first.</div>
         </div>
       ) : (
-        <div className={`rounded-xl border overflow-auto ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}>
-          <table className="border-collapse" style={{ minWidth: `${180 + domains.length * 110}px` }}>
-            <thead className={isLight ? 'bg-gray-50' : 'bg-[#181c22]'}>
-              <tr>
-                <th className={`px-4 py-3 text-left text-[9px] font-mono tracking-wider uppercase sticky left-0 z-10 border-b border-r
-                  ${isLight ? 'border-black/8 text-gray-700 bg-gray-50' : 'border-white/7 text-[#d4dae6] bg-[#181c22]'}`}>
-                  Provider ↓ / Domain →
-                </th>
-                {domains.map(dom => (
-                  <th key={dom} className={`px-3 py-3 text-[9px] font-mono tracking-wider border-b border-r last:border-r-0 text-center max-w-[110px]
-                    ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
-                    <div className="truncate max-w-[100px]" title={dom}>{dom.split('.')[0]}</div>
-                  </th>
-                ))}
+        <div className="rounded-xl border overflow-auto" style={{ background: surfaceBg, borderColor: bdr }}>
+          <table className="w-full border-collapse" style={{ minWidth: 1100 }}>
+            <thead>
+              <tr style={{ background: headerBg }}>
+                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, minWidth: 180 }}>ESP / IP / From Domain</th>
+                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, minWidth: 160 }}>Email Provider</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Sent</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Delivered</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Soft Bounce</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Hard Bounce</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Opens</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Open Rate %</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Clicks</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Click Rate %</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Complaints</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Unsubscribed</th>
               </tr>
             </thead>
-            <tbody>
-              {providers.map(prov => {
-                const provColor = PROVIDER_COLORS[prov] || '#a8b0be'
-                return (
-                  <tr key={prov} className={`border-b last:border-0 ${isLight ? 'border-black/8' : 'border-white/7'}`}>
-                    <td className={`px-4 py-2.5 sticky left-0 z-10 border-r
-                      ${isLight ? 'bg-white border-black/8' : 'bg-[#111418] border-white/7'}`}>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: provColor }} />
-                        <span className={`text-[11px] font-mono truncate max-w-[140px] ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}>
-                          {prov}
-                        </span>
-                      </div>
-                    </td>
-                    {domains.map(dom => {
-                      const cell = getCellData(prov, dom)
-                      return (
-                        <td key={dom} className={`px-3 py-2.5 text-center border-r last:border-r-0 ${isLight ? 'border-black/8' : 'border-white/7'}`}>
-                          {cell ? (
-                            <div className={`rounded px-1.5 py-1 text-[10px] font-mono font-bold ${getCellColor(cell.deliveryRate)}`}>
-                              {fmtP(cell.deliveryRate, 0)}
-                            </div>
-                          ) : (
-                            <span className="text-[10px] font-mono text-[#6b7280]">—</span>
-                          )}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                )
-              })}
-            </tbody>
+            <tbody>{buildRows()}</tbody>
           </table>
         </div>
       )}
-
-      <div className="flex items-center gap-4 mt-4">
-        <span className={`text-[10px] font-mono uppercase tracking-wider ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>Delivery rate:</span>
-        <div className="flex items-center gap-1.5 text-[10px] font-mono">
-          <span className="px-2 py-0.5 rounded bg-[#00e5c3]/10 text-[#00e5c3]">≥95% OK</span>
-          <span className="px-2 py-0.5 rounded bg-[#ffd166]/15 text-[#ffd166]">≥85% WARN</span>
-          <span className="px-2 py-0.5 rounded bg-[#ff4757]/15 text-[#ff4757]">&lt;85% CRIT</span>
-        </div>
-      </div>
     </div>
   )
 }
