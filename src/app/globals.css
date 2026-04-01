@@ -158,8 +158,5 @@ body.light .section-title h1 { color: #111827; }
 }
 body.light .section-title-sub { color: #6b7280; }
 
-/* ── Light mode text readability: bump gray-400 and dark-mode muted colors ── */
+/* ── Light mode text readability: bump gray-400 ── */
 body.light .text-gray-400 { color: #6b7280; }
-body.light .text-\[#a8b0be\] { color: #6b7280; }
-body.light .text-\[#8a94a6\] { color: #6b7280; }
-body.light .text-\[#5a6478\] { color: #4b5563; }

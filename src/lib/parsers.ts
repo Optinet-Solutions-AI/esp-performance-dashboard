@@ -142,7 +142,11 @@ function extractDomain(email: string): string {
 }
 
 function extractSendingDomain(campaignName: string): string {
-  const m = campaignName.match(/([a-z0-9-]+\.[a-z]{2,})$/i)
+  // Try prefix format first: "domain.com - Campaign Name"
+  const mPrefix = campaignName.match(/^([a-z0-9.-]+\.[a-z]{2,})\s*[-–]/i)
+  if (mPrefix) return mPrefix[1].toLowerCase()
+  // Fallback: domain anywhere in the string
+  const m = campaignName.match(/([a-z0-9-]+\.[a-z]{2,})/i)
   return m ? m[1].toLowerCase() : 'unknown'
 }
 

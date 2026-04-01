@@ -93,7 +93,8 @@ export default function MatrixView() {
     ipmData.filter(r => r.esp?.toLowerCase() === espName.toLowerCase()).forEach(r => {
       if (!r.ip) return
       if (!map[r.ip]) map[r.ip] = []
-      if (r.domain && !map[r.ip].includes(r.domain)) map[r.ip].push(r.domain)
+      const norm = r.domain?.toLowerCase().trim()
+      if (norm && !map[r.ip].includes(norm)) map[r.ip].push(norm)
     })
     return map
   }
@@ -160,14 +161,14 @@ export default function MatrixView() {
       const ipMap = getIpMap(espName)
       const allFromDomains = Object.keys(espData.domains || {})
 
-      // Map from-domains to IPs
+      // Map from-domains to IPs (normalized lowercase keys)
       const domainToIp: Record<string, string> = {}
-      Object.entries(ipMap).forEach(([ip, fds]) => { fds.forEach(fd => { domainToIp[fd] = ip }) })
+      Object.entries(ipMap).forEach(([ip, fds]) => { fds.forEach(fd => { domainToIp[fd.toLowerCase().trim()] = ip }) })
 
       // Group from-domains by IP
       const ipGroups: Record<string, string[]> = {}
       allFromDomains.forEach(fd => {
-        const ip = domainToIp[fd] || 'IP NOT FOUND'
+        const ip = domainToIp[fd.toLowerCase().trim()] || 'IP NOT FOUND'
         if (!ipGroups[ip]) ipGroups[ip] = []
         ipGroups[ip].push(fd)
       })
