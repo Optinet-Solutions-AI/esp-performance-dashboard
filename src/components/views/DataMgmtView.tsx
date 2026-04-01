@@ -12,6 +12,7 @@ import {
 } from 'chart.js'
 import { Bar, Doughnut } from 'react-chartjs-2'
 import { useDashboardStore } from '@/lib/store'
+import { supabase } from '@/lib/supabase'
 import { getGridColor, getTextColor, CHART_TOOLTIP_OPTS } from '@/lib/utils'
 import type { DmRecord } from '@/lib/types'
 
@@ -50,6 +51,12 @@ export default function DataMgmtView() {
       return row
     })
     setDmData(rows)
+
+    // Sync to Supabase: clear old data, insert new
+    await supabase.from('data_management').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    if (rows.length) {
+      await supabase.from('data_management').insert(rows.map(r => ({ raw_data: r })))
+    }
   }
 
   function handleDownload() {
@@ -335,7 +342,13 @@ export default function DataMgmtView() {
             </p>
             <div className="flex gap-2">
               <button
-                onClick={() => { resetAllData(); setResetConfirm(false) }}
+                onClick={async () => {
+                  resetAllData()
+                  setResetConfirm(false)
+                  await supabase.from('uploads').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+                  await supabase.from('ip_matrix').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+                  await supabase.from('data_management').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+                }}
                 className="flex-1 py-2 rounded-lg bg-[#ff4757] text-white text-xs font-mono font-bold uppercase hover:bg-[#ff6370] transition-all"
               >
                 Yes, Clear All

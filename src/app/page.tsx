@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
-import { buildProviderDomains, syncEspFromData, mergeMmData } from '@/lib/utils'
+import { buildProviderDomains, syncEspFromData, overwriteMmData } from '@/lib/utils'
 import { ESP_COLORS, INITIAL_MM_DATA } from '@/lib/data'
 import type { MmData } from '@/lib/types'
 import Sidebar from '@/components/layout/Sidebar'
@@ -24,7 +24,7 @@ const VIEW_LABELS: Record<string, string> = {
 }
 
 export default function Page() {
-  const { activeView, isLight, setEspData, setEsps, esps } = useDashboardStore()
+  const { activeView, isLight, setEspData, setEsps, esps, setIpmData, setDmData } = useDashboardStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [dbLoaded, setDbLoaded] = useState(false)
 
@@ -50,7 +50,7 @@ export default function Page() {
         for (const [espName, uploads] of Object.entries(byEsp)) {
           let merged = INITIAL_MM_DATA as MmData
           for (const data of uploads) {
-            merged = mergeMmData(merged, data)
+            merged = overwriteMmData(merged, data)
           }
           merged.providerDomains = buildProviderDomains(merged)
           setEspData(espName, merged)
@@ -72,6 +72,24 @@ export default function Page() {
         }
 
         if (newEsps.length) setEsps(newEsps)
+
+        // Load IP Matrix data
+        const { data: ipmRows } = await supabase
+          .from('ip_matrix')
+          .select('id, esp, ip, domain')
+          .order('created_at', { ascending: true })
+        if (ipmRows?.length) {
+          setIpmData(ipmRows.map(r => ({ id: r.id, esp: r.esp, ip: r.ip, domain: r.domain ?? '' })))
+        }
+
+        // Load Data Management data
+        const { data: dmRows } = await supabase
+          .from('data_management')
+          .select('raw_data')
+          .order('created_at', { ascending: true })
+        if (dmRows?.length) {
+          setDmData(dmRows.map(r => r.raw_data))
+        }
       } catch (err) {
         console.error('Failed to load from Supabase:', err)
       } finally {

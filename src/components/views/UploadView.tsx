@@ -143,8 +143,34 @@ export default function UploadView() {
     setDeleting(record.id)
     try {
       await supabase.from('uploads').delete().eq('id', record.id)
-      window.location.reload()
+
+      // Rebuild this ESP's data from remaining uploads
+      const { data: remaining } = await supabase
+        .from('uploads')
+        .select('solo_data')
+        .eq('esp', record.esp)
+        .order('uploaded_at', { ascending: true })
+
+      const freshEmpty = (): MmData => ({ dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} })
+      let merged = freshEmpty()
+      if (remaining?.length) {
+        for (const row of remaining) {
+          if (row.solo_data) merged = overwriteMmData(merged, row.solo_data as MmData)
+        }
+      }
+      merged.providerDomains = buildProviderDomains(merged)
+      setEspData(record.esp, merged)
+
+      const existingEsp = esps.find(e => e.name === record.esp)
+      if (existingEsp) {
+        const updated = syncEspFromData(existingEsp, merged)
+        setEsps(esps.map(e => e.name === record.esp ? updated : e))
+      }
+
+      await fetchHistory()
     } catch {
+      // ignore
+    } finally {
       setDeleting(null)
     }
   }

@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react'
 import * as XLSX from 'xlsx'
 import { useDashboardStore } from '@/lib/store'
+import { supabase } from '@/lib/supabase'
 import type { IpmRecord } from '@/lib/types'
 
 /* ── Colors ─────────────────────────────────────────────────────── */
@@ -115,13 +116,22 @@ export default function IPMatrixView() {
     setModal({ open: true, idx, rec })
   }
 
-  function saveModal() {
+  async function saveModal() {
     const esp = (modal.rec.esp === '__new__' ? (modal.rec.espNew ?? '') : modal.rec.esp).trim()
     const ip  = modal.rec.ip.trim()
     if (!esp || !ip) return
     const saved: IpmRecord = { esp, ip, domain: modal.rec.domain.trim() }
-    if (modal.idx !== null) updateIpmRecord(modal.idx, saved)
-    else addIpmRecord(saved)
+
+    if (modal.idx !== null) {
+      const existing = ipmData[modal.idx]
+      updateIpmRecord(modal.idx, { ...saved, id: existing.id })
+      if (existing.id) {
+        await supabase.from('ip_matrix').update({ esp: saved.esp, ip: saved.ip, domain: saved.domain }).eq('id', existing.id)
+      }
+    } else {
+      const { data: inserted } = await supabase.from('ip_matrix').insert({ esp: saved.esp, ip: saved.ip, domain: saved.domain }).select('id').single()
+      addIpmRecord({ ...saved, id: inserted?.id })
+    }
     setModal({ open: false, idx: null, rec: { esp: '', ip: '', domain: '' } })
   }
 
@@ -149,14 +159,24 @@ export default function IPMatrixView() {
       ip:     find('ip', 'ipaddress', 'address'),
       domain: find('domain', 'fromdomain', 'from', 'sender'),
     }
+    const newRecords: { esp: string; ip: string; domain: string }[] = []
     rows.slice(1).forEach(cols => {
-      const r: IpmRecord = {
+      const r = {
         esp:    ci.esp    >= 0 ? String(cols[ci.esp]    ?? '').trim() : '',
         ip:     ci.ip     >= 0 ? String(cols[ci.ip]     ?? '').trim() : '',
         domain: ci.domain >= 0 ? String(cols[ci.domain] ?? '').trim() : '',
       }
-      if (r.esp || r.ip) addIpmRecord(r)
+      if (r.esp || r.ip) newRecords.push(r)
     })
+
+    if (newRecords.length) {
+      const { data: inserted } = await supabase.from('ip_matrix').insert(newRecords).select('id, esp, ip, domain')
+      if (inserted) {
+        inserted.forEach(row => addIpmRecord({ id: row.id, esp: row.esp, ip: row.ip, domain: row.domain }))
+      } else {
+        newRecords.forEach(r => addIpmRecord(r))
+      }
+    }
   }
 
   /* ── Styles ────────────────────────────────────────────────────── */
@@ -418,7 +438,13 @@ export default function IPMatrixView() {
                             <IconPencil />
                           </button>
                           <button
-                            onClick={() => { if (confirm('Delete this record?')) deleteIpmRecord(origIdx) }}
+                            onClick={async () => {
+                              if (confirm('Delete this record?')) {
+                                const rec = ipmData[origIdx]
+                                deleteIpmRecord(origIdx)
+                                if (rec.id) await supabase.from('ip_matrix').delete().eq('id', rec.id)
+                              }
+                            }}
                             title="Delete"
                             className={`p-1.5 rounded-md transition-all ${isLight ? 'text-gray-400 hover:text-red-500 hover:bg-red-50' : 'text-[#6b7280] hover:text-[#ff4757] hover:bg-[#ff4757]/10'}`}>
                             <IconTrash />

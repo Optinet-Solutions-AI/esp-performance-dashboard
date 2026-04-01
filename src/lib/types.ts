@@ -67,6 +67,7 @@ export interface MmData {
 }
 
 export interface IpmRecord {
+  id?: string
   esp: string
   ip: string
   domain: string
