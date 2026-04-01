@@ -399,27 +399,29 @@ export default function MatrixView() {
       ) : (
         <>
         {expandedBreadcrumbs.length > 0 && (
-          <div className="sticky top-0 z-20 flex items-center gap-2 px-4 py-2.5 rounded-t-xl border-b"
+          <div className="fixed left-0 lg:left-[240px] right-0 top-0 lg:top-0 z-30 flex items-center gap-2 px-5 py-2.5 border-b"
             style={{
               background: isLight ? '#f8f9fb' : '#141820',
               borderColor: bdr,
-              boxShadow: `0 2px 6px ${isLight ? 'rgba(0,0,0,.08)' : 'rgba(0,0,0,.3)'}`,
+              boxShadow: `0 2px 8px ${isLight ? 'rgba(0,0,0,.1)' : 'rgba(0,0,0,.5)'}`,
             }}>
-            <span className={`text-[9px] font-mono uppercase tracking-wider ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>Expanded:</span>
-            {expandedBreadcrumbs.map(b => (
-              <button key={b.key} onClick={() => toggle(b.key)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-mono transition-all ${isLight ? 'border-black/15 hover:bg-black/5' : 'border-white/15 hover:bg-white/5'}`}>
-                <span style={{ color: b.color, fontWeight: 600 }}>{b.label}</span>
-                <span className={`text-[9px] ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>x</span>
-              </button>
-            ))}
+            <span className={`text-[9px] font-mono uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>Expanded:</span>
+            <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
+              {expandedBreadcrumbs.map(b => (
+                <button key={b.key} onClick={() => toggle(b.key)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-mono transition-all ${isLight ? 'border-black/15 hover:bg-black/5' : 'border-white/15 hover:bg-white/5'}`}>
+                  <span style={{ color: b.color, fontWeight: 600 }}>{b.label}</span>
+                  <span className={`text-[9px] ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>x</span>
+                </button>
+              ))}
+            </div>
             <button onClick={() => setExpanded({})}
-              className={`ml-auto px-2.5 py-1 rounded-lg border text-[9px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/15 text-gray-500 hover:border-red-300 hover:text-red-500' : 'border-white/15 text-[#6b7280] hover:border-[#ff4757] hover:text-[#ff4757]'}`}>
+              className={`flex-shrink-0 px-2.5 py-1 rounded-lg border text-[9px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/15 text-gray-500 hover:border-red-300 hover:text-red-500' : 'border-white/15 text-[#6b7280] hover:border-[#ff4757] hover:text-[#ff4757]'}`}>
               Collapse All
             </button>
           </div>
         )}
-        <div className={`rounded-xl border overflow-auto ${expandedBreadcrumbs.length > 0 ? 'rounded-t-none border-t-0' : ''}`} style={{ background: surfaceBg, borderColor: bdr }}>
+        <div className={`rounded-xl border overflow-auto ${expandedBreadcrumbs.length > 0 ? 'mt-2' : ''}`} style={{ background: surfaceBg, borderColor: bdr }}>
           <table className="w-full border-collapse" style={{ minWidth: 1100 }}>
             <thead>
               <tr style={{ background: headerBg }}>
