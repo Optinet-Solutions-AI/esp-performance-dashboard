@@ -97,6 +97,26 @@ export default function PerformanceView() {
     },
   }
 
+  const openRateTooltip = {
+    ...CHART_TOOLTIP_OPTS,
+    callbacks: {
+      label: (ctx: any) => {
+        const e = sortedByOpen[ctx.dataIndex]
+        return e ? `Open Rate: ${e.openRate.toFixed(2)}% (${fmtN(e.opens)} / ${fmtN(e.delivered)})` : ''
+      },
+    },
+  }
+
+  const bounceRateTooltip = {
+    ...CHART_TOOLTIP_OPTS,
+    callbacks: {
+      label: (ctx: any) => {
+        const e = activeEsps[ctx.dataIndex]
+        return e ? `Bounce Rate: ${e.bounceRate.toFixed(2)}% (${fmtN(e.bounced)} / ${fmtN(e.sent)})` : ''
+      },
+    },
+  }
+
   const kpis = [
     { label: 'Total Sent', value: fmtN(totalSent), accent: '#a8b0be', sub: `${activeEsps.length} ESP${activeEsps.length !== 1 ? 's' : ''}` },
     { label: 'Avg Delivery Rate', value: fmtP(avgDelivery), accent: '#00e5c3', sub: avgDelivery > 95 ? '▲ Strong delivery' : '▼ Review needed' },
@@ -166,6 +186,7 @@ export default function PerformanceView() {
                   data={openRateChartData}
                   options={{
                     ...commonOptions,
+                    plugins: { ...commonOptions.plugins, tooltip: openRateTooltip },
                     scales: commonScales,
                   }}
                 />
@@ -187,6 +208,7 @@ export default function PerformanceView() {
                   data={bounceRateChartData}
                   options={{
                     ...commonOptions,
+                    plugins: { ...commonOptions.plugins, tooltip: bounceRateTooltip },
                     scales: commonScales,
                   }}
                 />

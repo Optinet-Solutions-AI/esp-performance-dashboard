@@ -138,7 +138,18 @@ export default function DailyView() {
     interaction: { mode: 'index' as const, intersect: false },
     plugins: {
       legend: { display: false },
-      tooltip: { ...CHART_TOOLTIP_OPTS },
+      tooltip: {
+        ...CHART_TOOLTIP_OPTS,
+        callbacks: {
+          label: (ctx: any) => {
+            const row = rows[ctx.dataIndex]
+            if (!row) return `${ctx.dataset.label}: ${fmtN(ctx.parsed.y ?? 0)}`
+            const val = fmtN(ctx.parsed.y ?? 0)
+            if (ctx.dataset.label === 'Delivered') return `Delivered: ${val} — Delivery Rate: ${row.deliveryRate.toFixed(1)}% (${fmtN(row.delivered)} / ${fmtN(row.sent)})`
+            return `${ctx.dataset.label}: ${val}`
+          },
+        },
+      },
     },
     scales: {
       x: {
@@ -159,7 +170,16 @@ export default function DailyView() {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { ...CHART_TOOLTIP_OPTS },
+      tooltip: {
+        ...CHART_TOOLTIP_OPTS,
+        callbacks: {
+          label: (ctx: any) => {
+            const row = rows[ctx.dataIndex]
+            if (!row) return `Bounced: ${fmtN(ctx.parsed.y ?? 0)}`
+            return `Bounced: ${fmtN(row.bounced)} — Bounce Rate: ${row.bounceRate.toFixed(1)}% (${fmtN(row.bounced)} / ${fmtN(row.sent)})`
+          },
+        },
+      },
     },
     scales: {
       x: {

@@ -397,15 +397,17 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
       ? (mmTab === 'provider' ? data.providers[selectedRow]?.byDate : data.domains[selectedRow]?.byDate) ?? {}
       : data.overallByDate
 
+    const rateMetrics = dateGroups.map(g => aggDates(src, g.dates))
+
     rateInst.current = new Chart(rateRef.current, {
       type: 'line',
       data: {
         labels: dateGroups.map(g => g.label),
         datasets: [
-          rateDs('Success Rate', dateGroups.map(g => aggDates(src, g.dates)?.deliveryRate ?? null), RATE_COLORS.successRate),
-          rateDs('Open Rate',    dateGroups.map(g => aggDates(src, g.dates)?.openRate     ?? null), RATE_COLORS.openRate),
-          rateDs('CTR',          dateGroups.map(g => aggDates(src, g.dates)?.clickRate    ?? null), RATE_COLORS.clickRate,  [4, 4]),
-          rateDs('Bounce Rate',  dateGroups.map(g => aggDates(src, g.dates)?.bounceRate   ?? null), RATE_COLORS.bounceRate, [2, 2]),
+          rateDs('Success Rate', rateMetrics.map(r => r?.deliveryRate ?? null), RATE_COLORS.successRate),
+          rateDs('Open Rate',    rateMetrics.map(r => r?.openRate     ?? null), RATE_COLORS.openRate),
+          rateDs('CTR',          rateMetrics.map(r => r?.clickRate    ?? null), RATE_COLORS.clickRate,  [4, 4]),
+          rateDs('Bounce Rate',  rateMetrics.map(r => r?.bounceRate   ?? null), RATE_COLORS.bounceRate, [2, 2]),
         ],
       },
       options: {
@@ -418,7 +420,17 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             intersect: false,
             callbacks: {
               title: (items: any[]) => items[0]?.label ?? '',
-              label: (ctx: any) => `${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toFixed(1)}%`,
+              label: (ctx: any) => {
+                const r = rateMetrics[ctx.dataIndex]
+                if (!r) return `${ctx.dataset.label}: —`
+                const pct = (ctx.parsed.y ?? 0).toFixed(1)
+                const lbl = ctx.dataset.label
+                if (lbl === 'Success Rate') return `${lbl}: ${pct}% (${fmtN(r.delivered)} / ${fmtN(r.sent)})`
+                if (lbl === 'Open Rate')    return `${lbl}: ${pct}% (${fmtN(r.opened)} / ${fmtN(r.delivered)})`
+                if (lbl === 'CTR')          return `${lbl}: ${pct}% (${fmtN(r.clicked)} / ${fmtN(r.opened)})`
+                if (lbl === 'Bounce Rate')  return `${lbl}: ${pct}% (${fmtN(r.bounced)} / ${fmtN(r.sent)})`
+                return `${lbl}: ${pct}%`
+              },
             },
           },
         },
@@ -436,19 +448,26 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
     destroyAll(kpiInsts)
     if (!activeDates.length || !entityData.length) return
 
+    const kpiCalcLabel = (kpiKey: string, r: DateMetrics | null, pct: string) => {
+      if (!r) return pct + '%'
+      if (kpiKey === 'openRate')   return `${pct}% (${fmtN(r.opened)} / ${fmtN(r.delivered)})`
+      if (kpiKey === 'clickRate')  return `${pct}% (${fmtN(r.clicked)} / ${fmtN(r.opened)})`
+      if (kpiKey === 'bounceRate') return `${pct}% (${fmtN(r.bounced)} / ${fmtN(r.sent)})`
+      if (kpiKey === 'unsubRate')  return `${pct}% (${fmtN(r.unsubscribed ?? 0)} / ${fmtN(r.opened)})`
+      return pct + '%'
+    }
+
     KPI_DEFS.forEach((kpi, i) => {
       const canvas = kpiRefs.current[i]
       if (!canvas) return
       if (embedView === 'date') {
+        const kpiMetricsPerEntity = entityData.map(e => dateGroups.map(g => aggDates(e.byDate, g.dates)))
         kpiInsts.current[i] = new Chart(canvas, {
           type: 'line',
           data: {
             labels: dateGroups.map(g => g.label),
-            datasets: entityData.map(e =>
-              rateDs(e.name, dateGroups.map(g => {
-                const r = aggDates(e.byDate, g.dates)
-                return r ? ((r[kpi.key] as number) ?? null) : null
-              }), e.color, [], false)
+            datasets: entityData.map((e, ei) =>
+              rateDs(e.name, kpiMetricsPerEntity[ei].map(r => r ? ((r[kpi.key] as number) ?? null) : null), e.color, [], false)
             ),
           },
           options: {
@@ -461,7 +480,10 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                 intersect: false,
                 callbacks: {
                   title: (items: any[]) => items[0]?.label ?? '',
-                  label: (ctx: any) => `${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toFixed(1)}%`,
+                  label: (ctx: any) => {
+                    const r = kpiMetricsPerEntity[ctx.datasetIndex]?.[ctx.dataIndex]
+                    return `${ctx.dataset.label}: ${kpiCalcLabel(kpi.key, r, (ctx.parsed.y ?? 0).toFixed(1))}`
+                  },
                 },
               },
             },
@@ -472,6 +494,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           },
         })
       } else {
+        const barMetrics = entityData.map(e => e.data ?? null)
         kpiInsts.current[i] = new Chart(canvas, {
           type: 'bar',
           data: {
@@ -488,7 +511,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             responsive: true, maintainAspectRatio: false,
             plugins: {
               legend: { display: false },
-              tooltip: { ...CHART_TOOLTIP_OPTS, callbacks: { label: ctx => `${(ctx.parsed.y ?? 0).toFixed(2)}%` } },
+              tooltip: { ...CHART_TOOLTIP_OPTS, callbacks: { label: (ctx: any) => kpiCalcLabel(kpi.key, barMetrics[ctx.dataIndex], (ctx.parsed.y ?? 0).toFixed(2)) } },
             },
             scales: {
               x: { ticks: { color: tc, font: { size: 9 }, maxRotation: 30 }, grid: { display: false } },
