@@ -11,7 +11,7 @@ import {
 } from 'chart.js'
 import { Bar } from 'react-chartjs-2'
 import { useDashboardStore } from '@/lib/store'
-import { fmtN, fmtP, getGridColor, getTextColor, CHART_TOOLTIP_OPTS } from '@/lib/utils'
+import { fmtN, fmtP, getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
@@ -93,12 +93,12 @@ export default function PerformanceView() {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { ...CHART_TOOLTIP_OPTS },
+      tooltip: { ...chartTooltip(isLight) },
     },
   }
 
   const openRateTooltip = {
-    ...CHART_TOOLTIP_OPTS,
+    ...chartTooltip(isLight),
     callbacks: {
       label: (ctx: any) => {
         const e = sortedByOpen[ctx.dataIndex]
@@ -108,7 +108,7 @@ export default function PerformanceView() {
   }
 
   const bounceRateTooltip = {
-    ...CHART_TOOLTIP_OPTS,
+    ...chartTooltip(isLight),
     callbacks: {
       label: (ctx: any) => {
         const e = activeEsps[ctx.dataIndex]

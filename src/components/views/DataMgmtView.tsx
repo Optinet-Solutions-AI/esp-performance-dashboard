@@ -13,7 +13,7 @@ import {
 import { Bar, Doughnut } from 'react-chartjs-2'
 import { useDashboardStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
-import { getGridColor, getTextColor, CHART_TOOLTIP_OPTS } from '@/lib/utils'
+import { getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
 import type { DmRecord } from '@/lib/types'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend)
@@ -200,7 +200,7 @@ export default function DataMgmtView() {
               maintainAspectRatio: false,
               plugins: {
                 legend: { display: false },
-                tooltip: { ...CHART_TOOLTIP_OPTS },
+                tooltip: { ...chartTooltip(isLight) },
               },
               scales: {
                 x: {
@@ -231,7 +231,7 @@ export default function DataMgmtView() {
                     boxHeight: 12,
                   },
                 },
-                tooltip: { ...CHART_TOOLTIP_OPTS },
+                tooltip: { ...chartTooltip(isLight) },
               },
             }
 

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Chart } from 'chart.js/auto'
 import { useDashboardStore } from '@/lib/store'
-import { aggDates, fmtN, fmtP, getGridColor, getTextColor, CHART_TOOLTIP_OPTS } from '@/lib/utils'
+import { aggDates, fmtN, fmtP, getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
 import { PROVIDER_COLORS, DOMAIN_COLORS, IP_COLOR_PALETTE, ESP_COLORS } from '@/lib/data'
 import type { MmData, MmTabType, DateMetrics } from '@/lib/types'
 import CalendarPicker from '@/components/ui/CalendarPicker'
@@ -370,7 +370,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
         plugins: {
           legend: { display: false },
           tooltip: {
-            ...CHART_TOOLTIP_OPTS,
+            ...chartTooltip(isLight),
             mode: 'index',
             intersect: false,
             callbacks: {
@@ -415,7 +415,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
         plugins: {
           legend: { display: false },
           tooltip: {
-            ...CHART_TOOLTIP_OPTS,
+            ...chartTooltip(isLight),
             mode: 'index',
             intersect: false,
             callbacks: {
@@ -475,7 +475,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             plugins: {
               legend: { display: false },
               tooltip: {
-                ...CHART_TOOLTIP_OPTS,
+                ...chartTooltip(isLight),
                 mode: 'index',
                 intersect: false,
                 callbacks: {
@@ -511,7 +511,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             responsive: true, maintainAspectRatio: false,
             plugins: {
               legend: { display: false },
-              tooltip: { ...CHART_TOOLTIP_OPTS, callbacks: { label: (ctx: any) => kpiCalcLabel(kpi.key, barMetrics[ctx.dataIndex], (ctx.parsed.y ?? 0).toFixed(2)) } },
+              tooltip: { ...chartTooltip(isLight), callbacks: { label: (ctx: any) => kpiCalcLabel(kpi.key, barMetrics[ctx.dataIndex], (ctx.parsed.y ?? 0).toFixed(2)) } },
             },
             scales: {
               x: { ticks: { color: tc, font: { size: 9 }, maxRotation: 30 }, grid: { display: false } },
@@ -567,7 +567,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           plugins: {
             legend: { display: false },
             tooltip: {
-              ...CHART_TOOLTIP_OPTS,
+              ...chartTooltip(isLight),
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               callbacks: { label: (ctx: any) => `${ctx.label}: ${fmtN(ctx.parsed)} (${total > 0 ? (ctx.parsed / total * 100).toFixed(1) : '0.0'}%)` },
             },
@@ -729,12 +729,12 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                         style={{ left: kpiTooltip.x, top: kpiTooltip.y, minWidth: 240 }}
                       >
                         <div className="rounded-xl shadow-2xl p-4"
-                          style={{ background: '#1a1e26', border: '1px solid rgba(255,255,255,0.14)' }}>
-                          <div className="text-[9px] font-mono tracking-widest uppercase mb-2" style={{ color: '#6b7280' }}>{k.tip.title}</div>
-                          <div className="text-2xl font-bold font-mono text-white mb-3">{k.tip.exact}</div>
-                          <div className="text-[9px] font-mono tracking-widest uppercase mb-1.5" style={{ color: '#ffd166' }}>Formula</div>
-                          <div className="text-[11px] font-mono mb-1" style={{ color: k.tip.color }}>{k.tip.formula}</div>
-                          <div className="text-[11px] font-mono" style={{ color: k.tip.color }}>{k.tip.calc}</div>
+                          style={{ background: isLight ? '#ffffff' : '#1a1e26', border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.14)'}` }}>
+                          <div className="text-[9px] font-mono tracking-widest uppercase mb-2" style={{ color: isLight ? '#9ca3af' : '#6b7280' }}>{k.tip.title}</div>
+                          <div className="text-2xl font-bold font-mono mb-3" style={{ color: isLight ? '#111827' : '#ffffff' }}>{k.tip.exact}</div>
+                          <div className="text-[9px] font-mono tracking-widest uppercase mb-1.5" style={{ color: isLight ? '#b45309' : '#ffd166' }}>Formula</div>
+                          <div className="text-[11px] font-mono mb-1" style={{ color: isLight ? '#374151' : k.tip.color }}>{k.tip.formula}</div>
+                          <div className="text-[11px] font-mono" style={{ color: isLight ? '#374151' : k.tip.color }}>{k.tip.calc}</div>
                         </div>
                       </div>
                     )}
@@ -1206,12 +1206,12 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           {/* Grid tooltip */}
           {gridTip && (
             <div className="fixed z-[9999] pointer-events-none" style={{ left: gridTip.x, top: gridTip.y, minWidth: 230 }}>
-              <div className="rounded-xl shadow-2xl p-4" style={{ background: '#1a1e26', border: '1px solid rgba(255,255,255,0.14)' }}>
-                <div className="text-[9px] font-mono tracking-widest uppercase mb-2" style={{ color: '#6b7280' }}>{gridTip.title}</div>
-                <div className="text-2xl font-bold font-mono text-white mb-3">{gridTip.exact}</div>
-                <div className="text-[9px] font-mono tracking-widest uppercase mb-1.5" style={{ color: '#ffd166' }}>Formula</div>
-                <div className="text-[11px] font-mono mb-1" style={{ color: gridTip.color }}>{gridTip.formula}</div>
-                <div className="text-[11px] font-mono" style={{ color: gridTip.color }}>{gridTip.calc}</div>
+              <div className="rounded-xl shadow-2xl p-4" style={{ background: isLight ? '#ffffff' : '#1a1e26', border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.14)'}` }}>
+                <div className="text-[9px] font-mono tracking-widest uppercase mb-2" style={{ color: isLight ? '#9ca3af' : '#6b7280' }}>{gridTip.title}</div>
+                <div className="text-2xl font-bold font-mono mb-3" style={{ color: isLight ? '#111827' : '#ffffff' }}>{gridTip.exact}</div>
+                <div className="text-[9px] font-mono tracking-widest uppercase mb-1.5" style={{ color: isLight ? '#b45309' : '#ffd166' }}>Formula</div>
+                <div className="text-[11px] font-mono mb-1" style={{ color: isLight ? '#374151' : gridTip.color }}>{gridTip.formula}</div>
+                <div className="text-[11px] font-mono" style={{ color: isLight ? '#374151' : gridTip.color }}>{gridTip.calc}</div>
               </div>
             </div>
           )}

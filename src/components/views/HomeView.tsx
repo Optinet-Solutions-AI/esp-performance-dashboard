@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react'
 import { Chart } from 'chart.js/auto'
 import { useDashboardStore } from '@/lib/store'
-import { fmtN, getGridColor, getTextColor, CHART_TOOLTIP_OPTS } from '@/lib/utils'
+import { fmtN, getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
 import { ESP_COLORS } from '@/lib/data'
 import KpiCard from '@/components/ui/KpiCard'
 import ChartCard, { LegendItem } from '@/components/ui/ChartCard'
@@ -60,7 +60,7 @@ export default function HomeView() {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { ...CHART_TOOLTIP_OPTS } },
+        plugins: { legend: { display: false }, tooltip: { ...chartTooltip(isLight) } },
         scales: {
           x: { ticks: { color: tc, font: { size: 10 } }, grid: { display: false }, border: { display: false } },
           y: {
@@ -94,7 +94,7 @@ export default function HomeView() {
       options: {
         responsive: true, maintainAspectRatio: false,
         cutout: '68%',
-        plugins: { legend: { display: false }, tooltip: { ...CHART_TOOLTIP_OPTS } },
+        plugins: { legend: { display: false }, tooltip: { ...chartTooltip(isLight) } },
       },
     })
     return () => { catChart.current?.destroy(); catChart.current = null }

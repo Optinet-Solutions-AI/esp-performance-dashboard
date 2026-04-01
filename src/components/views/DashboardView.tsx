@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Chart } from 'chart.js/auto'
 import { useDashboardStore } from '@/lib/store'
-import { fmtN, fmtP, exportCSV, getGridColor, getTextColor, CHART_TOOLTIP_OPTS } from '@/lib/utils'
+import { fmtN, fmtP, exportCSV, getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
 import KpiCard from '@/components/ui/KpiCard'
 import ChartCard, { LegendItem } from '@/components/ui/ChartCard'
 import StatusPill from '@/components/ui/StatusPill'
@@ -60,7 +60,7 @@ export default function DashboardView() {
 
     const baseOpts = {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { ...CHART_TOOLTIP_OPTS } },
+      plugins: { legend: { display: false }, tooltip: { ...chartTooltip(isLight) } },
     }
 
     if (sentRef.current) {
@@ -101,7 +101,7 @@ export default function DashboardView() {
             { label: 'Opens', data: daily7.map(d => d.opens), borderColor: '#7c5cfc', backgroundColor: 'transparent', tension: 0.3, borderWidth: 2 },
           ],
         },
-        options: { ...baseOpts, plugins: { legend: { display: false }, tooltip: { ...CHART_TOOLTIP_OPTS } }, scales: { x: { ticks: { color: tc, font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: tc, font: { size: 9 }, callback: v => fmtN(Number(v)) }, grid: { color: gc }, border: { display: false } } } },
+        options: { ...baseOpts, plugins: { legend: { display: false }, tooltip: { ...chartTooltip(isLight) } }, scales: { x: { ticks: { color: tc, font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: tc, font: { size: 9 }, callback: v => fmtN(Number(v)) }, grid: { color: gc }, border: { display: false } } } },
       })
     }
 

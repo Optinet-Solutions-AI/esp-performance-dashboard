@@ -13,7 +13,7 @@ import {
 } from 'chart.js'
 import { Line, Bar } from 'react-chartjs-2'
 import { useDashboardStore } from '@/lib/store'
-import { fmtN, fmtP, getGridColor, getTextColor, CHART_TOOLTIP_OPTS, aggDates } from '@/lib/utils'
+import { fmtN, fmtP, getGridColor, getTextColor, chartTooltip, aggDates } from '@/lib/utils'
 import type { DateMetrics } from '@/lib/types'
 
 ChartJS.register(
@@ -139,7 +139,7 @@ export default function DailyView() {
     plugins: {
       legend: { display: false },
       tooltip: {
-        ...CHART_TOOLTIP_OPTS,
+        ...chartTooltip(isLight),
         callbacks: {
           label: (ctx: any) => {
             const row = rows[ctx.dataIndex]
@@ -171,7 +171,7 @@ export default function DailyView() {
     plugins: {
       legend: { display: false },
       tooltip: {
-        ...CHART_TOOLTIP_OPTS,
+        ...chartTooltip(isLight),
         callbacks: {
           label: (ctx: any) => {
             const row = rows[ctx.dataIndex]

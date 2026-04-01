@@ -322,6 +322,12 @@ export const CHART_TOOLTIP_OPTS = {
   borderWidth: 1,
 }
 
+export function chartTooltip(isLight: boolean) {
+  return isLight
+    ? { backgroundColor: '#ffffff', titleColor: '#111827', bodyColor: '#374151', borderColor: 'rgba(0,0,0,0.12)', borderWidth: 1 }
+    : CHART_TOOLTIP_OPTS
+}
+
 export const getGridColor = (isLight: boolean) =>
   isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.05)'
 
