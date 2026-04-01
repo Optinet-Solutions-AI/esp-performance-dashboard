@@ -233,6 +233,14 @@ export default function IPMatrixView() {
       month: 'short', day: 'numeric', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     })
+    if (!parsed.length) return
+    const { data: inserted } = await supabase
+      .from('ip_matrix')
+      .insert(parsed.map(r => ({ esp: r.esp, ip: r.ip, domain: r.domain })))
+      .select()
+    if (inserted) {
+      inserted.forEach(r => addIpmRecord({ id: r.id, esp: r.esp, ip: r.ip, domain: r.domain ?? '' }))
+    }
   }
 
   /* ── Styles ────────────────────────────────────────────────────── */
