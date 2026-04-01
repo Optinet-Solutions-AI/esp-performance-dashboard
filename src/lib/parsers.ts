@@ -256,9 +256,10 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
     const isBounced = isMailmodo
       ? (row['bounced'] === '1' || row['bounced'] === 'true' || row['bounced'] === 'TRUE') ? 1 : 0
       : Number(row['bounced'] || row['bounce'] || 0)
+    const hardBounceRaw = row['ishardbounce'] || row['ishardbounced'] || row['is-hard-bounced'] || row['is-hard-bounce'] || row['hardbounce'] || row['hard-bounce'] || row['hard_bounce'] || row['hard_bounced'] || ''
     const isHard = isMailmodo
-      ? (row['ishardbounced'] === '1' || row['ishardbounced'] === 'true' || row['ishardbounced'] === 'TRUE' || row['is-hard-bounced'] === '1' || row['is-hard-bounced'] === 'true' || row['is-hard-bounced'] === 'TRUE') ? 1 : 0
-      : Number(row['hard_bounced'] || row['hardbounced'] || row['hard-bounced'] || 0)
+      ? (hardBounceRaw === '1' || hardBounceRaw === 'true' || hardBounceRaw === 'TRUE') ? 1 : 0
+      : Number(hardBounceRaw || 0)
     const hardBounced = isBounced > 0 ? Math.min(isHard, isBounced) : 0
     const softBounced = isBounced > 0 ? isBounced - hardBounced : 0
 
