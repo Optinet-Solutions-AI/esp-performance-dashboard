@@ -58,10 +58,11 @@ export default function MatrixView() {
     if (!selectedEsp || !store.espData[selectedEsp]) setSelectedEsp(espList[0] || '')
   }, [espList.length]) // eslint-disable-line
 
-  const data = store.espData[selectedEsp] ?? EMPTY_DATA
-  const fromIdx = store.espRanges[selectedEsp]?.fromIdx ?? 0
-  const toIdx = store.espRanges[selectedEsp]?.toIdx ?? Math.max(0, data.dates.length - 1)
-  const setRange = (from: number, to: number) => store.setEspRange(selectedEsp, from, to)
+  const effectiveEsp = selectedEsp || espList[0] || ''
+  const data = store.espData[effectiveEsp] ?? EMPTY_DATA
+  const fromIdx = store.espRanges[effectiveEsp]?.fromIdx ?? 0
+  const toIdx = store.espRanges[effectiveEsp]?.toIdx ?? Math.max(0, data.dates.length - 1)
+  const setRange = (from: number, to: number) => store.setEspRange(effectiveEsp, from, to)
 
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -93,7 +94,7 @@ export default function MatrixView() {
     ipmData.filter(r => r.esp?.toLowerCase() === espName.toLowerCase()).forEach(r => {
       if (!r.ip) return
       if (!map[r.ip]) map[r.ip] = []
-      const norm = r.domain?.toLowerCase().trim()
+      const norm = r.domain ? r.domain.toLowerCase().trim() : ''
       if (norm && !map[r.ip].includes(norm)) map[r.ip].push(norm)
     })
     return map
