@@ -78,7 +78,7 @@ export default function UploadView() {
 
       // Compute solo data for this upload only
       const { data: soloData } = mergeIntoMmData(freshEmpty(), parsed, esp)
-      soloData.providerDomains = buildProviderDomains(soloData)
+      // providerDomains already populated by mergeIntoMmData with actual per-row data
 
       // Save new upload to DB — always insert, never delete previous uploads
       const category = esp === 'Ongage' ? 'ongage' : 'mailmodo'
@@ -106,7 +106,7 @@ export default function UploadView() {
           if (row.solo_data) merged = overwriteMmData(merged, row.solo_data as MmData)
         }
       }
-      merged.providerDomains = buildProviderDomains(merged)
+      // providerDomains already merged by overwriteMmData from solo_data
       setEspData(esp, merged)
 
       const existingEsp = esps.find(e => e.name === esp)
@@ -160,7 +160,7 @@ export default function UploadView() {
           if (row.solo_data) merged = overwriteMmData(merged, row.solo_data as MmData)
         }
       }
-      merged.providerDomains = buildProviderDomains(merged)
+      // providerDomains already merged by overwriteMmData
       setEspData(record.esp, merged)
 
       const existingEsp = esps.find(e => e.name === record.esp)

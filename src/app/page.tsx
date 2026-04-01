@@ -54,7 +54,7 @@ export default function Page() {
           for (const data of uploads) {
             merged = overwriteMmData(merged, data)
           }
-          merged.providerDomains = buildProviderDomains(merged)
+          // providerDomains already merged by overwriteMmData from solo_data
           setEspData(espName, merged)
 
           const existing = newEsps.find(e => e.name === espName)

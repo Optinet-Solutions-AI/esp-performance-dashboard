@@ -56,6 +56,8 @@ export interface ProviderDomainCell {
   opened: number
   clicked: number
   bounced: number
+  hardBounced?: number
+  softBounced?: number
   unsubscribed: number
 }
 

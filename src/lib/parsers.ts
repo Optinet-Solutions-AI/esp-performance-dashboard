@@ -16,7 +16,7 @@ interface ParseResult {
     providers: Record<string, DateMetrics>
     domains: Record<string, DateMetrics>
     providerDomains: Record<string, Record<string, {
-      sent: number; delivered: number; opened: number; clicked: number; bounced: number; unsubscribed: number
+      sent: number; delivered: number; opened: number; clicked: number; bounced: number; hardBounced: number; softBounced: number; unsubscribed: number
     }>>
   }>
   dates: string[]
@@ -291,7 +291,7 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
 
     if (!bucket.providerDomains[providerDomain]) bucket.providerDomains[providerDomain] = {}
     if (!bucket.providerDomains[providerDomain][sendingDomain]) {
-      bucket.providerDomains[providerDomain][sendingDomain] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, unsubscribed: 0 }
+      bucket.providerDomains[providerDomain][sendingDomain] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, hardBounced: 0, softBounced: 0, unsubscribed: 0 }
     }
     const pd = bucket.providerDomains[providerDomain][sendingDomain]
     pd.sent += metrics.sent
@@ -299,6 +299,8 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
     pd.opened += metrics.opened
     pd.clicked += metrics.clicked
     pd.bounced += metrics.bounced
+    pd.hardBounced = (pd.hardBounced || 0) + (metrics.hardBounced || 0)
+    pd.softBounced = (pd.softBounced || 0) + (metrics.softBounced || 0)
     pd.unsubscribed += metrics.unsubscribed || 0
   })
 
@@ -343,6 +345,25 @@ export function mergeIntoMmData(current: MmData, result: ReturnType<typeof parse
       mergeMetrics(data.domains[dom].byDate[date], metrics)
       recalcRates(data.domains[dom].byDate[date])
     })
+
+    // Merge providerDomains (actual per-provider per-domain data)
+    if (bucket.providerDomains) {
+      if (!data.providerDomains) data.providerDomains = {}
+      Object.entries(bucket.providerDomains).forEach(([prov, domMap]) => {
+        if (!data.providerDomains[prov]) data.providerDomains[prov] = {}
+        Object.entries(domMap).forEach(([dom, cell]) => {
+          if (!data.providerDomains[prov][dom]) {
+            data.providerDomains[prov][dom] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, hardBounced: 0, softBounced: 0, unsubscribed: 0 }
+          }
+          const t = data.providerDomains[prov][dom]
+          t.sent += cell.sent || 0; t.delivered += cell.delivered || 0
+          t.opened += cell.opened || 0; t.clicked += cell.clicked || 0
+          t.bounced += cell.bounced || 0; t.hardBounced = (t.hardBounced || 0) + (cell.hardBounced || 0)
+          t.softBounced = (t.softBounced || 0) + (cell.softBounced || 0)
+          t.unsubscribed += cell.unsubscribed || 0
+        })
+      })
+    }
 
     // Overall
     if (!data.overallByDate[date]) data.overallByDate[date] = blankMetrics()

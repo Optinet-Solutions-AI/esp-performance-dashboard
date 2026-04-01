@@ -277,7 +277,10 @@ export default function MatrixView() {
 
           const fdProviders = Object.entries(espData.providerDomains || {})
             .filter(([, domMap]) => domMap[fd] && domMap[fd].sent > 0)
-            .map(([prov, domMap]) => ({ name: prov, agg: domMap[fd] as unknown as Agg }))
+            .map(([prov, domMap]) => {
+              const c = domMap[fd]
+              return { name: prov, agg: { sent: c.sent, delivered: c.delivered, opened: c.opened, clicked: c.clicked, bounced: c.bounced, hardBounced: c.hardBounced || 0, softBounced: c.softBounced || 0, unsubscribed: c.unsubscribed, complained: 0 } as Agg }
+            })
             .sort((a, b) => b.agg.sent - a.agg.sent)
 
           const fdBg = isLight ? 'rgba(0,0,0,.025)' : 'rgba(255,255,255,.025)'

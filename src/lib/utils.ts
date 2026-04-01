@@ -249,9 +249,23 @@ export function mergeMmData(a: MmData, b: MmData): MmData {
     overallByDate[d] = am && bm ? mergeMetrics(am, bm) : (am || bm)
   })
 
-  const merged: MmData = { dates, datesFull, providers, domains, overallByDate, providerDomains: {} }
-  merged.providerDomains = buildProviderDomains(merged)
-  return merged
+  // Merge providerDomains from both sources
+  const pdMerged: MmData['providerDomains'] = {}
+  const addPd = (src: MmData['providerDomains']) => {
+    Object.entries(src || {}).forEach(([prov, domMap]) => {
+      if (!pdMerged[prov]) pdMerged[prov] = {}
+      Object.entries(domMap).forEach(([dom, cell]) => {
+        if (!pdMerged[prov][dom]) pdMerged[prov][dom] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, hardBounced: 0, softBounced: 0, unsubscribed: 0 }
+        const t = pdMerged[prov][dom]; t.sent += cell.sent; t.delivered += cell.delivered
+        t.opened += cell.opened; t.clicked += cell.clicked; t.bounced += cell.bounced
+        t.hardBounced = (t.hardBounced || 0) + (cell.hardBounced || 0)
+        t.softBounced = (t.softBounced || 0) + (cell.softBounced || 0)
+        t.unsubscribed += cell.unsubscribed
+      })
+    })
+  }
+  addPd(a.providerDomains); addPd(b.providerDomains)
+  return { dates, datesFull, providers, domains, overallByDate, providerDomains: pdMerged }
 }
 
 /**
@@ -318,7 +332,17 @@ export function overwriteMmData(base: MmData, override: MmData): MmData {
     d.overall = vals.length ? vals.reduce((acc, m) => mergeMetrics(acc, m)) : d.overall
   })
 
-  result.providerDomains = buildProviderDomains(result)
+  // Merge providerDomains: use override's actual data, keep base for non-overridden providers
+  const basePd = JSON.parse(JSON.stringify(base.providerDomains || {}))
+  const overPd = override.providerDomains || {}
+  // Override replaces per-provider per-domain cells entirely
+  Object.entries(overPd).forEach(([prov, domMap]) => {
+    if (!basePd[prov]) basePd[prov] = {}
+    Object.entries(domMap as Record<string, unknown>).forEach(([dom, cell]) => {
+      basePd[prov][dom] = cell
+    })
+  })
+  result.providerDomains = basePd
   return result
 }
 
