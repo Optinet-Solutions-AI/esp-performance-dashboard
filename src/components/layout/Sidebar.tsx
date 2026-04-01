@@ -83,41 +83,21 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
       width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
       background: bg, borderRight: `1px solid ${borderColor}`,
     }}>
-      {/* Logo + collapse toggle */}
+      {/* Logo */}
       <div style={{ padding: collapsed ? '16px 8px' : '20px 16px 16px', borderBottom: `1px solid ${borderColor}`, flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
           {collapsed ? (
-            <button onClick={onToggleCollapse} title="Expand sidebar"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: mutedColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+            <div style={{ fontSize: 15, fontWeight: 700, color: activeAccent, textAlign: 'center' }}>E</div>
           ) : (
-            <>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: 9, fontFamily: 'Space Mono,monospace', letterSpacing: '0.2em', textTransform: 'uppercase', color: mutedColor, marginBottom: 3 }}>
-                  Email Ops
-                </div>
-                <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1 }}>
-                  <span style={{ color: isLight ? '#111827' : '#f0f2f5' }}>ESP</span>
-                  <span style={{ color: activeAccent }}> Control</span>
-                </div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 9, fontFamily: 'Space Mono,monospace', letterSpacing: '0.2em', textTransform: 'uppercase', color: mutedColor, marginBottom: 3 }}>
+                Email Ops
               </div>
-              {onToggleCollapse && (
-                <button onClick={onToggleCollapse} title="Collapse sidebar"
-                  style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: mutedColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-              )}
-              {onClose && (
-                <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: mutedColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              )}
-            </>
+              <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1 }}>
+                <span style={{ color: isLight ? '#111827' : '#f0f2f5' }}>ESP</span>
+                <span style={{ color: activeAccent }}> Control</span>
+              </div>
+            </div>
           )}
         </div>
       </div>

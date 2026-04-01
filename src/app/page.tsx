@@ -161,28 +161,32 @@ export default function Page() {
 
       {/* Main content */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        {/* Mobile top bar */}
+        {/* Top bar — always visible, toggles sidebar */}
         <header
-          className="lg:hidden"
           style={{
             position: 'sticky', top: 0, zIndex: 20,
             display: 'flex', alignItems: 'center', gap: 12,
-            padding: '0 16px', height: 56,
+            padding: '0 16px', height: 48,
             background: isLight ? 'rgba(255,255,255,0.92)' : 'rgba(17,20,24,0.92)',
             borderBottom: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.06)',
             backdropFilter: 'blur(12px)',
           }}
         >
           <button
-            onClick={() => setSidebarOpen(true)}
+            onClick={() => {
+              // On mobile (< lg), open the drawer; on desktop, toggle collapse
+              if (window.innerWidth < 1024) setSidebarOpen(true)
+              else setSidebarCollapsed(c => !c)
+            }}
             style={{
-              width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 10, border: 'none', background: 'transparent', cursor: 'pointer',
+              width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer',
               color: isLight ? '#374151' : '#a8b0be',
             }}
           >
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" d="M15 19l-7-7 7-7" />
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+              style={{ transition: 'transform 0.2s', transform: sidebarCollapsed ? 'rotate(180deg)' : 'none' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div>
