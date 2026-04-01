@@ -157,10 +157,13 @@ export default function MatrixView() {
 
     espList.forEach(espName => {
       const espData = store.espData[espName]
-      if (!espData) return
+      if (!espData || !espData.dates.length) return
       const espColor = ESP_COLORS[espName] || '#7c5cfc'
       const ipMap = getIpMap(espName)
       const allFromDomains = Object.keys(espData.domains || {})
+
+      // Use this ESP's own dates for aggregation (filtered by the global date range if applicable)
+      const espActiveDates = activeDates.length > 0 ? activeDates.filter(d => espData.dates.includes(d)) : espData.dates
 
       // Map from-domains to IPs (normalized lowercase keys)
       const domainToIp: Record<string, string> = {}
@@ -184,7 +187,7 @@ export default function MatrixView() {
 
       // ESP total
       const espTot = emptyAgg()
-      Object.values(espData.providers || {}).forEach(p => { const a = mxAgg(p.byDate, activeDates); addAgg(espTot, a) })
+      Object.values(espData.providers || {}).forEach(p => { const a = mxAgg(p.byDate, espActiveDates); addAgg(espTot, a) })
 
       if (espTot.sent === 0) return
 
@@ -223,7 +226,7 @@ export default function MatrixView() {
         const ipTot = emptyAgg()
         fromDomains.forEach(fd => {
           const d = espData.domains[fd]
-          if (d) { const a = mxAgg(d.byDate, activeDates); addAgg(ipTot, a) }
+          if (d) { const a = mxAgg(d.byDate, espActiveDates); addAgg(ipTot, a) }
         })
         if (ipTot.sent === 0) return
 
@@ -231,7 +234,7 @@ export default function MatrixView() {
         const ipEx = !!expanded[ipKey]
         const activeFds = fromDomains.filter(fd => {
           const d = espData.domains[fd]; if (!d) return false
-          const a = mxAgg(d.byDate, activeDates); return a.sent > 0
+          const a = mxAgg(d.byDate, espActiveDates); return a.sent > 0
         })
 
         const ipBg = isLight ? 'rgba(0,0,0,.015)' : 'rgba(255,255,255,.015)'
@@ -259,7 +262,7 @@ export default function MatrixView() {
         // Level 3: From Domains
         fromDomains.forEach(fd => {
           const fdData = espData.domains[fd]
-          const fdAgg = fdData ? mxAgg(fdData.byDate, activeDates) : emptyAgg()
+          const fdAgg = fdData ? mxAgg(fdData.byDate, espActiveDates) : emptyAgg()
           if (fdAgg.sent === 0) return
 
           const fdKey = `fd||${espName}||${ip}||${fd}`
@@ -342,7 +345,10 @@ export default function MatrixView() {
     return rows
   }
 
-  const hasData = espList.some(e => store.espData[e]?.dates.length > 0)
+  const hasData = espList.some(e => {
+    const d = store.espData[e]
+    return d && d.dates.length > 0 && (Object.keys(d.providers).length > 0 || Object.keys(d.domains).length > 0)
+  })
 
   return (
     <div className="p-6">
