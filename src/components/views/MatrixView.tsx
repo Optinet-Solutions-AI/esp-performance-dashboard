@@ -427,23 +427,23 @@ export default function MatrixView() {
             </button>
           </div>
         )}
-        <div className={`rounded-xl border overflow-auto ${expandedBreadcrumbs.length > 0 ? 'mt-2' : ''}`} style={{ background: surfaceBg, borderColor: bdr }}>
+        <div className={`rounded-xl border overflow-auto ${expandedBreadcrumbs.length > 0 ? 'mt-2' : ''}`} style={{ background: surfaceBg, borderColor: bdr, maxHeight: 'calc(100vh - 180px)' }}>
           <table className="w-full border-collapse" style={{ minWidth: 1100 }}>
             <thead>
               <tr style={{ background: headerBg }}>
-                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, minWidth: 180 }}>ESP / IP / From Domain</th>
-                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, minWidth: 160 }}>Email Provider</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Sent</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Delivered</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Total Bounces</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Soft Bounce</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Hard Bounce</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Opens</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Open Rate %</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Clicks</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Click Rate %</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Complaints</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt }}>Unsubscribed</th>
+                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, minWidth: 180, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>ESP / IP / From Domain</th>
+                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, minWidth: 160, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Email Provider</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Sent</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Delivered</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Total Bounces</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Soft Bounce</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Hard Bounce</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Opens</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Open Rate %</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Clicks</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Click Rate %</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Complaints</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Unsubscribed</th>
               </tr>
             </thead>
             <tbody>{buildRows()}</tbody>
