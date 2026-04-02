@@ -177,8 +177,10 @@ export default function MatrixView() {
       const ipMap = getIpMap(espName)
       const allFromDomains = Object.keys(espData.domains || {}).filter(d => d !== 'unknown' && d !== '')
 
-      // Use this ESP's own dates for aggregation (filtered by the global date range if applicable)
-      const espActiveDates = activeDates.length > 0 ? activeDates.filter(d => espData.dates.includes(d)) : espData.dates
+      // Use this ESP's own dates for aggregation, filtered by the selected ISO range
+      const espActiveDates = (fromDate && toDate)
+        ? (espData.datesFull || []).filter(df => df.iso >= fromDate && df.iso <= toDate).map(df => df.label)
+        : espData.dates
 
       // Map from-domains to IPs (normalized lowercase keys)
       const domainToIp: Record<string, string> = {}
