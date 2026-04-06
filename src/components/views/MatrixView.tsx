@@ -63,6 +63,99 @@ export default function MatrixView() {
   function handleTo(iso: string) { setToDate(iso) }
   function handleAll() { setFromDate(''); setToDate('') }
 
+  function downloadCsv() {
+    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Complaints', 'Unsubscribed']
+    const csvRows: string[][] = [headers]
+
+    function aggToRow(level: string, esp: string, ip: string, fd: string, prov: string, agg: Agg): string[] {
+      const R = rates(agg)
+      return [
+        level, esp, ip, fd, prov,
+        String(agg.sent), String(agg.delivered), String(agg.bounced), String(agg.softBounced), String(agg.hardBounced),
+        String(agg.opened),
+        agg.delivered > 0 ? R.or.toFixed(2) + '%' : '',
+        String(agg.clicked),
+        agg.opened > 0 ? R.ctr.toFixed(2) + '%' : '',
+        String(agg.complained || 0), String(agg.unsubscribed || 0)
+      ]
+    }
+
+    espList.forEach(espName => {
+      const espData = store.espData[espName]
+      if (!espData || !espData.dates.length) return
+      const ipMap = getIpMap(espName)
+      const allFromDomains = Object.keys(espData.domains || {}).filter(d => d !== 'unknown' && d !== '')
+      const espActiveDates = (fromDate && toDate)
+        ? (espData.datesFull || []).filter(df => df.iso >= fromDate && df.iso <= toDate).map(df => df.label)
+        : espData.dates
+
+      const domainToIp: Record<string, string> = {}
+      Object.entries(ipMap).forEach(([ip, fds]) => { fds.forEach(fd => { domainToIp[fd.toLowerCase().trim()] = ip }) })
+
+      const ipGroups: Record<string, string[]> = {}
+      allFromDomains.forEach(fd => {
+        const ip = domainToIp[fd.toLowerCase().trim()] || 'IP NOT FOUND'
+        if (!ipGroups[ip]) ipGroups[ip] = []
+        ipGroups[ip].push(fd)
+      })
+      Object.keys(ipMap).forEach(ip => { if (!ipGroups[ip]) ipGroups[ip] = [] })
+
+      const sortedIps = Object.keys(ipGroups).sort((a, b) => {
+        if (a === 'IP NOT FOUND') return 1
+        if (b === 'IP NOT FOUND') return -1
+        return a.localeCompare(b, undefined, { numeric: true })
+      })
+
+      const espTot = emptyAgg()
+      Object.values(espData.providers || {}).forEach(p => { const a = mxAgg(p.byDate, espActiveDates); addAgg(espTot, a) })
+      if (espTot.sent === 0) return
+
+      csvRows.push(aggToRow('ESP', espName, '', '', '', espTot))
+
+      sortedIps.forEach(ip => {
+        const fromDomains = ipGroups[ip] || []
+        const ipTot = emptyAgg()
+        fromDomains.forEach(fd => {
+          const d = espData.domains[fd]
+          if (d) { const a = mxAgg(d.byDate, espActiveDates); addAgg(ipTot, a) }
+        })
+        if (ipTot.sent === 0) return
+
+        csvRows.push(aggToRow('IP', espName, ip, '', '', ipTot))
+
+        fromDomains.forEach(fd => {
+          const fdData = espData.domains[fd]
+          const fdAgg = fdData ? mxAgg(fdData.byDate, espActiveDates) : emptyAgg()
+          if (fdAgg.sent === 0) return
+
+          csvRows.push(aggToRow('From Domain', espName, ip, fd, '', fdAgg))
+
+          const fdProviders = Object.entries(espData.providerDomains || {})
+            .filter(([, domMap]) => domMap[fd] && domMap[fd].sent > 0)
+            .map(([prov, domMap]) => {
+              const c = domMap[fd]
+              return { name: prov, agg: { sent: c.sent, delivered: c.delivered, opened: c.opened, clicked: c.clicked, bounced: c.bounced, hardBounced: c.hardBounced || 0, softBounced: c.softBounced || 0, unsubscribed: c.unsubscribed, complained: 0 } as Agg }
+            })
+            .sort((a, b) => b.agg.sent - a.agg.sent)
+
+          fdProviders.forEach(({ name: provName, agg: provAgg }) => {
+            csvRows.push(aggToRow('Email Provider', espName, ip, fd, provName, provAgg))
+          })
+        })
+      })
+    })
+
+    const csv = csvRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const dateRange = (fromDate && toDate) ? `_${fromDate}_to_${toDate}` : ''
+    a.href = url
+    a.download = `esp-deliverability-matrix${dateRange}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   function toggle(key: string) { setExpanded(p => ({ ...p, [key]: !p[key] })) }
 
   // Build IP → fromDomain map from ipmData for each ESP
@@ -377,6 +470,14 @@ export default function MatrixView() {
           <button onClick={handleAll} className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}>
             All
           </button>
+          {hasData && (
+            <button onClick={downloadCsv} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/20 text-gray-600 hover:border-[#009e88] hover:text-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3] hover:text-[#00e5c3]'}`}>
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 1v7M3.5 6l2.5 2.5L8.5 6"/><path d="M1 10h10"/>
+              </svg>
+              CSV
+            </button>
+          )}
         </div>
       </div>
 
