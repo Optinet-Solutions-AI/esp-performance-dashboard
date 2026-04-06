@@ -142,20 +142,28 @@ function extractDomain(email: string): string {
 }
 
 function extractSendingDomain(campaignName: string): string {
-  // Try prefix format: "domain.com - Campaign Name"
-  const mPrefix = campaignName.match(/^([a-z0-9.-]+\.[a-z]{2,})\s*[-–]/i)
-  if (mPrefix) return mPrefix[1].toLowerCase()
-  // Try domain at end: "Campaign Name - domain.com"
-  const mEnd = campaignName.match(/([a-z0-9-]+\.[a-z]{2,})$/i)
+  // A "domain" here = a word followed by optional .subdomain segments ending in a TLD.
+  // Use \b word boundary so hyphens/underscores in campaign names act as separators.
+  // Examples this should match correctly:
+  //   "rboy-au-opens-p22-p35-pm-50fs-march25-dailydealhive.com"       -> dailydealhive.com
+  //   "WP_march10_dailydealhive.com"                                  -> dailydealhive.com
+  //   "alerts.dealdivaz.com"                                          -> alerts.dealdivaz.com
+  //   "dailypromoinfo.com - Spring Sale"                              -> dailypromoinfo.com
+
+  // Try domain at end: match the last dot-separated domain bounded by a word boundary
+  const mEnd = campaignName.match(/(?:^|[^a-z0-9.])([a-z0-9]+(?:\.[a-z0-9]+)*\.[a-z]{2,})$/i)
   if (mEnd) return mEnd[1].toLowerCase()
-  // Try domain anywhere in the string
-  const m = campaignName.match(/([a-z0-9-]+\.[a-z]{2,})/i)
-  if (m) return m[1].toLowerCase()
-  // Try underscore-separated format: "WP_march10_domainname" → "domainname.com"
-  const parts = campaignName.split(/[_\-\s]+/)
+  // Try domain at start: "domain.com - Campaign Name"
+  const mStart = campaignName.match(/^([a-z0-9]+(?:\.[a-z0-9]+)*\.[a-z]{2,})(?:$|[^a-z0-9.])/i)
+  if (mStart) return mStart[1].toLowerCase()
+  // Try domain anywhere (bounded by non-word-chars)
+  const mAny = campaignName.match(/(?:^|[^a-z0-9.])([a-z0-9]+(?:\.[a-z0-9]+)*\.[a-z]{2,})(?:$|[^a-z0-9.])/i)
+  if (mAny) return mAny[1].toLowerCase()
+  // Fallback: underscore-separated "WP_march10_domainname" → "domainname.com"
+  // Skip month-day-like segments (march5, p22, etc.) that aren't real domain names
+  const parts = campaignName.split(/[_\-\s]+/).filter(Boolean)
   const last = parts[parts.length - 1]?.toLowerCase().trim()
-  if (last && last.length >= 6 && /^[a-z][a-z0-9]+$/i.test(last)) {
-    // If it looks like a domain name without TLD (all alphanumeric, 4+ chars), append .com
+  if (last && last.length >= 6 && /^[a-z][a-z0-9]*$/i.test(last) && !/^(march|april|may|june|july|august|september|october|november|december|january|february)\d*$/i.test(last) && !/^p\d+$/i.test(last)) {
     return last + '.com'
   }
   return 'unknown'
