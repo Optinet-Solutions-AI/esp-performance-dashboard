@@ -141,6 +141,52 @@ function extractDomain(email: string): string {
   return at >= 0 ? email.slice(at + 1).toLowerCase().trim() : 'unknown'
 }
 
+/**
+ * Per-ESP configuration for parsing.
+ * Add a new ESP here to customize:
+ *   - domainColumn: which CSV column to read for the from-domain
+ *   - normalizeDomain: post-process the extracted domain (e.g. strip 'og.' prefix)
+ *   - stripPrefixes: shortcut list of prefixes to strip from the extracted domain
+ *
+ * How to add a new ESP:
+ *   1. Add an entry to ESP_CONFIGS with the ESP name (case-insensitive key)
+ *   2. Specify stripPrefixes if the CSV has domains like 'og.example.com' that
+ *      should match 'example.com' in the IP Matrix registry
+ *   3. If a new CSV layout is needed, add detection + parsing branch in parseFile
+ */
+export interface EspConfig {
+  stripPrefixes?: string[]
+}
+
+export const ESP_CONFIGS: Record<string, EspConfig> = {
+  mailmodo: {
+    stripPrefixes: [],
+  },
+  ongage: {
+    // Ongage CSVs have domains like "og.dailythrillbox.com" but the IP Matrix
+    // registry stores them without the "og." prefix (e.g. "dailythrillbox.com")
+    stripPrefixes: ['og.'],
+  },
+  // Example for future ESPs:
+  // klaviyo: { stripPrefixes: ['klv.', 'mail.'] },
+  // brevo:   { stripPrefixes: ['bvo.'] },
+}
+
+/** Apply ESP-specific normalization to a raw extracted domain. */
+function normalizeDomainForEsp(domain: string, espName?: string): string {
+  if (!domain || !espName) return domain
+  const cfg = ESP_CONFIGS[espName.toLowerCase()]
+  if (!cfg?.stripPrefixes?.length) return domain
+  let d = domain.toLowerCase()
+  for (const prefix of cfg.stripPrefixes) {
+    if (d.startsWith(prefix)) {
+      d = d.slice(prefix.length)
+      break
+    }
+  }
+  return d
+}
+
 function extractSendingDomain(campaignName: string): string {
   // A "domain" here = a word followed by optional .subdomain segments ending in a TLD.
   // Use \b word boundary so hyphens/underscores in campaign names act as separators.
@@ -247,7 +293,7 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
       dateYears[dateStr] = parsed.year
 
       const providerDomain = (row['domain-grouped-by-esp'] || 'unknown').toLowerCase().trim()
-      const sendingDomain = extractSendingDomain(row['esp'] || '')
+      const sendingDomain = normalizeDomainForEsp(extractSendingDomain(row['esp'] || ''), espName)
 
       if (!byDate[dateStr]) byDate[dateStr] = { rows: 0, providers: {}, domains: {}, providerDomains: {} }
       const bucket = byDate[dateStr]
@@ -296,13 +342,14 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
     // Extract sending (from) domain — check explicit columns first, then fall back to campaign name
     const explicitFromDomain = row['from-domain'] || row['from_domain'] || row['sending_domain'] || row['sender-domain'] || ''
     const explicitFromEmail = row['from-email'] || row['from-address'] || row['from_address'] || row['sender'] || ''
-    const sendingDomain = explicitFromDomain
+    const rawSendingDomain = explicitFromDomain
       ? explicitFromDomain.toLowerCase().trim()
       : explicitFromEmail
         ? extractDomain(explicitFromEmail)
         : isMailmodo
           ? extractSendingDomain(row['campaign-name'] || '')
           : 'unknown'
+    const sendingDomain = normalizeDomainForEsp(rawSendingDomain, espName)
 
     if (!byDate[dateStr]) {
       byDate[dateStr] = { rows: 0, providers: {}, domains: {}, providerDomains: {} }
