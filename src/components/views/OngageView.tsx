@@ -158,12 +158,13 @@ function buildIpAggByDate(
   domains: MmData['domains'],
   subDomains: string[],
 ): Record<string, DateMetrics> {
+  const normSubs = subDomains.map(d => d.toLowerCase().trim())
   const allDates = new Set<string>()
-  subDomains.forEach(d => Object.keys(domains[d]?.byDate || {}).forEach(dt => allDates.add(dt)))
+  normSubs.forEach(d => Object.keys(domains[d]?.byDate || {}).forEach(dt => allDates.add(dt)))
   const byDate: Record<string, DateMetrics> = {}
   allDates.forEach(date => {
     let sent = 0, delivered = 0, opened = 0, clicked = 0, bounced = 0, unsubscribed = 0, complained = 0
-    subDomains.forEach(dom => {
+    normSubs.forEach(dom => {
       const m = domains[dom]?.byDate?.[date]
       if (!m) return
       sent += m.sent || 0; delivered += m.delivered || 0; opened += m.opened || 0
@@ -294,11 +295,13 @@ export default function OngageView() {
   const tc = getTextColor(isLight)
 
   // ── IP entity data ───────────────────────────────────────────────
-  const espIpmRecords = ipmData.filter(r => r.esp === selectedEsp)
+  const espIpmRecords = ipmData.filter(r => r.esp?.toLowerCase() === selectedEsp.toLowerCase())
   const ipDomainsMap: Record<string, string[]> = {}
   espIpmRecords.forEach(r => {
+    if (!r.ip) return
+    const norm = r.domain?.toLowerCase().trim() || ''
     if (!ipDomainsMap[r.ip]) ipDomainsMap[r.ip] = []
-    if (!ipDomainsMap[r.ip].includes(r.domain)) ipDomainsMap[r.ip].push(r.domain)
+    if (norm && !ipDomainsMap[r.ip].includes(norm)) ipDomainsMap[r.ip].push(norm)
   })
   const ipEntityData = Object.entries(ipDomainsMap)
     .map(([ip, subDomains], idx) => {
