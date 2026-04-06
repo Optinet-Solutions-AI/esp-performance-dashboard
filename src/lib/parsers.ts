@@ -171,7 +171,7 @@ function extractSendingDomain(campaignName: string): string {
 
 function mergeMetrics(
   target: DateMetrics,
-  src: { sent?: number; delivered?: number; opened?: number; clicked?: number; bounced?: number; hardBounced?: number; softBounced?: number; unsubscribed?: number }
+  src: { sent?: number; delivered?: number; opened?: number; clicked?: number; bounced?: number; hardBounced?: number; softBounced?: number; unsubscribed?: number; complained?: number }
 ) {
   target.sent += src.sent || 0
   target.delivered += src.delivered || 0
@@ -181,6 +181,7 @@ function mergeMetrics(
   target.hardBounced = (target.hardBounced || 0) + (src.hardBounced || 0)
   target.softBounced = (target.softBounced || 0) + (src.softBounced || 0)
   target.unsubscribed = (target.unsubscribed || 0) + (src.unsubscribed || 0)
+  target.complained = (target.complained || 0) + (src.complained || 0)
 }
 
 function recalcRates(m: DateMetrics): void {
@@ -226,6 +227,8 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
   const first = rows[0]
   const isMailmodo = 'campaign-name' in first || 'opens-html' in first
   const isOngage = espName === 'Ongage'
+  // Ongage aggregated format: one row per ISP per sending domain per date (no per-email rows)
+  const isOngageAgg = isOngage && ('domain-grouped-by-esp' in first || 'success' in first)
 
   const byDate: ParseResult['byDate'] = {}
   const dateYears: Record<string, number> = {}
@@ -234,6 +237,52 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
 
   rows.forEach(row => {
     totalRows++
+
+    // ── Ongage aggregated format ────────────────────────────────────
+    if (isOngageAgg) {
+      const rawDate = row['last-stats-date'] || row['last-sent-date'] || row['date'] || ''
+      const parsed = parseDate(rawDate, false)
+      if (!parsed) { skipped++; skippedNoDate++; return }
+      const dateStr = parsed.str
+      dateYears[dateStr] = parsed.year
+
+      const providerDomain = (row['domain-grouped-by-esp'] || 'unknown').toLowerCase().trim()
+      const sendingDomain = extractSendingDomain(row['esp'] || '')
+
+      if (!byDate[dateStr]) byDate[dateStr] = { rows: 0, providers: {}, domains: {}, providerDomains: {} }
+      const bucket = byDate[dateStr]
+      bucket.rows++
+
+      const sent        = Number(row['sent'] || 0)
+      const delivered   = Number(row['success'] || 0)
+      const bounced     = Number(row['failed'] || 0)
+      const hardBounced = Number(row['hard-bounces'] || 0)
+      const softBounced = Number(row['soft-bounces'] || 0)
+      const opened      = Number(row['unique-opens'] || row['opens'] || 0)
+      const clicked     = Number(row['unique-clickers'] || row['unique-clicks'] || row['clicks'] || 0)
+      const unsubscribed = Number(row['unsubscribes'] || row['unsubscribed'] || 0)
+      const complained  = Number(row['complaints'] || 0)
+
+      const metrics = { sent, delivered, opened, clicked, bounced, hardBounced, softBounced, unsubscribed, complained }
+
+      if (!bucket.providers[providerDomain]) bucket.providers[providerDomain] = blankMetrics()
+      mergeMetrics(bucket.providers[providerDomain], metrics)
+
+      if (!bucket.domains[sendingDomain]) bucket.domains[sendingDomain] = blankMetrics()
+      mergeMetrics(bucket.domains[sendingDomain], metrics)
+
+      if (!bucket.providerDomains[providerDomain]) bucket.providerDomains[providerDomain] = {}
+      if (!bucket.providerDomains[providerDomain][sendingDomain]) {
+        bucket.providerDomains[providerDomain][sendingDomain] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, hardBounced: 0, softBounced: 0, unsubscribed: 0 }
+      }
+      const pd = bucket.providerDomains[providerDomain][sendingDomain]
+      pd.sent += sent; pd.delivered += delivered; pd.opened += opened; pd.clicked += clicked
+      pd.bounced += bounced; pd.hardBounced = (pd.hardBounced || 0) + hardBounced
+      pd.softBounced = (pd.softBounced || 0) + softBounced; pd.unsubscribed += unsubscribed
+      return
+    }
+
+    // ── Per-email formats (Mailmodo / generic) ──────────────────────
     const rawDate = row['sent-time'] || row['date'] || row['action_timestamp_rounded'] || row['timestamp'] || ''
     const parsed = parseDate(rawDate !== '' && !isNaN(Number(rawDate)) ? Number(rawDate) : rawDate, isOngage)
     if (!parsed) { skipped++; skippedNoDate++; return }
