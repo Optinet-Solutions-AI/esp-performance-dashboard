@@ -749,12 +749,6 @@ export default function OngageView() {
             )
           })()}
 
-          {/* ── Tab Switcher ──────────────────────────────────────── */}
-          <div className="flex items-center gap-1">
-            <button className="px-3 py-1.5 rounded-lg border text-[10px] font-mono uppercase tracking-wider bg-[#4a2fa0] border-[#4a2fa0] text-white">
-              IP Address
-            </button>
-          </div>
 
           {/* ── Volume + Rate Charts ──────────────────────────────── */}
           <div className="flex flex-col gap-4">
