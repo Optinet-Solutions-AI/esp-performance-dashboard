@@ -278,7 +278,7 @@ export default function OngageView() {
   }
 
   // ── Tab / row ────────────────────────────────────────────────────
-  const [mmTab, setMmTab] = useState<MmTabType>('domain')
+  const mmTab = 'ip' as MmTabType
   const selectedRow  = store.mmSelectedRow
   const setSelected  = store.setMmSelectedRow
 
@@ -751,19 +751,9 @@ export default function OngageView() {
 
           {/* ── Tab Switcher ──────────────────────────────────────── */}
           <div className="flex items-center gap-1">
-            {(['domain', 'ip'] as MmTabType[]).map(tab => (
-              <button
-                key={tab}
-                onClick={() => { setMmTab(tab); setSelected(null) }}
-                className={`px-3 py-1.5 rounded-lg border text-[10px] font-mono uppercase tracking-wider transition-all
-                  ${mmTab === tab
-                    ? 'bg-[#4a2fa0] border-[#4a2fa0] text-white'
-                    : isLight ? 'border-black/20 text-gray-500 hover:border-[#4a2fa0]' : 'border-white/13 text-[#a8b0be] hover:border-[#7c5cfc]'
-                  }`}
-              >
-                {tab === 'ip' ? 'IP Address' : 'Sending Domain'}
-              </button>
-            ))}
+            <button className="px-3 py-1.5 rounded-lg border text-[10px] font-mono uppercase tracking-wider bg-[#4a2fa0] border-[#4a2fa0] text-white">
+              IP Address
+            </button>
           </div>
 
           {/* ── Volume + Rate Charts ──────────────────────────────── */}
