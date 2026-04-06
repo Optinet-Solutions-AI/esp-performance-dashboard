@@ -317,7 +317,8 @@ export default function OngageView() {
     .filter(e => e.data && e.data.sent > 0)
     .sort((a, b) => (b.data?.sent ?? 0) - (a.data?.sent ?? 0))
 
-  const entityData = mmTab === 'ip' ? ipEntityData : domainEntityData
+  const usingIp    = mmTab === 'ip' && ipEntityData.length > 0
+  const entityData = usingIp ? ipEntityData : domainEntityData
 
   const entityNamesKey = entityData.map(e => e.name).join(',')
   const aggOverall     = aggDates(data.overallByDate, activeDates)
@@ -392,7 +393,7 @@ export default function OngageView() {
     if (!rateRef.current || !dateGroups.length) return
 
     const src = selectedRow
-      ? mmTab === 'ip'
+      ? (mmTab === 'ip' && ipEntityData.length > 0)
         ? buildIpAggByDate(data.domains, ipEntityData.find(e => e.name === selectedRow)?.subDomains ?? [])
         : data.domains[selectedRow]?.byDate ?? {}
       : data.overallByDate
@@ -591,10 +592,10 @@ export default function OngageView() {
   const txt     = isLight ? 'text-gray-900' : 'text-[#f0f2f5]'
   const divBdr  = { borderColor: isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.07)' }
 
-  const tabLabel      = mmTab === 'ip' ? 'IP Address' : 'Sending Domain'
-  const tabLabelShort = mmTab === 'ip' ? 'IP' : 'Domain'
+  const tabLabel      = usingIp ? 'IP Address' : 'Sending Domain'
+  const tabLabelShort = usingIp ? 'IP' : 'Domain'
   const selectedBD    = selectedRow
-    ? mmTab === 'ip'
+    ? usingIp
       ? buildIpAggByDate(data.domains, ipEntityData.find(e => e.name === selectedRow)?.subDomains ?? [])
       : data.domains[selectedRow]?.byDate ?? {}
     : {}
