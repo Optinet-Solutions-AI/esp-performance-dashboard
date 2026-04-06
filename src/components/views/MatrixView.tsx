@@ -257,22 +257,24 @@ export default function MatrixView() {
         const ipBg = isLight ? 'rgba(0,0,0,.015)' : 'rgba(255,255,255,.015)'
         const ipColor = isLight ? '#0369a1' : '#7dd3fc'
 
-        if (!isNotFound) {
-          rows.push(
-            <tr key={ipKey} className="cursor-pointer" onClick={() => toggle(ipKey)}>
-              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt }}></td>
-              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt, paddingLeft: 20 }}>
-                <ToggleBtn
-                  expanded={ipEx}
-                  label={<span style={{ color: ipColor, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{ip}</span>}
-                  count={`${activeFds.length} from-domains`}
-                />
-              </td>
-              <DataRow agg={ipTot} bg={ipBg} />
-            </tr>
-          )
-          if (!ipEx) return
-        }
+        rows.push(
+          <tr key={ipKey} className="cursor-pointer" onClick={() => toggle(ipKey)}>
+            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt }}></td>
+            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt, paddingLeft: 20 }}>
+              <ToggleBtn
+                expanded={ipEx}
+                label={isNotFound
+                  ? <span style={{ color: isLight ? '#b45309' : '#f59e0b', fontFamily: 'var(--font-mono)', fontSize: 11 }}>&#9888; IP NOT FOUND</span>
+                  : <span style={{ color: ipColor, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{ip}</span>
+                }
+                count={`${activeFds.length} from-domains`}
+              />
+            </td>
+            <DataRow agg={ipTot} bg={ipBg} />
+          </tr>
+        )
+
+        if (!ipEx) return
 
         // Level 3: From Domains
         fromDomains.forEach(fd => {
@@ -293,11 +295,10 @@ export default function MatrixView() {
 
           const fdBg = isLight ? 'rgba(0,0,0,.025)' : 'rgba(255,255,255,.025)'
 
-          const fdIndent = isNotFound ? 20 : 40
           rows.push(
             <tr key={fdKey} className="cursor-pointer" onClick={() => toggle(fdKey)}>
               <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg }}></td>
-              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg, paddingLeft: fdIndent, color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg, paddingLeft: 40, color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>
                 <ToggleBtn expanded={fdEx} label={<span style={{ color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
               </td>
               <DataRow agg={fdAgg} bg={fdBg} />
