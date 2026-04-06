@@ -293,7 +293,13 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
       dateYears[dateStr] = parsed.year
 
       const providerDomain = (row['domain-grouped-by-esp'] || 'unknown').toLowerCase().trim()
-      const sendingDomain = normalizeDomainForEsp(extractSendingDomain(row['esp'] || ''), espName)
+      // Ongage ESP column format: "Ongage SMTP - og.example.com" or "Ongage SMTP - og.weekly-surprise.com"
+      // Take everything after the last " - " to preserve hyphens inside the real domain,
+      // then apply ESP prefix stripping (og.).
+      const espValue = (row['esp'] || '').trim()
+      const afterDash = espValue.split(/\s+-\s+/).pop()?.toLowerCase().trim() || ''
+      const rawDomain = afterDash || extractSendingDomain(espValue)
+      const sendingDomain = normalizeDomainForEsp(rawDomain, espName) || 'unknown'
 
       if (!byDate[dateStr]) byDate[dateStr] = { rows: 0, providers: {}, domains: {}, providerDomains: {} }
       const bucket = byDate[dateStr]
