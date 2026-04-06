@@ -317,8 +317,7 @@ export default function OngageView() {
     .filter(e => e.data && e.data.sent > 0)
     .sort((a, b) => (b.data?.sent ?? 0) - (a.data?.sent ?? 0))
 
-  const usingIp    = mmTab === 'ip' && ipEntityData.length > 0
-  const entityData = usingIp ? ipEntityData : domainEntityData
+  const entityData = ipEntityData
 
   const entityNamesKey = entityData.map(e => e.name).join(',')
   const aggOverall     = aggDates(data.overallByDate, activeDates)
@@ -592,12 +591,10 @@ export default function OngageView() {
   const txt     = isLight ? 'text-gray-900' : 'text-[#f0f2f5]'
   const divBdr  = { borderColor: isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.07)' }
 
-  const tabLabel      = usingIp ? 'IP Address' : 'Sending Domain'
-  const tabLabelShort = usingIp ? 'IP' : 'Domain'
+  const tabLabel      = 'IP Address'
+  const tabLabelShort = 'IP'
   const selectedBD    = selectedRow
-    ? usingIp
-      ? buildIpAggByDate(data.domains, ipEntityData.find(e => e.name === selectedRow)?.subDomains ?? [])
-      : data.domains[selectedRow]?.byDate ?? {}
+    ? buildIpAggByDate(data.domains, ipEntityData.find(e => e.name === selectedRow)?.subDomains ?? [])
     : {}
 
   // ── Range label ──────────────────────────────────────────────────
@@ -750,6 +747,15 @@ export default function OngageView() {
             )
           })()}
 
+
+          {/* ── Tab Switcher ──────────────────────────────────────── */}
+          <div className="flex items-center gap-1">
+            <button
+              className="px-3 py-1.5 rounded-lg border text-[10px] font-mono uppercase tracking-wider bg-[#4a2fa0] border-[#4a2fa0] text-white"
+            >
+              IP Address
+            </button>
+          </div>
 
           {/* ── Volume + Rate Charts ──────────────────────────────── */}
           <div className="flex flex-col gap-4">
