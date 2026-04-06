@@ -9,6 +9,7 @@ import Sidebar from '@/components/layout/Sidebar'
 import HomeView from '@/components/views/HomeView'
 import DashboardView from '@/components/views/DashboardView'
 import MailmodoView from '@/components/views/MailmodoView'
+import OngageView from '@/components/views/OngageView'
 import UploadView from '@/components/views/UploadView'
 import MatrixView from '@/components/views/MatrixView'
 import DataMgmtView from '@/components/views/DataMgmtView'
@@ -204,7 +205,7 @@ export default function Page() {
           {activeView === 'home' && <HomeView />}
           {activeView === 'dashboard' && <DashboardView />}
           {activeView === 'mailmodo' && <MailmodoView filter="mailmodo" />}
-          {activeView === 'ongage' && <MailmodoView filter="ongage" />}
+          {activeView === 'ongage' && <OngageView />}
           {activeView === 'upload' && <UploadView />}
           {activeView === 'matrix' && <MatrixView />}
           {activeView === 'datamgmt' && <DataMgmtView />}
