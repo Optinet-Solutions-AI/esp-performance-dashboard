@@ -278,7 +278,7 @@ export default function OngageView() {
   }
 
   // ── Tab / row ────────────────────────────────────────────────────
-  const mmTab        = 'ip' as MmTabType
+  const [mmTab, setMmTab] = useState<MmTabType>('domain')
   const selectedRow  = store.mmSelectedRow
   const setSelected  = store.setMmSelectedRow
 
@@ -392,7 +392,9 @@ export default function OngageView() {
     if (!rateRef.current || !dateGroups.length) return
 
     const src = selectedRow
-      ? (mmTab === 'provider' ? data.providers[selectedRow]?.byDate : data.domains[selectedRow]?.byDate) ?? {}
+      ? mmTab === 'ip'
+        ? buildIpAggByDate(data.domains, ipEntityData.find(e => e.name === selectedRow)?.subDomains ?? [])
+        : data.domains[selectedRow]?.byDate ?? {}
       : data.overallByDate
 
     const rateMetrics = dateGroups.map(g => aggDates(src, g.dates))
@@ -589,10 +591,12 @@ export default function OngageView() {
   const txt     = isLight ? 'text-gray-900' : 'text-[#f0f2f5]'
   const divBdr  = { borderColor: isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.07)' }
 
-  const tabLabel      = 'IP Address'
-  const tabLabelShort = 'IP'
+  const tabLabel      = mmTab === 'ip' ? 'IP Address' : 'Sending Domain'
+  const tabLabelShort = mmTab === 'ip' ? 'IP' : 'Domain'
   const selectedBD    = selectedRow
-    ? buildIpAggByDate(data.domains, ipEntityData.find(e => e.name === selectedRow)?.subDomains ?? [])
+    ? mmTab === 'ip'
+      ? buildIpAggByDate(data.domains, ipEntityData.find(e => e.name === selectedRow)?.subDomains ?? [])
+      : data.domains[selectedRow]?.byDate ?? {}
     : {}
 
   // ── Range label ──────────────────────────────────────────────────
@@ -747,11 +751,19 @@ export default function OngageView() {
 
           {/* ── Tab Switcher ──────────────────────────────────────── */}
           <div className="flex items-center gap-1">
-            <button
-              className="px-3 py-1.5 rounded-lg border text-[10px] font-mono uppercase tracking-wider bg-[#4a2fa0] border-[#4a2fa0] text-white"
-            >
-              IP Address
-            </button>
+            {(['domain', 'ip'] as MmTabType[]).map(tab => (
+              <button
+                key={tab}
+                onClick={() => { setMmTab(tab); setSelected(null) }}
+                className={`px-3 py-1.5 rounded-lg border text-[10px] font-mono uppercase tracking-wider transition-all
+                  ${mmTab === tab
+                    ? 'bg-[#4a2fa0] border-[#4a2fa0] text-white'
+                    : isLight ? 'border-black/20 text-gray-500 hover:border-[#4a2fa0]' : 'border-white/13 text-[#a8b0be] hover:border-[#7c5cfc]'
+                  }`}
+              >
+                {tab === 'ip' ? 'IP Address' : 'Sending Domain'}
+              </button>
+            ))}
           </div>
 
           {/* ── Volume + Rate Charts ──────────────────────────────── */}
@@ -891,7 +903,7 @@ export default function OngageView() {
           <div className={`${card} overflow-hidden`}>
             <div className="px-4 py-3 border-b flex items-center justify-between" style={divBdr}>
               <span className={`text-[10px] font-mono uppercase tracking-wider ${muted}`}>
-                IP Address Summary
+                {tabLabel} Summary
               </span>
               <span className={`text-[10px] font-mono ${muted}`}>Click row → isolate rate trend & daily breakdown</span>
             </div>
@@ -899,7 +911,7 @@ export default function OngageView() {
               <table className="w-full border-collapse" style={{ minWidth: 940 }}>
                 <thead className={isLight ? 'bg-gray-50' : 'bg-[#181c22]'}>
                   <tr>
-                    {['IP Address','Sent','Delivered','Opens','Clicks','Bounced','Unsubs','Success%','Open%','CTR%','Bounce%','Unsub%'].map((h, i) => (
+                    {[tabLabel,'Sent','Delivered','Opens','Clicks','Bounced','Unsubs','Success%','Open%','CTR%','Bounce%','Unsub%'].map((h, i) => (
                       <th key={h}
                         className={`px-3 py-2.5 text-[9px] font-mono tracking-wider uppercase border-b
                           ${i === 0 ? 'text-left' : 'text-right'}
