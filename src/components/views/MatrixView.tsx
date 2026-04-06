@@ -53,41 +53,15 @@ export default function MatrixView() {
   const { isLight, ipmData } = store
   const espList = Object.keys(store.espData)
 
-  const [selectedEsp, setSelectedEsp] = useState<string>('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [tip, setTip] = useState<{ title: string; exact: string; formula: string; calc: string; x: number; y: number } | null>(null)
-
-  useEffect(() => {
-    if (!selectedEsp || !store.espData[selectedEsp]) setSelectedEsp(espList[0] || '')
-  }, [espList.length]) // eslint-disable-line
-
-  const effectiveEsp = selectedEsp || espList[0] || ''
-  const data = store.espData[effectiveEsp] ?? EMPTY_DATA
-  const fromIdx = store.espRanges[effectiveEsp]?.fromIdx ?? 0
-  const toIdx = store.espRanges[effectiveEsp]?.toIdx ?? Math.max(0, data.dates.length - 1)
-  const setRange = (from: number, to: number) => store.setEspRange(effectiveEsp, from, to)
 
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
 
-  useEffect(() => {
-    if (data.datesFull.length) {
-      setFromDate(data.datesFull[fromIdx]?.iso || '')
-      setToDate(data.datesFull[Math.min(toIdx, data.datesFull.length - 1)]?.iso || '')
-    }
-  }, [selectedEsp, data.datesFull.length]) // eslint-disable-line
-
-  function findFrom(iso: string) { const i = data.datesFull.findIndex(d => d.iso >= iso); return i === -1 ? 0 : i }
-  function findTo(iso: string) { let r = data.datesFull.length - 1; for (let i = r; i >= 0; i--) { if (data.datesFull[i].iso <= iso) { r = i; break } } return r }
-  function handleFrom(iso: string) { setFromDate(iso); if (iso) setRange(findFrom(iso), toIdx) }
-  function handleTo(iso: string) { setToDate(iso); if (iso) setRange(fromIdx, findTo(iso)) }
-  function handleAll() {
-    setRange(0, data.dates.length - 1)
-    setFromDate(data.datesFull[0]?.iso || '')
-    setToDate(data.datesFull[data.datesFull.length - 1]?.iso || '')
-  }
-
-  const activeDates = data.dates.slice(fromIdx, toIdx + 1)
+  function handleFrom(iso: string) { setFromDate(iso) }
+  function handleTo(iso: string) { setToDate(iso) }
+  function handleAll() { setFromDate(''); setToDate('') }
 
   function toggle(key: string) { setExpanded(p => ({ ...p, [key]: !p[key] })) }
 
@@ -392,7 +366,7 @@ export default function MatrixView() {
           </h1>
           <p className="text-sm mt-1" style={{ color: muted }}>
             ESP → IP → From Domain → Email Provider
-            {activeDates.length > 0 && ` · ${fmtDateLabel(activeDates[0], data.datesFull)} – ${fmtDateLabel(activeDates[activeDates.length - 1], data.datesFull)}`}
+            {(fromDate || toDate) && ` · ${fromDate || '…'} – ${toDate || '…'}`}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
