@@ -9,6 +9,7 @@ import type { IpmRecord, IpmUploadRecord } from '@/lib/types'
 const ESP_PALETTE: Record<string, { bg: string; text: string }> = {
   Mailmodo: { bg: '#7c3aed', text: '#fff' },
   Ongage:   { bg: '#059669', text: '#fff' },
+  Netcore:  { bg: '#ea6f0c', text: '#fff' },
   Hotsol:   { bg: '#0891b2', text: '#fff' },
   MMS:      { bg: '#dc2626', text: '#fff' },
   Moosend:  { bg: '#db2777', text: '#fff' },
@@ -334,7 +335,7 @@ export default function IPMatrixView() {
                     </tr>
                     {/* Expanded rows */}
                     {expanded && ips.map(ip => {
-                      const ipDomains = ipmData.filter(r => r.esp === esp && r.ip === ip).map(r => r.domain).filter(Boolean)
+                      const ipDomains = [...new Set(ipmData.filter(r => r.esp === esp && r.ip === ip).map(r => r.domain).filter(Boolean))]
                       return (
                         <>
                           <tr key={ip} style={{ background: subBg }}>
