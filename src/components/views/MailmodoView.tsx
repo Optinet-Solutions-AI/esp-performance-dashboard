@@ -204,6 +204,9 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const [granularity, setGranularity] = useState<Granularity>('daily')
   const [embedView,   setEmbedView]   = useState<EmbedView>('date')
   const [granOpen,    setGranOpen]    = useState(false)
+  const [filterIp,       setFilterIp]       = useState('all')
+  const [filterDomain,   setFilterDomain]   = useState('all')
+  const [filterProvider, setFilterProvider] = useState('all')
   const granRef = useRef<HTMLDivElement>(null)
   const [kpiTooltip, setKpiTooltip] = useState<{ idx: number; x: number; y: number } | null>(null)
   const [gridTip, setGridTip] = useState<{ title: string; exact: string; formula: string; calc: string; color: string; x: number; y: number } | null>(null)
@@ -250,7 +253,12 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
     }
   }, [espList.join(','), store.reviewEsp]) // eslint-disable-line
 
-  useEffect(() => { store.setMmSelectedRow(null) }, [selectedEsp]) // eslint-disable-line
+  useEffect(() => {
+    store.setMmSelectedRow(null)
+    setFilterIp('all')
+    setFilterDomain('all')
+    setFilterProvider('all')
+  }, [selectedEsp]) // eslint-disable-line
 
   // ── Data & range ────────────────────────────────────────────────
   const data: MmData = store.espData[selectedEsp] ?? EMPTY
@@ -322,6 +330,18 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
     })
     .filter(e => e.data && e.data.sent > 0)
     .sort((a, b) => (b.data?.sent ?? 0) - (a.data?.sent ?? 0))
+
+  // ── Filtered IP entity data (Daily KPIs table) ──────────────────
+  const filteredIpEntityData = ipEntityData.filter(e => {
+    if (filterIp !== 'all' && e.name !== filterIp) return false
+    if (filterDomain !== 'all' && !e.subDomains.includes(filterDomain)) return false
+    if (filterProvider !== 'all') {
+      const provDomains = data.providerDomains[filterProvider]
+      if (!provDomains) return false
+      if (!e.subDomains.some(d => d in provDomains)) return false
+    }
+    return true
+  })
 
   // ── Domain entity data ───────────────────────────────────────────
   const domainEntityData = Object.keys(data.domains || {})
@@ -1067,17 +1087,56 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           {/* ── Daily KPIs by IP Address (dedicated) ─────────────── */}
           {ipEntityData.length > 0 && dateGroups.length > 0 && (
             <div className={`${card} overflow-hidden`}>
-              <div className="px-4 py-3 border-b" style={divBdr}>
+              <div className="px-4 py-3 border-b flex items-center justify-between flex-wrap gap-2" style={divBdr}>
                 <span className={`text-[10px] font-mono uppercase tracking-wider ${muted}`}>
                   Daily KPIs by IP Address
                   {activeDates.length > 0 && ` · ${fmtDL(activeDates[0])} – ${fmtDL(activeDates[activeDates.length - 1])}`}
                 </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* IP filter */}
+                  <select
+                    value={filterIp}
+                    onChange={e => setFilterIp(e.target.value)}
+                    className={selCls}
+                  >
+                    <option value="all">All IPs</option>
+                    {ipEntityData.map(e => <option key={e.name} value={e.name}>{e.name}</option>)}
+                  </select>
+                  {/* From Domain filter */}
+                  <select
+                    value={filterDomain}
+                    onChange={e => setFilterDomain(e.target.value)}
+                    className={selCls}
+                  >
+                    <option value="all">All Domains</option>
+                    {Object.keys(data.domains).map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  {/* Email Provider filter */}
+                  <select
+                    value={filterProvider}
+                    onChange={e => setFilterProvider(e.target.value)}
+                    className={selCls}
+                  >
+                    <option value="all">All Providers</option>
+                    {Object.keys(data.providerDomains).map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  {/* Reset button — only shown when any filter is active */}
+                  {(filterIp !== 'all' || filterDomain !== 'all' || filterProvider !== 'all') && (
+                    <button
+                      onClick={() => { setFilterIp('all'); setFilterDomain('all'); setFilterProvider('all') }}
+                      className={`px-2 py-1 rounded border text-[9px] font-mono uppercase transition-all
+                        ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-[10px] font-mono" style={{ minWidth: ipEntityData.length * 5 * 80 + 100 }}>
+                <table className="w-full border-collapse text-[10px] font-mono" style={{ minWidth: filteredIpEntityData.length * 5 * 80 + 100 }}>
                   <colgroup>
                     <col style={{ width: 100 }} />
-                    {ipEntityData.flatMap(e => GRID_KPIS.map(kpi => (
+                    {filteredIpEntityData.flatMap(e => GRID_KPIS.map(kpi => (
                       <col key={e.name + kpi.key} />
                     )))}
                   </colgroup>
@@ -1086,9 +1145,9 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                       <th className={`px-3 py-2.5 text-left text-[9px] tracking-widest uppercase border-b border-r ${isLight ? 'border-black/8 text-gray-500' : 'border-white/7 text-[#6b7280]'}`}>
                         Date
                       </th>
-                      {ipEntityData.map((e, ei) => (
+                      {filteredIpEntityData.map((e, ei) => (
                         <th key={e.name} colSpan={5}
-                          className={`px-3 py-2.5 border-b text-center ${ei < ipEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}>
+                          className={`px-3 py-2.5 border-b text-center ${ei < filteredIpEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}>
                           <div className="flex items-center justify-center gap-1.5">
                             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: e.color }} />
                             <span className="text-[10px] font-semibold tracking-wide uppercase" style={{ color: e.color }}>{e.name}</span>
@@ -1098,10 +1157,10 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     </tr>
                     <tr style={{ background: isLight ? '#f1f3f7' : '#181c22' }}>
                       <th className={`border-b border-r ${isLight ? 'border-black/8' : 'border-white/7'}`} />
-                      {ipEntityData.flatMap((e, ei) =>
+                      {filteredIpEntityData.flatMap((e, ei) =>
                         GRID_KPIS.map((kpi, ki) => (
                           <th key={e.name + kpi.key}
-                            className={`px-3 py-2 text-right border-b ${ki === 4 && ei < ipEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}
+                            className={`px-3 py-2 text-right border-b ${ki === 4 && ei < filteredIpEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}
                             style={{ color: kpi.color, fontSize: 9, letterSpacing: '0.08em' }}>
                             {kpi.label}
                           </th>
@@ -1110,14 +1169,21 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     </tr>
                   </thead>
                   <tbody>
-                    {dateGroups.map((group, gi) => (
+                    {filteredIpEntityData.length === 0 ? (
+                      <tr>
+                        <td colSpan={1 + GRID_KPIS.length}
+                          className={`px-4 py-8 text-center text-[11px] font-mono ${muted}`}>
+                          No IPs match the selected filters
+                        </td>
+                      </tr>
+                    ) : dateGroups.map((group, gi) => (
                       <tr key={group.label}
                         className={`border-b last:border-0 transition-colors ${isLight ? 'border-black/7 hover:bg-black/3' : 'border-white/5 hover:bg-white/3'}`}>
                         <td className={`px-3 py-2.5 whitespace-nowrap font-semibold border-r ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#c8cdd6]'}`}
                           style={{ fontSize: 11 }}>
                           {fmtDL(group.label)}
                         </td>
-                        {ipEntityData.flatMap((e, ei) =>
+                        {filteredIpEntityData.flatMap((e, ei) =>
                           GRID_KPIS.map((kpi, ki) => {
                             const r     = aggDates(e.byDate, group.dates)
                             const val   = r ? (r[kpi.key] as number | undefined) ?? null : null
@@ -1148,7 +1214,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
 
                             return (
                               <td key={e.name + kpi.key + group.label}
-                                className={`px-3 py-2.5 text-right ${ki === 4 && ei < ipEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/5' : 'border-white/5'}`}
+                                className={`px-3 py-2.5 text-right ${ki === 4 && ei < filteredIpEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/5' : 'border-white/5'}`}
                                 style={{ background: bg, fontSize: 11 }}
                                 onMouseEnter={e2 => { if (tipContent) setGridTip({ ...tipContent, x: e2.clientX + 14, y: e2.clientY + 14 }) }}
                                 onMouseLeave={() => setGridTip(null)}
@@ -1167,11 +1233,12 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                         )}
                       </tr>
                     ))}
+                    {filteredIpEntityData.length > 0 && (
                     <tr style={{ background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}` }}>
                       <td className={`px-3 py-2.5 text-[10px] font-mono font-bold tracking-widest uppercase border-r ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
                         Total
                       </td>
-                      {ipEntityData.flatMap((e, ei) =>
+                      {filteredIpEntityData.flatMap((e, ei) =>
                         GRID_KPIS.map((kpi, ki) => {
                           const r   = aggDates(e.byDate, activeDates)
                           const val = r ? (r[kpi.key] as number | undefined) ?? null : null
@@ -1189,7 +1256,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
 
                           return (
                             <td key={e.name + kpi.key + 'ip-total'}
-                              className={`px-3 py-2.5 text-right font-bold ${ki === 4 && ei < ipEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/5' : 'border-white/5'}`}
+                              className={`px-3 py-2.5 text-right font-bold ${ki === 4 && ei < filteredIpEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/5' : 'border-white/5'}`}
                               style={{ fontSize: 11 }}
                               onMouseEnter={e2 => { if (tipContent) setGridTip({ ...tipContent, x: e2.clientX + 14, y: e2.clientY + 14 }) }}
                               onMouseLeave={() => setGridTip(null)}
@@ -1204,6 +1271,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                         })
                       )}
                     </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
