@@ -102,6 +102,7 @@ export default function HomeView() {
 
   const latest = uploadHistory[0]
   const muted = isLight ? '#64748b' : '#5a6478'
+  const teal = isLight ? '#076C62' : '#00e5c3'
   const textMain = isLight ? '#0f172a' : '#f0f2f5'
   const cardBg = isLight ? '#ffffff' : '#111418'
   const cardBorder = isLight ? 'rgba(0,0,0,0.09)' : 'rgba(255,255,255,0.06)'
@@ -110,7 +111,7 @@ export default function HomeView() {
   return (
     <div className="view-page fade-up">
       <div className="section-title" style={{ marginBottom: 4 }}>
-        <div className="section-title-bar" style={{ background: '#00e5c3' }} />
+        <div className="section-title-bar" style={{ background: teal }} />
         <h1>Overview</h1>
       </div>
       <p className="section-title-sub">ESP performance summary across all providers</p>
@@ -120,7 +121,7 @@ export default function HomeView() {
         <KpiCard
           label="Total Emails Sent"
           value={totalSent > 0 ? fmtN(totalSent) : '—'}
-          accent="#00e5c3"
+          accent={teal}
           delta={<span style={{ color: muted, fontSize: 11 }}>{espList.length} ESP{espList.length !== 1 ? 's' : ''} tracked</span>}
           icon={
             <svg style={{ width: 18, height: 18 }} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7">
@@ -247,7 +248,7 @@ export default function HomeView() {
                 <span style={{
                   fontSize: 9, fontFamily: 'Space Mono,monospace', fontWeight: 700,
                   padding: '4px 8px', borderRadius: 8, flexShrink: 0,
-                  color: h.newDates > 0 ? '#00e5c3' : muted,
+                  color: h.newDates > 0 ? teal : muted,
                   background: h.newDates > 0 ? 'rgba(0,229,195,0.08)' : isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.04)',
                   border: `1px solid ${h.newDates > 0 ? 'rgba(0,229,195,0.25)' : 'rgba(255,255,255,0.06)'}`,
                 }}>

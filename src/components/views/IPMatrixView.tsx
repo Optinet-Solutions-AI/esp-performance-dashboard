@@ -244,7 +244,7 @@ export default function IPMatrixView() {
   const bdr      = isLight ? 'border-black/10' : 'border-white/7'
   const surfaceA = isLight ? 'bg-white' : 'bg-[#111418]'
   const surfaceB = isLight ? 'bg-gray-50' : 'bg-[#181c22]'
-  const hdrCls   = `font-family-mono text-[9px] font-mono tracking-widest uppercase border-b ${bdr} ${isLight ? 'text-gray-600' : 'text-[#6b7280]'}`
+  const hdrCls   = `font-family-mono text-[11px] font-mono tracking-widest uppercase border-b ${bdr} ${isLight ? 'text-gray-600' : 'text-[#6b7280]'}`
 
   const searchCls = `w-full pl-7 pr-3 py-2 rounded-lg border text-xs font-mono outline-none transition-all
     ${isLight ? 'bg-[#f4f5f8] border-black/18 text-gray-900 placeholder-gray-400 focus:border-violet-400' : 'bg-[#1e232b] border-white/14 text-white placeholder-[#4a5568] focus:border-[#7c5cfc]'}`
@@ -295,7 +295,7 @@ export default function IPMatrixView() {
 
       {/* ── ESP Summary ─────────────────────────────────────────── */}
       <div>
-        <div className={`text-[9px] font-mono tracking-widest uppercase mb-2 ${muted}`}>ESP Summary</div>
+        <div className={`text-[11px] font-mono tracking-widest uppercase mb-2 ${muted}`}>ESP Summary</div>
         <div className={`rounded-xl border overflow-hidden ${surfaceA} ${bdr}`}>
           <table className="w-full border-collapse text-xs font-mono">
             <thead>
@@ -326,7 +326,7 @@ export default function IPMatrixView() {
                         </span>
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wide"
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold tracking-wide"
                           style={{ background: color.bg, color: color.text }}>
                           {esp}
                         </span>
@@ -348,19 +348,19 @@ export default function IPMatrixView() {
                             onClick={e => { e.stopPropagation(); setExpandedIp(p => ({ ...p, [ipKey]: !p[ipKey] })) }}
                           >
                             <td className="px-3 py-1.5 text-center">
-                              <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded border text-[10px] font-mono ${isLight ? 'border-black/15 text-gray-400' : 'border-white/13 text-[#6b7280]'}`}>
+                              <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded border text-[11px] font-mono ${isLight ? 'border-black/15 text-gray-400' : 'border-white/13 text-[#6b7280]'}`}>
                                 {ipExpanded ? '−' : '+'}
                               </span>
                             </td>
                             <td className="px-3 py-1.5 pl-8 text-[11px] font-mono font-semibold" style={{ color: color.bg }}>{ip}</td>
-                            <td className={`px-3 py-1.5 text-right text-[10px] ${muted}`}>1</td>
-                            <td className={`px-3 py-1.5 text-right text-[10px] font-semibold ${txt}`}>{ipDomains.length}</td>
+                            <td className={`px-3 py-1.5 text-right text-[11px] ${muted}`}>1</td>
+                            <td className={`px-3 py-1.5 text-right text-[11px] font-semibold ${txt}`}>{ipDomains.length}</td>
                           </tr>
                           {/* Domain rows — only shown when IP is expanded */}
                           {ipExpanded && ipDomains.map(domain => (
                             <tr key={ip + domain} style={{ background: subBg }}>
                               <td />
-                              <td colSpan={3} className={`px-3 py-1 pl-16 text-[10px] font-mono ${muted}`}>
+                              <td colSpan={3} className={`px-3 py-1 pl-16 text-[11px] font-mono ${muted}`}>
                                 <span className="opacity-40 mr-2">↳</span>{domain}
                               </td>
                             </tr>
@@ -368,9 +368,9 @@ export default function IPMatrixView() {
                           {ipExpanded && (
                             <tr style={{ background: subBg, borderTop: `1px solid ${borderC}` }}>
                               <td />
-                              <td className={`px-3 py-1 pl-8 text-[9px] font-mono italic ${muted}`}>total for {ip}</td>
-                              <td className={`px-3 py-1 text-right text-[10px] font-semibold ${txt}`}>1</td>
-                              <td className={`px-3 py-1 text-right text-[10px] font-semibold ${txt}`}>{ipDomains.length}</td>
+                              <td className={`px-3 py-1 pl-8 text-[11px] font-mono italic ${muted}`}>total for {ip}</td>
+                              <td className={`px-3 py-1 text-right text-[11px] font-semibold ${txt}`}>1</td>
+                              <td className={`px-3 py-1 text-right text-[11px] font-semibold ${txt}`}>{ipDomains.length}</td>
                             </tr>
                           )}
                         </>
@@ -380,9 +380,9 @@ export default function IPMatrixView() {
                     {expanded && (
                       <tr style={{ background: color.bg + '18', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.1)' : 'rgba(255,255,255,.08)'}` }}>
                         <td />
-                        <td className="px-3 py-2 pl-5 text-[10px] font-mono font-bold" style={{ color: color.bg }}>{esp} — Total</td>
-                        <td className="px-3 py-2 text-right text-[10px] font-bold" style={{ color: color.bg }}>{ips.length}</td>
-                        <td className="px-3 py-2 text-right text-[10px] font-bold" style={{ color: color.bg }}>{domains.length}</td>
+                        <td className="px-3 py-2 pl-5 text-[11px] font-mono font-bold" style={{ color: color.bg }}>{esp} — Total</td>
+                        <td className="px-3 py-2 text-right text-[11px] font-bold" style={{ color: color.bg }}>{ips.length}</td>
+                        <td className="px-3 py-2 text-right text-[11px] font-bold" style={{ color: color.bg }}>{domains.length}</td>
                       </tr>
                     )}
                   </>
@@ -392,7 +392,7 @@ export default function IPMatrixView() {
               {espGroups.length > 0 && (
                 <tr style={{ background: isLight ? 'rgba(0,0,0,.04)' : 'rgba(255,255,255,.04)', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.1)' : 'rgba(255,255,255,.08)'}` }}>
                   <td />
-                  <td className={`px-3 py-2.5 text-[10px] font-mono font-bold tracking-widest uppercase ${txt}`}>Grand Total</td>
+                  <td className={`px-3 py-2.5 text-[11px] font-mono font-bold tracking-widest uppercase ${txt}`}>Grand Total</td>
                   <td className="px-3 py-2.5 text-right text-sm font-bold text-[#00e5c3]">{grandIps}</td>
                   <td className="px-3 py-2.5 text-right text-sm font-bold text-[#00e5c3]">{grandDomains}</td>
                 </tr>
@@ -410,7 +410,7 @@ export default function IPMatrixView() {
           { label: 'Search From Domain', val: searchDomain, set: setSearchDomain },
         ].map(({ label, val, set }) => (
           <div key={label}>
-            <div className={`text-[9px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>{label}</div>
+            <div className={`text-[11px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>{label}</div>
             <div className="relative">
               <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${muted}`}><IconSearch /></span>
               <input value={val} onChange={e => set(e.target.value)} placeholder="Type to search…" className={searchCls} />
@@ -429,21 +429,21 @@ export default function IPMatrixView() {
       {/* ── Filter row ──────────────────────────────────────────── */}
       <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
         <div>
-          <div className={`text-[9px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>Filter by ESP</div>
+          <div className={`text-[11px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>Filter by ESP</div>
           <select value={filterEsp} onChange={e => setFilterEsp(e.target.value)} className={selectCls}>
             <option value="">All ESPs</option>
             {allEspsSorted.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
         </div>
         <div>
-          <div className={`text-[9px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>Filter by IP</div>
+          <div className={`text-[11px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>Filter by IP</div>
           <select value={filterIp} onChange={e => setFilterIp(e.target.value)} className={selectCls}>
             <option value="">All IPs</option>
             {uniqueIps.map(ip => <option key={ip} value={ip}>{ip}</option>)}
           </select>
         </div>
         <div>
-          <div className={`text-[9px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>Filter by From Domain</div>
+          <div className={`text-[11px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>Filter by From Domain</div>
           <select value={filterDomain} onChange={e => setFilterDomain(e.target.value)} className={selectCls}>
             <option value="">All Domains</option>
             {uniqueDomains.map(d => <option key={d} value={d}>{d}</option>)}
@@ -456,7 +456,7 @@ export default function IPMatrixView() {
 
       {/* ── All Records table ───────────────────────────────────── */}
       <div>
-        <div className={`text-[9px] font-mono tracking-widest uppercase mb-2 ${muted}`}>All Records</div>
+        <div className={`text-[11px] font-mono tracking-widest uppercase mb-2 ${muted}`}>All Records</div>
         <div className={`rounded-xl border overflow-hidden ${surfaceA} ${bdr}`}>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-xs font-mono">
@@ -489,9 +489,9 @@ export default function IPMatrixView() {
                   const color = espColor(row.esp, allEspsSorted)
                   return (
                     <tr key={i} className={`border-b last:border-0 transition-colors ${isLight ? 'border-black/7 hover:bg-[#4a2fa0]/4' : 'border-white/5 hover:bg-[#4a2fa0]/8'}`}>
-                      <td className={`px-3 py-2.5 text-center text-[10px] ${muted}`}>{i + 1}</td>
+                      <td className={`px-3 py-2.5 text-center text-[11px] ${muted}`}>{i + 1}</td>
                       <td className="px-3 py-2.5">
-                        <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wide"
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold tracking-wide"
                           style={{ background: color.bg, color: color.text }}>
                           {row.esp}
                         </span>
@@ -531,7 +531,7 @@ export default function IPMatrixView() {
 
       {/* ── Upload History ────────────────────────────────────────── */}
       <div>
-        <div className={`text-[9px] font-mono tracking-widest uppercase mb-2 ${muted}`}>Upload History</div>
+        <div className={`text-[11px] font-mono tracking-widest uppercase mb-2 ${muted}`}>Upload History</div>
         {uploadHistory.length === 0 ? (
           <div className={`rounded-xl border p-6 text-center ${surfaceA} ${bdr}`}>
             <div className={`text-xs font-mono ${muted}`}>No file uploads yet</div>
@@ -543,7 +543,7 @@ export default function IPMatrixView() {
                 <div className={`px-4 py-3 flex items-center justify-between gap-3`}>
                   <div className="min-w-0 flex-1">
                     <div className={`text-xs font-semibold truncate ${txt}`}>{rec.filename}</div>
-                    <div className={`text-[10px] font-mono mt-0.5 flex items-center gap-2 ${muted}`}>
+                    <div className={`text-[11px] font-mono mt-0.5 flex items-center gap-2 ${muted}`}>
                       <span>{fmtDate(rec.uploaded_at)}</span>
                       <span className={`px-1.5 py-0.5 rounded ${isLight ? 'bg-gray-100' : 'bg-white/5'}`}>
                         {rec.rows} record{rec.rows !== 1 ? 's' : ''}
@@ -553,7 +553,7 @@ export default function IPMatrixView() {
                   <button
                     onClick={() => handleDeleteUpload(rec)}
                     disabled={deletingUpload === rec.id}
-                    className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-wider transition-all
+                    className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all
                       border border-[#ff4757]/40 text-[#ff4757] hover:bg-[#ff4757]/10 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {deletingUpload === rec.id ? 'Deleting…' : 'Delete'}
@@ -577,7 +577,7 @@ export default function IPMatrixView() {
             </h3>
             <div className="space-y-4">
               <div>
-                <label className={`block text-[9px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>ESP</label>
+                <label className={`block text-[11px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>ESP</label>
                 <select
                   value={modal.rec.esp}
                   onChange={e => setModal(m => ({ ...m, rec: { ...m.rec, esp: e.target.value, espNew: '' } }))}
@@ -598,7 +598,7 @@ export default function IPMatrixView() {
                 )}
               </div>
               <div>
-                <label className={`block text-[9px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>IP Address</label>
+                <label className={`block text-[11px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>IP Address</label>
                 <input
                   value={modal.rec.ip}
                   onChange={e => setModal(m => ({ ...m, rec: { ...m.rec, ip: e.target.value } }))}
@@ -607,7 +607,7 @@ export default function IPMatrixView() {
                 />
               </div>
               <div>
-                <label className={`block text-[9px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>From Domain <span className={`normal-case ${muted}`}>(optional)</span></label>
+                <label className={`block text-[11px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>From Domain <span className={`normal-case ${muted}`}>(optional)</span></label>
                 <input
                   value={modal.rec.domain}
                   onChange={e => setModal(m => ({ ...m, rec: { ...m.rec, domain: e.target.value } }))}

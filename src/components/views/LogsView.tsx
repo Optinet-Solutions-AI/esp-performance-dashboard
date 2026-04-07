@@ -35,7 +35,7 @@ export default function LogsView() {
       download: isLight ? 'bg-[#7c5cfc]/15 text-[#5b21b6]' : 'bg-[#7c5cfc]/15 text-[#7c5cfc]',
       delete: isLight ? 'bg-[#ff4757]/15 text-[#991b1b]' : 'bg-[#ff4757]/15 text-[#ff4757]',
     }
-    return `inline-block px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${colors[action] || ''}`
+    return `inline-block px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase ${colors[action] || ''}`
   }
 
   function fmtTime(iso: string) {
@@ -80,10 +80,10 @@ export default function LogsView() {
           <table className="w-full border-collapse text-xs font-mono">
             <thead className={isLight ? 'bg-gray-50' : 'bg-[#181c22]'}>
               <tr>
-                <th className={`px-4 py-3 text-left text-[9px] tracking-wider uppercase border-b ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>Time</th>
-                <th className={`px-4 py-3 text-left text-[9px] tracking-wider uppercase border-b ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>Action</th>
-                <th className={`px-4 py-3 text-left text-[9px] tracking-wider uppercase border-b ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>Target</th>
-                <th className={`px-4 py-3 text-left text-[9px] tracking-wider uppercase border-b ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>Details</th>
+                <th className={`px-4 py-3 text-left text-[11px] tracking-wider uppercase border-b ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>Time</th>
+                <th className={`px-4 py-3 text-left text-[11px] tracking-wider uppercase border-b ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>Action</th>
+                <th className={`px-4 py-3 text-left text-[11px] tracking-wider uppercase border-b ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>Target</th>
+                <th className={`px-4 py-3 text-left text-[11px] tracking-wider uppercase border-b ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>Details</th>
               </tr>
             </thead>
             <tbody>

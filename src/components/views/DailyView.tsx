@@ -39,6 +39,7 @@ export default function DailyView() {
   const tc = getTextColor(isLight)
 
   const cardClass = `rounded-xl border ${isLight ? 'bg-white border-black/[0.10] shadow-sm' : 'bg-[#111418] border-white/7'}`
+  const teal = isLight ? '#076C62' : '#00e5c3'
 
   // Merge all dates across all ESPs
   const allEspData = Object.values(espData)
@@ -102,7 +103,7 @@ export default function DailyView() {
       {
         label: 'Delivered',
         data: rows.map(r => r.delivered),
-        borderColor: '#00e5c3',
+        borderColor: teal,
         backgroundColor: 'rgba(0,229,195,0.05)',
         fill: true,
         tension: 0.3,
@@ -228,15 +229,15 @@ export default function DailyView() {
                   <div className={`text-sm font-semibold ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}>
                     Sent vs Delivered
                   </div>
-                  <div className={`text-[10px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
+                  <div className={`text-[11px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
                     Last 7 days
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1 text-[10px] font-mono text-[#7c5cfc]">
+                  <span className="flex items-center gap-1 text-[11px] font-mono text-[#7c5cfc]">
                     <span className="w-2.5 h-0.5 bg-[#7c5cfc] inline-block rounded" /> Sent
                   </span>
-                  <span className="flex items-center gap-1 text-[10px] font-mono text-[#00e5c3]">
+                  <span className="flex items-center gap-1 text-[11px] font-mono text-[#00e5c3]">
                     <span className="w-2.5 h-0.5 bg-[#00e5c3] inline-block rounded" /> Delivered
                   </span>
                 </div>
@@ -252,7 +253,7 @@ export default function DailyView() {
                 <div className={`text-sm font-semibold ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}>
                   Bounced per Day
                 </div>
-                <div className={`text-[10px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
+                <div className={`text-[11px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
                   Red = critical (&gt;1K) · Amber = elevated (&gt;100)
                 </div>
               </div>
@@ -276,7 +277,7 @@ export default function DailyView() {
                     {['Date', 'Sent', 'Delivered', 'Delivery %', 'Opens', 'Open %', 'Bounced', 'Bounce %'].map((h, i) => (
                       <th
                         key={h}
-                        className={`px-4 py-3 text-[9px] font-mono tracking-wider uppercase border-b
+                        className={`px-4 py-3 text-[11px] font-mono tracking-wider uppercase border-b
                           ${i === 0 ? 'text-left' : 'text-right'}
                           ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}
                       >
@@ -306,7 +307,7 @@ export default function DailyView() {
                       </td>
                       <td
                         className="px-4 py-2.5 text-right font-mono"
-                        style={{ color: row.deliveryRate > 95 ? '#00e5c3' : row.deliveryRate > 70 ? '#ffd166' : '#ff4757' }}
+                        style={{ color: row.deliveryRate > 95 ? teal : row.deliveryRate > 70 ? '#ffd166' : '#ff4757' }}
                       >
                         {fmtP(row.deliveryRate)}
                       </td>
@@ -324,7 +325,7 @@ export default function DailyView() {
                       </td>
                       <td
                         className="px-4 py-2.5 text-right font-mono font-bold"
-                        style={{ color: row.bounceRate > 10 ? '#ff4757' : row.bounceRate > 2 ? '#ffd166' : '#00e5c3' }}
+                        style={{ color: row.bounceRate > 10 ? '#ff4757' : row.bounceRate > 2 ? '#ffd166' : teal }}
                       >
                         {fmtP(row.bounceRate)}
                       </td>

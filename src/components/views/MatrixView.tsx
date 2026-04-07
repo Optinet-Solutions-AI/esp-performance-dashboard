@@ -176,7 +176,7 @@ export default function MatrixView() {
   const headerBg = isLight ? '#f1f3f7' : '#181c22'
   const surfaceBg = isLight ? '#ffffff' : '#111418'
 
-  const thCls = `px-3 py-2.5 text-[9px] font-mono tracking-widest uppercase text-right border-b`
+  const thCls = `px-3 py-2.5 text-[11px] font-mono tracking-widest uppercase text-right border-b`
   const tdCls = `px-3 py-2.5 text-right text-[11px] font-mono border-b`
 
   function rateColor(cls: string) {
@@ -231,7 +231,7 @@ export default function MatrixView() {
           {ex ? '−' : '+'}
         </span>
         <span className="font-semibold">{label}</span>
-        {count && <span className="text-[9px] font-mono ml-1.5" style={{ color: muted }}>{count}</span>}
+        {count && <span className="text-[11px] font-mono ml-1.5" style={{ color: muted }}>{count}</span>}
       </div>
     )
   }
@@ -368,8 +368,8 @@ export default function MatrixView() {
           rows.push(
             <tr key={fdKey} className="cursor-pointer" onClick={() => toggle(fdKey)}>
               <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg }}></td>
-              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg, paddingLeft: 40, color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>
-                <ToggleBtn expanded={fdEx} label={<span style={{ color: muted, fontFamily: 'var(--font-mono)', fontSize: 10 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
+              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg, paddingLeft: 40, color: muted, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                <ToggleBtn expanded={fdEx} label={<span style={{ color: muted, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
               </td>
               <DataRow agg={fdAgg} bg={fdBg} />
             </tr>
@@ -383,7 +383,7 @@ export default function MatrixView() {
             rows.push(
               <tr key={`prov||${espName}||${ip}||${fd}||${provName}`}>
                 <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: provBg }}></td>
-                <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: provBg, paddingLeft: 60, fontFamily: 'var(--font-mono)', fontSize: 10, color: muted }}>
+                <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: provBg, paddingLeft: 60, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted }}>
                   <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, display: 'inline-block', marginRight: 7, verticalAlign: 'middle' }} />
                   {provName}
                 </td>
@@ -397,7 +397,7 @@ export default function MatrixView() {
             rows.push(
               <tr key={fdKey + '-total'}>
                 <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', borderTop: `1px solid ${bdr}` }}></td>
-                <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', paddingLeft: 40, fontFamily: 'var(--font-mono)', fontSize: 10, color: muted, borderTop: `1px solid ${bdr}` }}>
+                <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', paddingLeft: 40, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted, borderTop: `1px solid ${bdr}` }}>
                   {fd} — total
                 </td>
                 <DataRow agg={fdAgg} isFdTotal />
@@ -411,7 +411,7 @@ export default function MatrixView() {
         rows.push(
           <tr key={ipKey + '-total'}>
             <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: ipTotalBg, borderTop: `1px solid ${bdr}` }}></td>
-            <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: ipTotalBg, paddingLeft: 20, fontFamily: 'var(--font-mono)', fontSize: 10, color: ipColor, borderTop: `1px solid ${bdr}` }}>
+            <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: ipTotalBg, paddingLeft: 20, fontFamily: 'var(--font-mono)', fontSize: 11, color: ipColor, borderTop: `1px solid ${bdr}` }}>
               {isNotFound ? '\u26A0 IP NOT FOUND' : ip} — total
             </td>
             <DataRow agg={ipTot} bg={ipTotalBg} />
@@ -466,15 +466,15 @@ export default function MatrixView() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: muted }}>From</span>
+          <span className="text-[11px] font-mono uppercase tracking-wider" style={{ color: muted }}>From</span>
           <CalendarPicker value={fromDate} onChange={handleFrom} isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} />
           <span className="text-xs" style={{ color: muted }}>→</span>
           <CalendarPicker value={toDate} onChange={handleTo} isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} align="right" />
-          <button onClick={handleAll} className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}>
+          <button onClick={handleAll} className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-mono uppercase transition-all ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}>
             All
           </button>
           {hasData && (
-            <button onClick={downloadCsv} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/20 text-gray-600 hover:border-[#009e88] hover:text-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3] hover:text-[#00e5c3]'}`}>
+            <button onClick={downloadCsv} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/20 text-gray-600 hover:border-[#009e88] hover:text-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3] hover:text-[#00e5c3]'}`}>
               <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 1v7M3.5 6l2.5 2.5L8.5 6"/><path d="M1 10h10"/>
               </svg>
@@ -499,18 +499,18 @@ export default function MatrixView() {
               borderColor: bdr,
               boxShadow: `0 2px 8px ${isLight ? 'rgba(0,0,0,.1)' : 'rgba(0,0,0,.5)'}`,
             }}>
-            <span className={`text-[9px] font-mono uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>Expanded:</span>
+            <span className={`text-[11px] font-mono uppercase tracking-wider flex-shrink-0 ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>Expanded:</span>
             <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
               {expandedBreadcrumbs.map(b => (
                 <button key={b.key} onClick={() => toggle(b.key)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-mono transition-all ${isLight ? 'border-black/15 hover:bg-black/5' : 'border-white/15 hover:bg-white/5'}`}>
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all ${isLight ? 'border-black/15 hover:bg-black/5' : 'border-white/15 hover:bg-white/5'}`}>
                   <span style={{ color: b.color, fontWeight: 600 }}>{b.label}</span>
-                  <span className={`text-[9px] ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>x</span>
+                  <span className={`text-[11px] ${isLight ? 'text-gray-400' : 'text-[#6b7280]'}`}>x</span>
                 </button>
               ))}
             </div>
             <button onClick={() => setExpanded({})}
-              className={`flex-shrink-0 px-2.5 py-1 rounded-lg border text-[9px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/15 text-gray-500 hover:border-red-300 hover:text-red-500' : 'border-white/15 text-[#6b7280] hover:border-[#ff4757] hover:text-[#ff4757]'}`}>
+              className={`flex-shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/15 text-gray-500 hover:border-red-300 hover:text-red-500' : 'border-white/15 text-[#6b7280] hover:border-[#ff4757] hover:text-[#ff4757]'}`}>
               Collapse All
             </button>
           </div>
@@ -544,9 +544,9 @@ export default function MatrixView() {
       {tip && (
         <div className="fixed z-[9999] pointer-events-none" style={{ left: tip.x, top: tip.y, minWidth: 240 }}>
           <div className="rounded-xl shadow-2xl p-4" style={{ background: isLight ? '#ffffff' : '#1a1e26', border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.14)'}` }}>
-            <div className="text-[9px] font-mono tracking-widest uppercase mb-2" style={{ color: isLight ? '#9ca3af' : '#6b7280' }}>{tip.title}</div>
+            <div className="text-[11px] font-mono tracking-widest uppercase mb-2" style={{ color: isLight ? '#9ca3af' : '#6b7280' }}>{tip.title}</div>
             <div className="text-2xl font-bold font-mono mb-3" style={{ color: isLight ? '#111827' : '#ffffff' }}>{tip.exact}</div>
-            <div className="text-[9px] font-mono tracking-widest uppercase mb-1.5" style={{ color: isLight ? '#b45309' : '#ffd166' }}>Formula</div>
+            <div className="text-[11px] font-mono tracking-widest uppercase mb-1.5" style={{ color: isLight ? '#b45309' : '#ffd166' }}>Formula</div>
             <div className="text-[11px] font-mono mb-1" style={{ color: isLight ? '#374151' : '#c8cdd6' }}>{tip.formula}</div>
             <div className="text-[11px] font-mono" style={{ color: isLight ? '#374151' : '#c8cdd6' }}>{tip.calc}</div>
           </div>

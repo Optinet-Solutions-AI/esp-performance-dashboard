@@ -16,17 +16,17 @@ const EMPTY: MmData = {
 const VOL_COLORS  = { sent: '#6b7280', delivered: '#7c5cfc', opened: '#00e5c3', clicked: '#ffd166' }
 const RATE_COLORS = { successRate: '#7c5cfc', openRate: '#00e5c3', clickRate: '#ffd166', bounceRate: '#ff4757' }
 const KPI_DEFS = [
-  { key: 'openRate'   as keyof DateMetrics, label: 'Open Rate %',   color: '#00e5c3', formula: 'Opens ÷ Delivered × 100' },
+  { key: 'openRate'   as keyof DateMetrics, label: 'Open Rate %',   color: '#00e5c3', lightColor: '#076C62', formula: 'Opens ÷ Delivered × 100' },
   { key: 'clickRate'  as keyof DateMetrics, label: 'CTR %',         color: '#ffd166', formula: 'Clicks ÷ Opens × 100'    },
   { key: 'bounceRate' as keyof DateMetrics, label: 'Bounce Rate %', color: '#ff4757', formula: 'Bounced ÷ Sent × 100'    },
-  { key: 'unsubRate'  as keyof DateMetrics, label: 'Unsub Rate %',  color: '#ff9a5c', formula: 'Unsubscribed ÷ Opens × 100' },
+  { key: 'unsubRate'  as keyof DateMetrics, label: 'Unsub Rate %',  color: '#ff9a5c', lightColor: '#AF4302', formula: 'Unsubscribed ÷ Opens × 100' },
 ]
 const GRID_KPIS = [
-  { key: 'deliveryRate' as keyof DateMetrics, label: 'Success%', color: '#b39dff', tipTitle: 'SUCCESS RATE',  formula: 'Delivered ÷ Sent × 100',        rawFn: (r: DateMetrics) => ({ a: r.delivered, b: r.sent        }), dec: 1 },
+  { key: 'deliveryRate' as keyof DateMetrics, label: 'Success%', color: '#b39dff', lightColor: '#7c5cfc',  tipTitle: 'SUCCESS RATE',  formula: 'Delivered ÷ Sent × 100',        rawFn: (r: DateMetrics) => ({ a: r.delivered, b: r.sent        }), dec: 1 },
   { key: 'openRate'     as keyof DateMetrics, label: 'Open%',    color: '#00ffd5', lightColor: '#076C62', tipTitle: 'OPEN RATE',     formula: 'Opens ÷ Delivered × 100',       rawFn: (r: DateMetrics) => ({ a: r.opened,    b: r.delivered   }), dec: 1 },
-  { key: 'clickRate'    as keyof DateMetrics, label: 'CTR%',     color: '#ffe066', tipTitle: 'CTR',           formula: 'Clicks ÷ Opens × 100',          rawFn: (r: DateMetrics) => ({ a: r.clicked,   b: r.opened      }), dec: 1 },
-  { key: 'bounceRate'   as keyof DateMetrics, label: 'Bounce%',  color: '#ff6b77', tipTitle: 'BOUNCE RATE',   formula: 'Bounced ÷ Sent × 100',          rawFn: (r: DateMetrics) => ({ a: r.bounced,   b: r.sent        }), dec: 1 },
-  { key: 'unsubRate'    as keyof DateMetrics, label: 'Unsub%',   color: '#ff9a5c', tipTitle: 'UNSUB RATE',    formula: 'Unsubscribed ÷ Opens × 100',    rawFn: (r: DateMetrics) => ({ a: r.unsubscribed ?? 0, b: r.opened }), dec: 3 },
+  { key: 'clickRate'    as keyof DateMetrics, label: 'CTR%',     color: '#ffe066', lightColor: '#D58B05', tipTitle: 'CTR',           formula: 'Clicks ÷ Opens × 100',          rawFn: (r: DateMetrics) => ({ a: r.clicked,   b: r.opened      }), dec: 1 },
+  { key: 'bounceRate'   as keyof DateMetrics, label: 'Bounce%',  color: '#ff6b77', lightColor: '#BD0B19', tipTitle: 'BOUNCE RATE',   formula: 'Bounced ÷ Sent × 100',          rawFn: (r: DateMetrics) => ({ a: r.bounced,   b: r.sent        }), dec: 1 },
+  { key: 'unsubRate'    as keyof DateMetrics, label: 'Unsub%',   color: '#ff9a5c', lightColor: '#AF4302', tipTitle: 'UNSUB RATE',    formula: 'Unsubscribed ÷ Opens × 100',    rawFn: (r: DateMetrics) => ({ a: r.unsubscribed ?? 0, b: r.opened }), dec: 3 },
 ]
 const BAD_METRICS = new Set(['bounceRate', 'unsubRate'])
 
@@ -141,12 +141,12 @@ function ipHeat(kpiKey: string, val: number, minV: number, maxV: number): string
   return 'transparent'
 }
 
-function trendArrow(cur: number | null, prev: number | null, kpiKey: string) {
+function trendArrow(cur: number | null, prev: number | null, kpiKey: string, isLight = false) {
   if (cur == null || prev == null) return null
   const diff = cur - prev
   if (Math.abs(diff) < 0.01) return null
   const good = BAD_METRICS.has(kpiKey) ? diff < 0 : diff > 0
-  return { arrow: good ? '▲' : '▼', color: good ? '#00e5c3' : '#ff4757' }
+  return { arrow: good ? '▲' : '▼', color: good ? (isLight ? '#076C62' : '#00e5c3') : '#ff4757' }
 }
 
 function destroyAll(ref: React.MutableRefObject<(Chart | null)[]>) {
@@ -316,6 +316,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
   const kc = (kpi: { color: string; lightColor?: string }): string => isLight ? (kpi.lightColor ?? kpi.color) : kpi.color
+  const teal = isLight ? '#076C62' : '#00e5c3'
 
   // ── IP entity data ───────────────────────────────────────────────
   const espIpmRecords = ipmData.filter(r => r.esp === selectedEsp)
@@ -396,7 +397,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
         datasets: [
           lds('Sent',      dateGroups.map(g => aggDates(od, g.dates)?.sent      ?? null), VOL_COLORS.sent),
           lds('Delivered', dateGroups.map(g => aggDates(od, g.dates)?.delivered ?? null), VOL_COLORS.delivered),
-          lds('Opens',     dateGroups.map(g => aggDates(od, g.dates)?.opened    ?? null), VOL_COLORS.opened),
+          lds('Opens',     dateGroups.map(g => aggDates(od, g.dates)?.opened    ?? null), isLight ? '#076C62' : VOL_COLORS.opened),
           lds('Clicks',    dateGroups.map(g => aggDates(od, g.dates)?.clicked   ?? null), VOL_COLORS.clicked),
         ],
       },
@@ -440,7 +441,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
         labels: dateGroups.map(g => fmtDL(g.label)),
         datasets: [
           rateDs('Success Rate', rateMetrics.map(r => r?.deliveryRate ?? null), RATE_COLORS.successRate),
-          rateDs('Open Rate',    rateMetrics.map(r => r?.openRate     ?? null), RATE_COLORS.openRate),
+          rateDs('Open Rate',    rateMetrics.map(r => r?.openRate     ?? null), isLight ? '#076C62' : RATE_COLORS.openRate),
           rateDs('CTR',          rateMetrics.map(r => r?.clickRate    ?? null), RATE_COLORS.clickRate,  [4, 4]),
           rateDs('Bounce Rate',  rateMetrics.map(r => r?.bounceRate   ?? null), RATE_COLORS.bounceRate, [2, 2]),
         ],
@@ -663,7 +664,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           <CalendarPicker value={toDate}   onChange={iso => handleTo(iso)}   isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} align="right" />
           <button
             onClick={handleAll}
-            className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono uppercase transition-all
+            className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-mono uppercase transition-all
               ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}
           >All</button>
 
@@ -716,13 +717,13 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
 
           {/* ── KPI Cards ─────────────────────────────────────────── */}
           {aggOverall && (() => {
-            const bounceAccent = aggOverall.bounceRate > 10 ? '#ff4757' : aggOverall.bounceRate > 2 ? '#ffd166' : '#00e5c3'
+            const bounceAccent = aggOverall.bounceRate > 10 ? '#ff4757' : aggOverall.bounceRate > 2 ? '#ffd166' : teal
             const kpiCards = [
               {
                 label: 'Total Sent', val: fmtN(aggOverall.sent),
                 sub: `${fmtN(aggOverall.delivered)} delivered`,
                 accent: ESP_COLORS[selectedEsp] || '#7c5cfc',
-                tip: { title: 'TOTAL SENT', exact: aggOverall.sent.toLocaleString(), formula: 'Raw count of emails dispatched', calc: `= ${aggOverall.sent.toLocaleString()}`, color: '#00e5c3' },
+                tip: { title: 'TOTAL SENT', exact: aggOverall.sent.toLocaleString(), formula: 'Raw count of emails dispatched', calc: `= ${aggOverall.sent.toLocaleString()}`, color: teal },
               },
               {
                 label: 'Success Rate', val: fmtP(aggOverall.deliveryRate),
@@ -731,8 +732,8 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               },
               {
                 label: 'Open Rate', val: fmtP(aggOverall.openRate),
-                sub: `${fmtN(aggOverall.opened)} opens`, accent: '#00e5c3',
-                tip: { title: 'OPEN RATE', exact: aggOverall.openRate.toFixed(2) + '%', formula: 'Opens ÷ Delivered × 100', calc: `${aggOverall.opened.toLocaleString()} ÷ ${aggOverall.delivered.toLocaleString()} × 100 = ${aggOverall.openRate.toFixed(2)}%`, color: '#00e5c3' },
+                sub: `${fmtN(aggOverall.opened)} opens`, accent: teal,
+                tip: { title: 'OPEN RATE', exact: aggOverall.openRate.toFixed(2) + '%', formula: 'Opens ÷ Delivered × 100', calc: `${aggOverall.opened.toLocaleString()} ÷ ${aggOverall.delivered.toLocaleString()} × 100 = ${aggOverall.openRate.toFixed(2)}%`, color: teal },
               },
               {
                 label: 'CTR', val: fmtP(aggOverall.clickRate),
@@ -754,9 +755,9 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     onMouseEnter={e => setKpiTooltip({ idx, x: e.clientX + 14, y: e.clientY + 14 })}
                     onMouseLeave={() => setKpiTooltip(null)}
                   >
-                    <div className={`text-[9px] font-mono tracking-wider uppercase mb-2 ${muted}`}>{k.label}</div>
+                    <div className={`text-[11px] font-mono tracking-wider uppercase mb-2 ${muted}`}>{k.label}</div>
                     <div className={`text-2xl font-bold font-mono ${txt}`}>{k.val}</div>
-                    <div className={`text-[10px] mt-1 ${muted}`}>{k.sub}</div>
+                    <div className={`text-[11px] mt-1 ${muted}`}>{k.sub}</div>
                     {/* Tooltip rendered via portal-like fixed positioning */}
                     {kpiTooltip?.idx === idx && (
                       <div
@@ -765,9 +766,9 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                       >
                         <div className="rounded-xl shadow-2xl p-4"
                           style={{ background: isLight ? '#ffffff' : '#1a1e26', border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.14)'}` }}>
-                          <div className="text-[9px] font-mono tracking-widest uppercase mb-2" style={{ color: isLight ? '#9ca3af' : '#6b7280' }}>{k.tip.title}</div>
+                          <div className="text-[11px] font-mono tracking-widest uppercase mb-2" style={{ color: isLight ? '#9ca3af' : '#6b7280' }}>{k.tip.title}</div>
                           <div className="text-2xl font-bold font-mono mb-3" style={{ color: isLight ? '#111827' : '#ffffff' }}>{k.tip.exact}</div>
-                          <div className="text-[9px] font-mono tracking-widest uppercase mb-1.5" style={{ color: isLight ? '#b45309' : '#ffd166' }}>Formula</div>
+                          <div className="text-[11px] font-mono tracking-widest uppercase mb-1.5" style={{ color: isLight ? '#b45309' : '#ffd166' }}>Formula</div>
                           <div className="text-[11px] font-mono mb-1" style={{ color: isLight ? '#374151' : k.tip.color }}>{k.tip.formula}</div>
                           <div className="text-[11px] font-mono" style={{ color: isLight ? '#374151' : k.tip.color }}>{k.tip.calc}</div>
                         </div>
@@ -782,7 +783,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           {/* ── Tab Switcher ──────────────────────────────────────── */}
           <div className="flex items-center gap-1">
             <button
-              className="px-3 py-1.5 rounded-lg border text-[10px] font-mono uppercase tracking-wider bg-[#4a2fa0] border-[#4a2fa0] text-white"
+              className="px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider bg-[#4a2fa0] border-[#4a2fa0] text-white"
             >
               IP Address
             </button>
@@ -794,7 +795,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             <div className={`${card} p-4`}>
               <div className="mb-3">
                 <div className={`text-xs font-medium ${txt}`}>Volume Trend</div>
-                <div className={`text-[10px] font-mono mt-0.5 ${muted}`}>
+                <div className={`text-[11px] font-mono mt-0.5 ${muted}`}>
                   Sent · Delivered · Opens · Clicks — all {tabLabel}s · {granularity}
                 </div>
               </div>
@@ -803,7 +804,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                 {(Object.entries(VOL_COLORS) as [string, string][]).map(([k, c]) => (
                   <div key={k} className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-sm" style={{ background: c }} />
-                    <span className={`text-[10px] font-mono capitalize ${muted}`}>{k}</span>
+                    <span className={`text-[11px] font-mono capitalize ${muted}`}>{k}</span>
                   </div>
                 ))}
               </div>
@@ -813,13 +814,13 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className={`text-xs font-medium ${txt}`}>Rate Trends{selectedRow ? ` — ${selectedRow}` : ''}</div>
-                  <div className={`text-[10px] font-mono mt-0.5 ${muted}`}>
+                  <div className={`text-[11px] font-mono mt-0.5 ${muted}`}>
                     {selectedRow ? 'Click row again to reset' : `Click table row to isolate · ${granularity}`}
                   </div>
                 </div>
                 {selectedRow && (
                   <button onClick={() => setSelected(null)}
-                    className={`text-[10px] font-mono px-2 py-1 rounded border transition-all
+                    className={`text-[11px] font-mono px-2 py-1 rounded border transition-all
                       ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}>
                     Reset
                   </button>
@@ -830,7 +831,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                 {[['Success Rate', RATE_COLORS.successRate],['Open Rate', RATE_COLORS.openRate],['CTR', RATE_COLORS.clickRate],['Bounce Rate', RATE_COLORS.bounceRate]].map(([l, c]) => (
                   <div key={l} className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-sm" style={{ background: c }} />
-                    <span className={`text-[10px] font-mono ${muted}`}>{l}</span>
+                    <span className={`text-[11px] font-mono ${muted}`}>{l}</span>
                   </div>
                 ))}
               </div>
@@ -844,7 +845,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
               <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)' }}>
                 {(['date', 'provider'] as EmbedView[]).map(v => (
                   <button key={v} onClick={() => setEmbedView(v)}
-                    className={`px-3 py-1.5 text-[10px] font-mono font-semibold uppercase tracking-wider transition-all
+                    className={`px-3 py-1.5 text-[11px] font-mono font-semibold uppercase tracking-wider transition-all
                       ${embedView === v
                         ? 'bg-[#00e5c3] text-[#0a0d12]'
                         : isLight ? 'bg-white text-gray-500 hover:bg-gray-50' : 'bg-[#1e232b] text-[#a8b0be] hover:bg-[#252b35]'
@@ -859,7 +860,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                 <div key={kpi.key as string} className={`rounded-xl border p-4 ${isLight ? 'border-black/8 bg-white' : 'border-white/7 bg-[#0e1117]'}`}>
                   <div className="mb-3">
                     <div className={`text-xs font-semibold ${txt}`}>{kpi.label}</div>
-                    <div className={`text-[10px] font-mono mt-0.5 ${muted}`}>{kpi.formula}</div>
+                    <div className={`text-[11px] font-mono mt-0.5 ${muted}`}>{kpi.formula}</div>
                   </div>
                   <div style={{ height: 200 }}>
                     <canvas ref={el => { kpiRefs.current[i] = el }} />
@@ -869,7 +870,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                       <div key={e.name} className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: kc(kpi) }} />
-                          <span className={`text-[9px] font-mono font-semibold ${muted}`}>
+                          <span className={`text-[11px] font-mono font-semibold ${muted}`}>
                             {e.name.length > 22 ? e.name.slice(0, 20) + '…' : e.name}
                           </span>
                         </div>
@@ -897,7 +898,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                   return (
                     <div key={title} className="flex flex-col items-center">
                       <div className={`text-xs font-medium mb-0.5 ${txt}`}>{title}</div>
-                      <div className={`text-[10px] font-mono mb-3 ${muted}`}>share of total {title.toLowerCase()}</div>
+                      <div className={`text-[11px] font-mono mb-3 ${muted}`}>share of total {title.toLowerCase()}</div>
                       <div style={{ height: 160, width: '100%', maxWidth: 160 }}>
                         <canvas ref={el => { pieRefs.current[idx] = el }} />
                       </div>
@@ -908,8 +909,8 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                           return (
                             <div key={e.name} className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: e.color }} />
-                              <span className={`text-[10px] font-mono flex-1 truncate ${muted}`}>{e.name}</span>
-                              <span className={`text-[10px] font-mono font-bold ${txt}`}>{pct}%</span>
+                              <span className={`text-[11px] font-mono flex-1 truncate ${muted}`}>{e.name}</span>
+                              <span className={`text-[11px] font-mono font-bold ${txt}`}>{pct}%</span>
                             </div>
                           )
                         })}
@@ -924,10 +925,10 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           {/* ── Summary Table ─────────────────────────────────────── */}
           <div className={`${card} overflow-hidden`}>
             <div className="px-4 py-3 border-b flex items-center justify-between" style={divBdr}>
-              <span className={`text-[10px] font-mono uppercase tracking-wider ${muted}`}>
+              <span className={`text-[11px] font-mono uppercase tracking-wider ${muted}`}>
                 {mmTab === 'ip' ? 'IP Address Summary' : 'Sending Domain Summary'}
               </span>
-              <span className={`text-[10px] font-mono ${muted}`}>Click row → isolate rate trend & daily breakdown</span>
+              <span className={`text-[11px] font-mono ${muted}`}>Click row → isolate rate trend & daily breakdown</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse" style={{ minWidth: 940 }}>
@@ -935,7 +936,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                   <tr>
                     {[mmTab === 'ip' ? 'IP Address' : 'Sending Domain','Sent','Delivered','Opens','Clicks','Bounced','Unsubs','Success%','Open%','CTR%','Bounce%','Unsub%'].map((h, i) => (
                       <th key={h}
-                        className={`px-3 py-2.5 text-[9px] font-mono tracking-wider uppercase border-b
+                        className={`px-3 py-2.5 text-[11px] font-mono tracking-wider uppercase border-b
                           ${i === 0 ? 'text-left' : 'text-right'}
                           ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
                         {h}
@@ -952,12 +953,12 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     const cols = [
                       { tip: tip('TOTAL SENT',    fmtN(s),   'Raw count of emails dispatched',       `= ${fmtN(s)}`,                                                                        '#a8b0be'), cls: muted },
                       { tip: tip('DELIVERED',      fmtN(del), 'Emails accepted by recipient server',  `${fmtN(del)} of ${fmtN(s)} sent`,                                                    '#c8cdd6'), cls: txt },
-                      { tip: tip('OPENS',          fmtN(op),  'Unique opens recorded',                `Open Rate = ${del > 0 ? (op/del*100).toFixed(2) : '0.00'}% (opens ÷ delivered)`,    '#00e5c3'), cls: 'text-[#00e5c3]' },
+                      { tip: tip('OPENS',          fmtN(op),  'Unique opens recorded',                `Open Rate = ${del > 0 ? (op/del*100).toFixed(2) : '0.00'}% (opens ÷ delivered)`,    teal), cls: 'text-[#00e5c3]' },
                       { tip: tip('CLICKS',         fmtN(cl),  'Unique clicks recorded',               `CTR = ${op > 0 ? (cl/op*100).toFixed(2) : '0.00'}% (clicks ÷ opens)`,               '#ffd166'), cls: 'text-[#ffd166]' },
                       { tip: tip('BOUNCED',        fmtN(bo),  'Emails not delivered',                 `Bounce Rate = ${s > 0 ? (bo/s*100).toFixed(2) : '0.00'}% (bounced ÷ sent)`,         '#ff4757'), cls: bo > 0 ? 'text-[#ff4757]' : muted },
                       { tip: tip('UNSUBSCRIBES',   fmtN(un),  'Recipients who unsubscribed',          `Unsub Rate = ${op > 0 ? (un/op*100).toFixed(3) : '0.000'}% (unsubs ÷ opens)`,       '#ff9a5c'), cls: un > 0 ? 'text-[#ff9a5c]' : muted },
                       { tip: tip('SUCCESS RATE',   `${(d?.deliveryRate??0).toFixed(2)}%`, 'Delivered ÷ Sent × 100',         `${fmtN(del)} ÷ ${fmtN(s)} × 100 = ${(d?.deliveryRate??0).toFixed(2)}%`,          '#b39dff'), cls: (d?.deliveryRate??0) < 80 ? 'text-[#ffd166]' : txt },
-                      { tip: tip('OPEN RATE',      `${(d?.openRate??0).toFixed(2)}%`,     'Opens ÷ Delivered × 100',        `${fmtN(op)} ÷ ${fmtN(del)} × 100 = ${(d?.openRate??0).toFixed(2)}%`,             '#00e5c3'), cls: 'text-[#00e5c3]' },
+                      { tip: tip('OPEN RATE',      `${(d?.openRate??0).toFixed(2)}%`,     'Opens ÷ Delivered × 100',        `${fmtN(op)} ÷ ${fmtN(del)} × 100 = ${(d?.openRate??0).toFixed(2)}%`,             teal), cls: 'text-[#00e5c3]' },
                       { tip: tip('CTR',            `${(d?.clickRate??0).toFixed(2)}%`,    'Clicks ÷ Opens × 100',           `${fmtN(cl)} ÷ ${fmtN(op)} × 100 = ${(d?.clickRate??0).toFixed(2)}%`,             '#ffd166'), cls: 'text-[#ffd166]' },
                       { tip: tip('BOUNCE RATE',    `${(d?.bounceRate??0).toFixed(2)}%`,   'Bounced ÷ Sent × 100',           `${fmtN(bo)} ÷ ${fmtN(s)} × 100 = ${(d?.bounceRate??0).toFixed(2)}%`,             '#ff6b77'), cls: (d?.bounceRate??0) > 10 ? 'text-[#ff4757]' : (d?.bounceRate??0) > 2 ? 'text-[#ffd166]' : muted },
                       { tip: tip('UNSUB RATE',     `${(d?.unsubRate??0).toFixed(3)}%`,    'Unsubscribed ÷ Opens × 100',     `${fmtN(un)} ÷ ${fmtN(op)} × 100 = ${(d?.unsubRate??0).toFixed(3)}%`,             '#ff9a5c'), cls: (d?.unsubRate??0) > 0 ? 'text-[#ff9a5c]' : muted },
@@ -999,12 +1000,12 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     const cols = [
                       { tip: tip('TOTAL SENT',    fmtN(s),   'Raw count of emails dispatched',       `= ${fmtN(s)}`,                                                                       '#a8b0be'), cls: txt },
                       { tip: tip('DELIVERED',      fmtN(del), 'Emails accepted by recipient server',  `${fmtN(del)} of ${fmtN(s)} sent`,                                                   '#c8cdd6'), cls: txt },
-                      { tip: tip('OPENS',          fmtN(op),  'Unique opens recorded',                `Open Rate = ${del > 0 ? (op/del*100).toFixed(2) : '0.00'}% (opens ÷ delivered)`,   '#00e5c3'), cls: 'text-[#00e5c3]' },
+                      { tip: tip('OPENS',          fmtN(op),  'Unique opens recorded',                `Open Rate = ${del > 0 ? (op/del*100).toFixed(2) : '0.00'}% (opens ÷ delivered)`,   teal), cls: 'text-[#00e5c3]' },
                       { tip: tip('CLICKS',         fmtN(cl),  'Unique clicks recorded',               `CTR = ${op > 0 ? (cl/op*100).toFixed(2) : '0.00'}% (clicks ÷ opens)`,              '#ffd166'), cls: 'text-[#ffd166]' },
                       { tip: tip('BOUNCED',        fmtN(bo),  'Emails not delivered',                 `Bounce Rate = ${s > 0 ? (bo/s*100).toFixed(2) : '0.00'}% (bounced ÷ sent)`,        '#ff4757'), cls: bo > 0 ? 'text-[#ff4757]' : txt },
                       { tip: tip('UNSUBSCRIBES',   fmtN(un),  'Recipients who unsubscribed',          `Unsub Rate = ${op > 0 ? (un/op*100).toFixed(3) : '0.000'}% (unsubs ÷ opens)`,      '#ff9a5c'), cls: un > 0 ? 'text-[#ff9a5c]' : txt },
                       { tip: tip('SUCCESS RATE',   `${aggOverall.deliveryRate.toFixed(2)}%`, 'Delivered ÷ Sent × 100',     `${fmtN(del)} ÷ ${fmtN(s)} × 100 = ${aggOverall.deliveryRate.toFixed(2)}%`,     '#b39dff'), cls: txt },
-                      { tip: tip('OPEN RATE',      `${aggOverall.openRate.toFixed(2)}%`,     'Opens ÷ Delivered × 100',    `${fmtN(op)} ÷ ${fmtN(del)} × 100 = ${aggOverall.openRate.toFixed(2)}%`,        '#00e5c3'), cls: 'text-[#00e5c3]' },
+                      { tip: tip('OPEN RATE',      `${aggOverall.openRate.toFixed(2)}%`,     'Opens ÷ Delivered × 100',    `${fmtN(op)} ÷ ${fmtN(del)} × 100 = ${aggOverall.openRate.toFixed(2)}%`,        teal), cls: 'text-[#00e5c3]' },
                       { tip: tip('CTR',            `${aggOverall.clickRate.toFixed(2)}%`,    'Clicks ÷ Opens × 100',       `${fmtN(cl)} ÷ ${fmtN(op)} × 100 = ${aggOverall.clickRate.toFixed(2)}%`,        '#ffd166'), cls: 'text-[#ffd166]' },
                       { tip: tip('BOUNCE RATE',    `${aggOverall.bounceRate.toFixed(2)}%`,   'Bounced ÷ Sent × 100',       `${fmtN(bo)} ÷ ${fmtN(s)} × 100 = ${aggOverall.bounceRate.toFixed(2)}%`,        '#ff6b77'), cls: aggOverall.bounceRate > 10 ? 'text-[#ff4757]' : aggOverall.bounceRate > 2 ? 'text-[#ffd166]' : txt },
                       { tip: tip('UNSUB RATE',     `${(aggOverall.unsubRate??0).toFixed(3)}%`, 'Unsubscribed ÷ Opens × 100', `${fmtN(un)} ÷ ${fmtN(op)} × 100 = ${(aggOverall.unsubRate??0).toFixed(3)}%`, '#ff9a5c'), cls: (aggOverall.unsubRate??0) > 0 ? 'text-[#ff9a5c]' : txt },
@@ -1036,11 +1037,11 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           {selectedRow && activeDates.some(d => selectedBD[d]) && (
             <div className={`${card} overflow-hidden`}>
               <div className="px-4 py-3 border-b flex items-center justify-between" style={divBdr}>
-                <span className={`text-[10px] font-mono uppercase tracking-wider ${muted}`}>
+                <span className={`text-[11px] font-mono uppercase tracking-wider ${muted}`}>
                   Daily Breakdown — {selectedRow}
                 </span>
                 <button onClick={() => setSelected(null)}
-                  className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-all
+                  className={`text-[11px] font-mono px-2 py-0.5 rounded border transition-all
                     ${isLight ? 'border-black/20 text-gray-500 hover:text-gray-800' : 'border-white/13 text-[#a8b0be] hover:text-[#f0f2f5]'}`}>
                   Close ✕
                 </button>
@@ -1051,7 +1052,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     <tr>
                       {['Date','Sent','Delivered','Opens','Clicks','Bounced','Success%','Open%','CTR%','Bounce%'].map((h, i) => (
                         <th key={h}
-                          className={`px-3 py-2.5 text-[9px] font-mono tracking-wider uppercase border-b
+                          className={`px-3 py-2.5 text-[11px] font-mono tracking-wider uppercase border-b
                             ${i === 0 ? 'text-left' : 'text-right'}
                             ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
                           {h}
@@ -1090,7 +1091,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           {ipEntityData.length > 0 && dateGroups.length > 0 && (
             <div className={`${card} overflow-hidden`}>
               <div className="px-4 py-3 border-b flex items-center justify-between flex-wrap gap-2" style={divBdr}>
-                <span className={`text-[10px] font-mono uppercase tracking-wider ${muted}`}>
+                <span className={`text-[11px] font-mono uppercase tracking-wider ${muted}`}>
                   Daily KPIs by IP Address
                   {activeDates.length > 0 && ` · ${fmtDL(activeDates[0])} – ${fmtDL(activeDates[activeDates.length - 1])}`}
                 </span>
@@ -1126,7 +1127,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                   {(filterIp !== 'all' || filterDomain !== 'all' || filterProvider !== 'all') && (
                     <button
                       onClick={() => { setFilterIp('all'); setFilterDomain('all'); setFilterProvider('all') }}
-                      className={`px-2 py-1 rounded border text-[9px] font-mono uppercase transition-all
+                      className={`px-2 py-1 rounded border text-[11px] font-mono uppercase transition-all
                         ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}
                     >
                       Reset
@@ -1135,7 +1136,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                 </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-[10px] font-mono" style={{ minWidth: filteredIpEntityData.length * 5 * 80 + 100 }}>
+                <table className="w-full border-collapse text-[11px] font-mono" style={{ minWidth: filteredIpEntityData.length * 5 * 80 + 100 }}>
                   <colgroup>
                     <col style={{ width: 100 }} />
                     {filteredIpEntityData.flatMap(e => GRID_KPIS.map(kpi => (
@@ -1144,7 +1145,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                   </colgroup>
                   <thead>
                     <tr style={{ background: isLight ? '#f1f3f7' : '#181c22' }}>
-                      <th className={`px-3 py-2.5 text-left text-[9px] tracking-widest uppercase border-b border-r ${isLight ? 'border-black/8 text-gray-500' : 'border-white/7 text-[#6b7280]'}`}>
+                      <th className={`px-3 py-2.5 text-left text-[11px] tracking-widest uppercase border-b border-r ${isLight ? 'border-black/8 text-gray-500' : 'border-white/7 text-[#6b7280]'}`}>
                         Date
                       </th>
                       {filteredIpEntityData.map((e, ei) => (
@@ -1152,7 +1153,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                           className={`px-3 py-2.5 border-b text-center ${ei < filteredIpEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}>
                           <div className="flex items-center justify-center gap-1.5">
                             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: e.color }} />
-                            <span className="text-[10px] font-semibold tracking-wide uppercase" style={{ color: e.color }}>{e.name}</span>
+                            <span className="text-[11px] font-semibold tracking-wide uppercase" style={{ color: e.color }}>{e.name}</span>
                           </div>
                         </th>
                       ))}
@@ -1163,7 +1164,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                         GRID_KPIS.map((kpi, ki) => (
                           <th key={e.name + kpi.key}
                             className={`px-3 py-2 text-right border-b ${ki === 4 && ei < filteredIpEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}
-                            style={{ color: kc(kpi), fontSize: 9, letterSpacing: '0.08em' }}>
+                            style={{ color: kc(kpi), fontSize: 11, letterSpacing: '0.08em' }}>
                             {kpi.label}
                           </th>
                         ))
@@ -1193,10 +1194,14 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                             const pVal  = prev ? (prev[kpi.key] as number | undefined) ?? null : null
                             const stats = colStats[e.name]?.[kpi.key as string]
                             const bg    = val != null && stats ? ipHeat(kpi.key as string, val, stats.min, stats.max) : 'transparent'
-                            const trend = trendArrow(val, pVal, kpi.key as string)
+                            const trend = trendArrow(val, pVal, kpi.key as string, isLight)
                             const hasHeatBg = bg !== 'transparent'
-                            const valColor = isLight && hasHeatBg
-                              ? (kpi.key === 'bounceRate' && val != null && val > 10 ? '#991b1b' : kpi.key === 'bounceRate' && val != null && val > 2 ? '#92400e' : '#111827')
+                            const valColor = isLight
+                              ? (hasHeatBg
+                                ? (kpi.key === 'bounceRate' && val != null && val > 10 ? '#991b1b' : kpi.key === 'bounceRate' && val != null && val > 2 ? '#92400e' : '#111827')
+                                : kpi.key === 'bounceRate' && val != null
+                                  ? val > 10 ? '#BD0B19' : val > 2 ? '#D58B05' : kc(kpi)
+                                  : kpi.key === 'deliveryRate' && val != null && val < 95 ? '#D58B05' : kc(kpi))
                               : kpi.key === 'bounceRate' && val != null
                                 ? val > 10 ? '#ff6b77' : val > 2 ? '#ffe066' : kc(kpi)
                                 : kpi.key === 'deliveryRate' && val != null && val < 95
@@ -1237,7 +1242,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     ))}
                     {filteredIpEntityData.length > 0 && (
                     <tr style={{ background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}` }}>
-                      <td className={`px-3 py-2.5 text-[10px] font-mono font-bold tracking-widest uppercase border-r ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
+                      <td className={`px-3 py-2.5 text-[11px] font-mono font-bold tracking-widest uppercase border-r ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
                         Total
                       </td>
                       {filteredIpEntityData.flatMap((e, ei) =>
@@ -1284,9 +1289,9 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           {gridTip && (
             <div className="fixed z-[9999] pointer-events-none" style={{ left: gridTip.x, top: gridTip.y, minWidth: 230 }}>
               <div className="rounded-xl shadow-2xl p-4" style={{ background: isLight ? '#ffffff' : '#1a1e26', border: `1px solid ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.14)'}` }}>
-                <div className="text-[9px] font-mono tracking-widest uppercase mb-2" style={{ color: isLight ? '#9ca3af' : '#6b7280' }}>{gridTip.title}</div>
+                <div className="text-[11px] font-mono tracking-widest uppercase mb-2" style={{ color: isLight ? '#9ca3af' : '#6b7280' }}>{gridTip.title}</div>
                 <div className="text-2xl font-bold font-mono mb-3" style={{ color: isLight ? '#111827' : '#ffffff' }}>{gridTip.exact}</div>
-                <div className="text-[9px] font-mono tracking-widest uppercase mb-1.5" style={{ color: isLight ? '#b45309' : '#ffd166' }}>Formula</div>
+                <div className="text-[11px] font-mono tracking-widest uppercase mb-1.5" style={{ color: isLight ? '#b45309' : '#ffd166' }}>Formula</div>
                 <div className="text-[11px] font-mono mb-1" style={{ color: isLight ? '#374151' : gridTip.color }}>{gridTip.formula}</div>
                 <div className="text-[11px] font-mono" style={{ color: isLight ? '#374151' : gridTip.color }}>{gridTip.calc}</div>
               </div>

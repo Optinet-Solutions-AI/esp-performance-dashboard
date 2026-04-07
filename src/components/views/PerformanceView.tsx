@@ -19,6 +19,7 @@ export default function PerformanceView() {
   const { esps, isLight } = useDashboardStore()
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
+  const teal = isLight ? '#076C62' : '#00e5c3'
 
   const cardClass = `rounded-xl border ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`
 
@@ -63,10 +64,10 @@ export default function PerformanceView() {
         label: 'Bounce Rate',
         data: activeEsps.map(e => +e.bounceRate.toFixed(2)),
         backgroundColor: activeEsps.map(e =>
-          e.bounceRate > 10 ? '#ff4757cc' : e.bounceRate > 2 ? '#ffd166cc' : '#00e5c3cc'
+          e.bounceRate > 10 ? '#ff4757cc' : e.bounceRate > 2 ? '#ffd166cc' : teal + 'cc'
         ),
         borderColor: activeEsps.map(e =>
-          e.bounceRate > 10 ? '#ff4757' : e.bounceRate > 2 ? '#ffd166' : '#00e5c3'
+          e.bounceRate > 10 ? '#ff4757' : e.bounceRate > 2 ? '#ffd166' : teal
         ),
         borderWidth: 1.5,
         borderRadius: 4,
@@ -119,9 +120,9 @@ export default function PerformanceView() {
 
   const kpis = [
     { label: 'Total Sent', value: fmtN(totalSent), accent: '#a8b0be', sub: `${activeEsps.length} ESP${activeEsps.length !== 1 ? 's' : ''}` },
-    { label: 'Avg Delivery Rate', value: fmtP(avgDelivery), accent: '#00e5c3', sub: avgDelivery > 95 ? '▲ Strong delivery' : '▼ Review needed' },
+    { label: 'Avg Delivery Rate', value: fmtP(avgDelivery), accent: teal, sub: avgDelivery > 95 ? '▲ Strong delivery' : '▼ Review needed' },
     { label: 'Avg Open Rate', value: fmtP(avgOpen), accent: '#7c5cfc', sub: sortedByOpen[0] ? `Best: ${sortedByOpen[0].name}` : '' },
-    { label: 'Avg Bounce Rate', value: fmtP(avgBounce), accent: avgBounce > 10 ? '#ff4757' : avgBounce > 2 ? '#ffd166' : '#00e5c3', sub: avgBounce > 5 ? '⚠ Review needed' : '▲ Within limits' },
+    { label: 'Avg Bounce Rate', value: fmtP(avgBounce), accent: avgBounce > 10 ? '#ff4757' : avgBounce > 2 ? '#ffd166' : teal, sub: avgBounce > 5 ? '⚠ Review needed' : '▲ Within limits' },
   ]
 
   return (
@@ -156,7 +157,7 @@ export default function PerformanceView() {
                 className={`${cardClass} px-4 py-3`}
                 style={{ borderLeft: `3px solid ${k.accent}` }}
               >
-                <div className={`text-[10px] font-mono tracking-wider uppercase mb-1 ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
+                <div className={`text-[11px] font-mono tracking-wider uppercase mb-1 ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
                   {k.label}
                 </div>
                 <div className={`text-2xl font-bold mb-0.5 ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>
@@ -177,7 +178,7 @@ export default function PerformanceView() {
                 <div className={`text-sm font-semibold ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}>
                   Open Rate by ESP
                 </div>
-                <div className={`text-[10px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
+                <div className={`text-[11px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
                   Sorted highest → lowest
                 </div>
               </div>
@@ -199,7 +200,7 @@ export default function PerformanceView() {
                 <div className={`text-sm font-semibold ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}>
                   Bounce Rate by ESP
                 </div>
-                <div className={`text-[10px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
+                <div className={`text-[11px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
                   Red &gt;10% · Amber &gt;2% · Green = healthy
                 </div>
               </div>
@@ -230,7 +231,7 @@ export default function PerformanceView() {
                     {['ESP', 'Sent', 'Delivered', 'Opens', 'Clicks', 'Bounced', 'Delivery %', 'Open %', 'Click %', 'Bounce %'].map((h, i) => (
                       <th
                         key={h}
-                        className={`px-4 py-3 text-[9px] font-mono tracking-wider uppercase border-b
+                        className={`px-4 py-3 text-[11px] font-mono tracking-wider uppercase border-b
                           ${i === 0 ? 'text-left' : 'text-right'}
                           ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}
                       >
@@ -263,7 +264,7 @@ export default function PerformanceView() {
                       </td>
                       <td
                         className="px-4 py-2.5 text-right font-mono"
-                        style={{ color: e.deliveryRate > 95 ? '#00e5c3' : e.deliveryRate > 70 ? '#ffd166' : '#ff4757' }}
+                        style={{ color: e.deliveryRate > 95 ? teal : e.deliveryRate > 70 ? '#ffd166' : '#ff4757' }}
                       >
                         {fmtP(e.deliveryRate)}
                       </td>
@@ -271,7 +272,7 @@ export default function PerformanceView() {
                       <td className="px-4 py-2.5 text-right font-mono text-[#00b8d9]">{fmtP(e.clickRate, 2)}</td>
                       <td
                         className="px-4 py-2.5 text-right font-mono font-bold"
-                        style={{ color: e.bounceRate > 10 ? '#ff4757' : e.bounceRate > 2 ? '#ffd166' : '#00e5c3' }}
+                        style={{ color: e.bounceRate > 10 ? '#ff4757' : e.bounceRate > 2 ? '#ffd166' : teal }}
                       >
                         {fmtP(e.bounceRate)}
                       </td>

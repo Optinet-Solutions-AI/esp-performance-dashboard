@@ -22,6 +22,7 @@ export default function DataMgmtView() {
   const { isLight, dmData, setDmData, resetAllData } = useDashboardStore()
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
+  const teal = isLight ? '#076C62' : '#00e5c3'
   const [search, setSearch] = useState('')
   const [filterCountry, setFilterCountry] = useState('')
   const [pinModal, setPinModal] = useState(false)
@@ -140,7 +141,7 @@ export default function DataMgmtView() {
               { label: 'Domains', value: domains.length },
             ].map(s => (
               <div key={s.label} className={`${cardClass} px-4 py-3`}>
-                <div className={`text-[10px] font-mono tracking-wider uppercase mb-1 ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>{s.label}</div>
+                <div className={`text-[11px] font-mono tracking-wider uppercase mb-1 ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>{s.label}</div>
                 <div className={`text-2xl font-bold ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>{s.value}</div>
               </div>
             ))}
@@ -167,7 +168,7 @@ export default function DataMgmtView() {
             const domainValues = topDomains.map(([, v]) => v)
 
             const PIE_COLORS = [
-              '#00e5c3cc', '#7c5cfc cc', '#ffd166cc', '#ff6b35cc',
+              teal + 'cc', '#7c5cfc cc', '#ffd166cc', '#ff6b35cc',
               '#ff4757cc', '#00b8d9cc', '#a8e6cfcc', '#c67cffcc',
             ].map(c => c.replace(' ', ''))
 
@@ -176,8 +177,8 @@ export default function DataMgmtView() {
               datasets: [{
                 label: 'Records',
                 data: countryValues,
-                backgroundColor: '#00e5c3cc',
-                borderColor: '#00e5c3',
+                backgroundColor: teal + 'cc',
+                borderColor: teal,
                 borderWidth: 1.5,
                 borderRadius: 4,
                 borderSkipped: false,
@@ -242,7 +243,7 @@ export default function DataMgmtView() {
                     <div className={`text-sm font-semibold ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}>
                       Top 10 Countries
                     </div>
-                    <div className={`text-[10px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
+                    <div className={`text-[11px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
                       By record count
                     </div>
                   </div>
@@ -256,7 +257,7 @@ export default function DataMgmtView() {
                     <div className={`text-sm font-semibold ${isLight ? 'text-gray-800' : 'text-[#f0f2f5]'}`}>
                       Domain Distribution
                     </div>
-                    <div className={`text-[10px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
+                    <div className={`text-[11px] font-mono ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
                       Top 8 sending domains
                     </div>
                   </div>
@@ -289,7 +290,7 @@ export default function DataMgmtView() {
             {(search || filterCountry) && (
               <button
                 onClick={() => { setSearch(''); setFilterCountry('') }}
-                className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-mono transition-all
+                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-mono transition-all
                   ${isLight ? 'border-black/20 text-gray-500' : 'border-white/13 text-[#a8b0be]'}`}
               >
                 Clear
@@ -303,7 +304,7 @@ export default function DataMgmtView() {
               <thead className={`sticky top-0 ${isLight ? 'bg-gray-50' : 'bg-[#181c22]'}`}>
                 <tr>
                   {Object.keys(dmData[0] || {}).slice(0, 8).map(h => (
-                    <th key={h} className={`px-4 py-3 text-left text-[9px] font-mono tracking-wider uppercase border-b
+                    <th key={h} className={`px-4 py-3 text-left text-[11px] font-mono tracking-wider uppercase border-b
                       ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
                       {h}
                     </th>

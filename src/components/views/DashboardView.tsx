@@ -18,6 +18,7 @@ export default function DashboardView() {
 
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
+  const teal = isLight ? '#076C62' : '#00e5c3'
 
   const sentRef = useRef<HTMLCanvasElement>(null)
   const rateRef = useRef<HTMLCanvasElement>(null)
@@ -80,7 +81,7 @@ export default function DashboardView() {
     if (bounceRef.current) {
       charts.current['bounce'] = new Chart(bounceRef.current, {
         type: 'bar',
-        data: { labels: filtered.map(e => e.name), datasets: [{ data: filtered.map(e => e.bounceRate), backgroundColor: filtered.map(e => e.status === 'critical' ? '#ff4757bb' : e.status === 'warn' ? '#ffd166bb' : '#00e5c3bb'), borderRadius: 4 }] },
+        data: { labels: filtered.map(e => e.name), datasets: [{ data: filtered.map(e => e.bounceRate), backgroundColor: filtered.map(e => e.status === 'critical' ? '#ff4757bb' : e.status === 'warn' ? '#ffd166bb' : teal + 'bb'), borderRadius: 4 }] },
         options: { ...baseOpts, scales: { x: { ticks: { color: tc, font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: tc, font: { size: 9 }, callback: v => v + '%' }, grid: { color: gc }, border: { display: false } } } },
       })
     }
@@ -97,7 +98,7 @@ export default function DashboardView() {
         data: {
           labels: daily7.map(d => d.date),
           datasets: [
-            { label: 'Sent', data: daily7.map(d => d.sent), borderColor: '#00e5c3', backgroundColor: 'transparent', tension: 0.3, borderWidth: 2 },
+            { label: 'Sent', data: daily7.map(d => d.sent), borderColor: teal, backgroundColor: 'transparent', tension: 0.3, borderWidth: 2 },
             { label: 'Opens', data: daily7.map(d => d.opens), borderColor: '#7c5cfc', backgroundColor: 'transparent', tension: 0.3, borderWidth: 2 },
           ],
         },
@@ -147,7 +148,7 @@ export default function DashboardView() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-5 gap-3 mb-5">
-        <KpiCard label="Emails Sent" value={fmtN(totals.sent)} accent="#00e5c3" />
+        <KpiCard label="Emails Sent" value={fmtN(totals.sent)} accent={teal} />
         <KpiCard label="Delivered" value={fmtN(totals.delivered)} accent="#7c5cfc" />
         <KpiCard label="Opens" value={fmtN(totals.opens)} accent="#ffd166" />
         <KpiCard label="Clicks" value={fmtN(totals.clicks)} accent="#ff6b35" />
@@ -174,7 +175,7 @@ export default function DashboardView() {
         </ChartCard>
         <ChartCard title="7-Day Trend" subtitle="Sent & Opens"
           height={120}
-          legend={<><LegendItem color="#00e5c3" label="Sent" /><LegendItem color="#7c5cfc" label="Opens" /></>}
+          legend={<><LegendItem color={teal} label="Sent" /><LegendItem color="#7c5cfc" label="Opens" /></>}
         >
           <canvas ref={dailyRef} />
         </ChartCard>
@@ -183,7 +184,7 @@ export default function DashboardView() {
       {/* Table */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
-          <span className={`text-[10px] font-mono tracking-[0.12em] uppercase ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
+          <span className={`text-[11px] font-mono tracking-[0.12em] uppercase ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
             ESP Table
           </span>
           <div className="flex items-center gap-2">
@@ -198,7 +199,7 @@ export default function DashboardView() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-2.5 py-1 rounded-lg border text-[10px] font-mono uppercase tracking-wider transition-all
+                className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all
                   ${activeFilter === f
                     ? isLight
                       ? f === 'all' ? 'border-[#0d9488]/40 text-[#0d9488] bg-[#0d9488]/[0.08]'
@@ -226,7 +227,7 @@ export default function DashboardView() {
                   <th
                     key={k}
                     onClick={() => setSort(k)}
-                    className={`px-4 py-3 text-left text-[9px] font-mono tracking-wider uppercase border-b select-none cursor-pointer transition-colors
+                    className={`px-4 py-3 text-left text-[11px] font-mono tracking-wider uppercase border-b select-none cursor-pointer transition-colors
                       ${isLight ? 'border-black/[0.10] text-[#475569] hover:text-[#0f172a]' : 'border-white/7 text-[#d4dae6] hover:text-[#f0f2f5]'}
                       ${k !== 'name' ? 'text-right' : ''}`}
                   >
@@ -236,7 +237,7 @@ export default function DashboardView() {
                     </i>
                   </th>
                 ))}
-                <th className={`px-4 py-3 text-left text-[9px] font-mono tracking-wider uppercase border-b ${isLight ? 'border-black/[0.10] text-[#475569]' : 'border-white/7 text-[#d4dae6]'}`}>
+                <th className={`px-4 py-3 text-left text-[11px] font-mono tracking-wider uppercase border-b ${isLight ? 'border-black/[0.10] text-[#475569]' : 'border-white/7 text-[#d4dae6]'}`}>
                   Status
                 </th>
               </tr>

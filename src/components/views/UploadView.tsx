@@ -258,7 +258,7 @@ export default function UploadView() {
       {/* Step 1 */}
       <div className={`rounded-2xl border mb-4 overflow-hidden ${surface}`}>
         <div className={`px-5 py-3.5 border-b ${isLight ? 'border-black/6 bg-gray-50/60' : 'border-white/5 bg-white/[0.02]'}`}>
-          <div className={`text-[10px] font-mono tracking-[0.15em] uppercase ${muted}`}>Step 1</div>
+          <div className={`text-[11px] font-mono tracking-[0.15em] uppercase ${muted}`}>Step 1</div>
           <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>Select ESP Provider</div>
         </div>
         <div className="p-5">
@@ -275,7 +275,7 @@ export default function UploadView() {
       {/* Step 2 */}
       <div className={`rounded-2xl border mb-4 overflow-hidden transition-opacity ${surface} ${step < 2 ? 'opacity-40 pointer-events-none' : ''}`}>
         <div className={`px-5 py-3.5 border-b ${isLight ? 'border-black/6 bg-gray-50/60' : 'border-white/5 bg-white/[0.02]'}`}>
-          <div className={`text-[10px] font-mono tracking-[0.15em] uppercase ${muted}`}>Step 2</div>
+          <div className={`text-[11px] font-mono tracking-[0.15em] uppercase ${muted}`}>Step 2</div>
           <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>Select File</div>
         </div>
         <div className="p-5">
@@ -317,7 +317,7 @@ export default function UploadView() {
       {/* Step 3 */}
       <div className={`rounded-2xl border mb-4 overflow-hidden transition-opacity ${surface} ${step < 3 ? 'opacity-40 pointer-events-none' : ''}`}>
         <div className={`px-5 py-3.5 border-b ${isLight ? 'border-black/6 bg-gray-50/60' : 'border-white/5 bg-white/[0.02]'}`}>
-          <div className={`text-[10px] font-mono tracking-[0.15em] uppercase ${muted}`}>Step 3</div>
+          <div className={`text-[11px] font-mono tracking-[0.15em] uppercase ${muted}`}>Step 3</div>
           <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>Process &amp; Import</div>
         </div>
         <div className="p-5">
@@ -356,7 +356,7 @@ export default function UploadView() {
       {step === 4 && result && (
         <div className={`rounded-2xl border overflow-hidden fade-up ${surface}`}>
           <div className="px-5 py-3.5 border-b border-[#00e5c3]/20 bg-[#00e5c3]/5">
-            <div className="text-[10px] font-mono tracking-[0.15em] uppercase text-[#00e5c3]">Complete</div>
+            <div className="text-[11px] font-mono tracking-[0.15em] uppercase text-[#00e5c3]">Complete</div>
             <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>Upload Successful</div>
           </div>
           <div className="p-5">
@@ -425,7 +425,7 @@ export default function UploadView() {
               <div key={rec.id} className={`rounded-2xl border overflow-hidden ${surface}`}>
                 <div className={`px-5 py-3.5 border-b ${isLight ? 'border-black/6 bg-gray-50/60' : 'border-white/5 bg-white/[0.02]'} flex items-start justify-between gap-3`}>
                   <div>
-                    <div className={`text-[10px] font-mono tracking-[0.12em] uppercase ${muted}`}>
+                    <div className={`text-[11px] font-mono tracking-[0.12em] uppercase ${muted}`}>
                       {fmtDate(rec.uploaded_at)}
                     </div>
                     <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>

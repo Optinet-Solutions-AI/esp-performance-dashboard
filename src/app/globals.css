@@ -162,3 +162,24 @@ body.light .section-title-sub { color: #64748b; }
 /* ── Light mode text readability ── */
 body.light .text-gray-400 { color: #64748b; }
 body.light .text-gray-500 { color: #475569; }
+
+/* ── Light mode: neon teal → professional teal (#076C62) ── */
+body.light .text-\[#00e5c3\] { color: #076C62; }
+body.light .bg-\[#00e5c3\] { background-color: #076C62; }
+body.light .border-\[#00e5c3\] { border-color: #076C62; }
+body.light .text-\[#00ffd5\] { color: #076C62; }
+body.light .bg-\[#00ffd5\] { background-color: #076C62; }
+body.light .border-\[#00ffd5\] { border-color: #076C62; }
+
+/* ── Light mode: table/chart color corrections ── */
+body.light .text-\[#ffe066\] { color: #D58B05; }
+body.light .bg-\[#ffe066\] { background-color: #D58B05; }
+body.light .border-\[#ffe066\] { border-color: #D58B05; }
+body.light .text-\[#b39dff\] { color: #7c5cfc; }
+body.light .bg-\[#b39dff\] { background-color: #7c5cfc; }
+body.light .text-\[#ff9a5c\] { color: #AF4302; }
+body.light .bg-\[#ff9a5c\] { background-color: #AF4302; }
+body.light .border-\[#ff9a5c\] { border-color: #AF4302; }
+body.light .text-\[#ff6b77\] { color: #BD0B19; }
+body.light .bg-\[#ff6b77\] { background-color: #BD0B19; }
+body.light .border-\[#ff6b77\] { border-color: #BD0B19; }
