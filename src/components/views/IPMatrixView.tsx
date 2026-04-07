@@ -75,6 +75,7 @@ export default function IPMatrixView() {
   const [sortDir, setSortDir] = useState(1)
   // Summary expand
   const [expandedEsp, setExpandedEsp] = useState<Record<string, boolean>>({})
+  const [expandedIp,  setExpandedIp]  = useState<Record<string, boolean>>({})
   // Modal
   const [modal, setModal] = useState<{ open: boolean; idx: number | null; rec: IpmRecord & { espNew?: string } }>({
     open: false, idx: null, rec: { esp: '', ip: '', domain: '' },
@@ -333,31 +334,45 @@ export default function IPMatrixView() {
                       <td className={`px-3 py-2.5 text-right font-semibold ${txt}`}>{ips.length}</td>
                       <td className={`px-3 py-2.5 text-right font-semibold ${txt}`}>{domains.length}</td>
                     </tr>
-                    {/* Expanded rows */}
+                    {/* Expanded IP rows */}
                     {expanded && ips.map(ip => {
+                      const ipKey = `${esp}::${ip}`
+                      const ipExpanded = !!expandedIp[ipKey]
                       const ipDomains = [...new Set(ipmData.filter(r => r.esp === esp && r.ip === ip).map(r => r.domain).filter(Boolean))]
                       return (
                         <>
-                          <tr key={ip} style={{ background: subBg }}>
-                            <td />
+                          {/* IP row — clickable to show domains */}
+                          <tr key={ip}
+                            className={`cursor-pointer border-b transition-colors ${isLight ? 'border-black/5 hover:bg-black/3' : 'border-white/4 hover:bg-white/3'}`}
+                            style={{ background: subBg }}
+                            onClick={e => { e.stopPropagation(); setExpandedIp(p => ({ ...p, [ipKey]: !p[ipKey] })) }}
+                          >
+                            <td className="px-3 py-1.5 text-center">
+                              <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded border text-[10px] font-mono ${isLight ? 'border-black/15 text-gray-400' : 'border-white/13 text-[#6b7280]'}`}>
+                                {ipExpanded ? '−' : '+'}
+                              </span>
+                            </td>
                             <td className="px-3 py-1.5 pl-8 text-[11px] font-mono font-semibold" style={{ color: color.bg }}>{ip}</td>
                             <td className={`px-3 py-1.5 text-right text-[10px] ${muted}`}>1</td>
-                            <td className={`px-3 py-1.5 text-right text-[10px] ${muted}`}>{ipDomains.length}</td>
+                            <td className={`px-3 py-1.5 text-right text-[10px] font-semibold ${txt}`}>{ipDomains.length}</td>
                           </tr>
-                          {ipDomains.map(domain => (
+                          {/* Domain rows — only shown when IP is expanded */}
+                          {ipExpanded && ipDomains.map(domain => (
                             <tr key={ip + domain} style={{ background: subBg }}>
                               <td />
-                              <td colSpan={3} className={`px-3 py-1 pl-14 text-[10px] font-mono ${muted}`}>
+                              <td colSpan={3} className={`px-3 py-1 pl-16 text-[10px] font-mono ${muted}`}>
                                 <span className="opacity-40 mr-2">↳</span>{domain}
                               </td>
                             </tr>
                           ))}
-                          <tr style={{ background: subBg, borderTop: `1px solid ${borderC}` }}>
-                            <td />
-                            <td className={`px-3 py-1 pl-8 text-[9px] font-mono italic ${muted}`}>total for {ip}</td>
-                            <td className={`px-3 py-1 text-right text-[10px] font-semibold ${txt}`}>1</td>
-                            <td className={`px-3 py-1 text-right text-[10px] font-semibold ${txt}`}>{ipDomains.length}</td>
-                          </tr>
+                          {ipExpanded && (
+                            <tr style={{ background: subBg, borderTop: `1px solid ${borderC}` }}>
+                              <td />
+                              <td className={`px-3 py-1 pl-8 text-[9px] font-mono italic ${muted}`}>total for {ip}</td>
+                              <td className={`px-3 py-1 text-right text-[10px] font-semibold ${txt}`}>1</td>
+                              <td className={`px-3 py-1 text-right text-[10px] font-semibold ${txt}`}>{ipDomains.length}</td>
+                            </tr>
+                          )}
                         </>
                       )
                     })}
