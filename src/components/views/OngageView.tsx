@@ -18,14 +18,14 @@ const RATE_COLORS = { successRate: '#7c5cfc', openRate: '#00e5c3', clickRate: '#
 
 // Ongage-specific: CTR = Clicks ÷ Delivered, Unsub = Unsubs ÷ Delivered
 const KPI_DEFS = [
-  { key: 'openRate'   as keyof DateMetrics, label: 'Open Rate %',   color: '#00e5c3', lightColor: '#076C62', formula: 'Opens ÷ Delivered × 100',        getValue: (r: DateMetrics) => r.openRate },
+  { key: 'openRate'   as keyof DateMetrics, label: 'Open Rate %',   color: '#00e5c3', lightColor: '#006a5b', formula: 'Opens ÷ Delivered × 100',        getValue: (r: DateMetrics) => r.openRate },
   { key: 'clickRate'  as keyof DateMetrics, label: 'CTR %',         color: '#ffd166', lightColor: '#D58B05', formula: 'Clicks ÷ Delivered × 100',       getValue: (r: DateMetrics) => r.delivered > 0 ? (r.clicked / r.delivered) * 100 : 0 },
   { key: 'bounceRate' as keyof DateMetrics, label: 'Bounce Rate %', color: '#ff4757', lightColor: '#BD0B19', formula: 'Bounced ÷ Sent × 100',           getValue: (r: DateMetrics) => r.bounceRate },
   { key: 'unsubRate'  as keyof DateMetrics, label: 'Unsub Rate %',  color: '#ff9a5c', lightColor: '#AF4302', formula: 'Unsubscribed ÷ Delivered × 100', getValue: (r: DateMetrics) => r.delivered > 0 ? ((r.unsubscribed ?? 0) / r.delivered) * 100 : 0 },
 ]
 const GRID_KPIS = [
   { key: 'deliveryRate' as keyof DateMetrics, label: 'Success%', color: '#b39dff', lightColor: '#7c5cfc', tipTitle: 'SUCCESS RATE',  formula: 'Delivered ÷ Sent × 100',           rawFn: (r: DateMetrics) => ({ a: r.delivered, b: r.sent        }), getValue: (r: DateMetrics) => r.deliveryRate,                                              dec: 1 },
-  { key: 'openRate'     as keyof DateMetrics, label: 'Open%',    color: '#00ffd5', lightColor: '#076C62', tipTitle: 'OPEN RATE',     formula: 'Opens ÷ Delivered × 100',          rawFn: (r: DateMetrics) => ({ a: r.opened,    b: r.delivered   }), getValue: (r: DateMetrics) => r.openRate,                                                  dec: 1 },
+  { key: 'openRate'     as keyof DateMetrics, label: 'Open%',    color: '#00ffd5', lightColor: '#006a5b', tipTitle: 'OPEN RATE',     formula: 'Opens ÷ Delivered × 100',          rawFn: (r: DateMetrics) => ({ a: r.opened,    b: r.delivered   }), getValue: (r: DateMetrics) => r.openRate,                                                  dec: 1 },
   { key: 'clickRate'    as keyof DateMetrics, label: 'CTR%',     color: '#ffe066', lightColor: '#D58B05', tipTitle: 'CTR',           formula: 'Clicks ÷ Delivered × 100',         rawFn: (r: DateMetrics) => ({ a: r.clicked,   b: r.delivered   }), getValue: (r: DateMetrics) => r.delivered > 0 ? (r.clicked / r.delivered) * 100 : 0,    dec: 1 },
   { key: 'bounceRate'   as keyof DateMetrics, label: 'Bounce%',  color: '#ff6b77', lightColor: '#BD0B19', tipTitle: 'BOUNCE RATE',   formula: 'Bounced ÷ Sent × 100',             rawFn: (r: DateMetrics) => ({ a: r.bounced,   b: r.sent        }), getValue: (r: DateMetrics) => r.bounceRate,                                                dec: 1 },
   { key: 'unsubRate'    as keyof DateMetrics, label: 'Unsub%',   color: '#ff9a5c', lightColor: '#AF4302', tipTitle: 'UNSUB RATE',    formula: 'Unsubscribed ÷ Delivered × 100',   rawFn: (r: DateMetrics) => ({ a: r.unsubscribed ?? 0, b: r.delivered }), getValue: (r: DateMetrics) => r.delivered > 0 ? ((r.unsubscribed ?? 0) / r.delivered) * 100 : 0, dec: 3 },
@@ -146,7 +146,7 @@ function trendArrow(cur: number | null, prev: number | null, kpiKey: string, isL
   const diff = cur - prev
   if (Math.abs(diff) < 0.01) return null
   const good = BAD_METRICS.has(kpiKey) ? diff < 0 : diff > 0
-  return { arrow: good ? '▲' : '▼', color: good ? (isLight ? '#076C62' : '#00e5c3') : '#ff4757' }
+  return { arrow: good ? '▲' : '▼', color: good ? (isLight ? '#006a5b' : '#00e5c3') : '#ff4757' }
 }
 
 function destroyAll(ref: React.MutableRefObject<(Chart | null)[]>) {
@@ -312,7 +312,7 @@ export default function OngageView() {
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
   const kc = (kpi: { color: string; lightColor?: string }): string => isLight ? (kpi.lightColor ?? kpi.color) : kpi.color
-  const teal = isLight ? '#076C62' : '#00e5c3'
+  const teal = isLight ? '#006a5b' : '#00e5c3'
 
   // ── IP entity data ───────────────────────────────────────────────
   const espIpmRecords = ipmData.filter(r => r.esp?.toLowerCase() === selectedEsp.toLowerCase())
@@ -395,7 +395,7 @@ export default function OngageView() {
         datasets: [
           lds('Sent',      dateGroups.map(g => aggDates(od, g.dates)?.sent      ?? null), VOL_COLORS.sent),
           lds('Delivered', dateGroups.map(g => aggDates(od, g.dates)?.delivered ?? null), VOL_COLORS.delivered),
-          lds('Opens',     dateGroups.map(g => aggDates(od, g.dates)?.opened    ?? null), isLight ? '#076C62' : VOL_COLORS.opened),
+          lds('Opens',     dateGroups.map(g => aggDates(od, g.dates)?.opened    ?? null), isLight ? '#006a5b' : VOL_COLORS.opened),
           lds('Clicks',    dateGroups.map(g => aggDates(od, g.dates)?.clicked   ?? null), VOL_COLORS.clicked),
         ],
       },
@@ -444,7 +444,7 @@ export default function OngageView() {
         labels: dateGroups.map(g => fmtDL(g.label)),
         datasets: [
           rateDs('Success Rate', rateMetrics.map(r => r?.deliveryRate ?? null), RATE_COLORS.successRate),
-          rateDs('Open Rate',    rateMetrics.map(r => r?.openRate     ?? null), isLight ? '#076C62' : RATE_COLORS.openRate),
+          rateDs('Open Rate',    rateMetrics.map(r => r?.openRate     ?? null), isLight ? '#006a5b' : RATE_COLORS.openRate),
           rateDs('CTR',          rateMetrics.map(r => ogCtr(r)),                RATE_COLORS.clickRate, [4, 4]),
           rateDs('Bounce Rate',  rateMetrics.map(r => r?.bounceRate   ?? null), RATE_COLORS.bounceRate, [2, 2]),
         ],

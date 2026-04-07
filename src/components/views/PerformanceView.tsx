@@ -19,7 +19,7 @@ export default function PerformanceView() {
   const { esps, isLight } = useDashboardStore()
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
-  const teal = isLight ? '#076C62' : '#00e5c3'
+  const teal = isLight ? '#006a5b' : '#00e5c3'
 
   const cardClass = `rounded-xl border ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`
 

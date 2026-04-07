@@ -16,14 +16,14 @@ const EMPTY: MmData = {
 const VOL_COLORS  = { sent: '#6b7280', delivered: '#7c5cfc', opened: '#00e5c3', clicked: '#ffd166' }
 const RATE_COLORS = { successRate: '#7c5cfc', openRate: '#00e5c3', clickRate: '#ffd166', bounceRate: '#ff4757' }
 const KPI_DEFS = [
-  { key: 'openRate'   as keyof DateMetrics, label: 'Open Rate %',   color: '#00e5c3', lightColor: '#076C62', formula: 'Opens ÷ Delivered × 100' },
+  { key: 'openRate'   as keyof DateMetrics, label: 'Open Rate %',   color: '#00e5c3', lightColor: '#006a5b', formula: 'Opens ÷ Delivered × 100' },
   { key: 'clickRate'  as keyof DateMetrics, label: 'CTR %',         color: '#ffd166', formula: 'Clicks ÷ Opens × 100'    },
   { key: 'bounceRate' as keyof DateMetrics, label: 'Bounce Rate %', color: '#ff4757', formula: 'Bounced ÷ Sent × 100'    },
   { key: 'unsubRate'  as keyof DateMetrics, label: 'Unsub Rate %',  color: '#ff9a5c', lightColor: '#AF4302', formula: 'Unsubscribed ÷ Opens × 100' },
 ]
 const GRID_KPIS = [
   { key: 'deliveryRate' as keyof DateMetrics, label: 'Success%', color: '#b39dff', lightColor: '#7c5cfc',  tipTitle: 'SUCCESS RATE',  formula: 'Delivered ÷ Sent × 100',        rawFn: (r: DateMetrics) => ({ a: r.delivered, b: r.sent        }), dec: 1 },
-  { key: 'openRate'     as keyof DateMetrics, label: 'Open%',    color: '#00ffd5', lightColor: '#076C62', tipTitle: 'OPEN RATE',     formula: 'Opens ÷ Delivered × 100',       rawFn: (r: DateMetrics) => ({ a: r.opened,    b: r.delivered   }), dec: 1 },
+  { key: 'openRate'     as keyof DateMetrics, label: 'Open%',    color: '#00ffd5', lightColor: '#006a5b', tipTitle: 'OPEN RATE',     formula: 'Opens ÷ Delivered × 100',       rawFn: (r: DateMetrics) => ({ a: r.opened,    b: r.delivered   }), dec: 1 },
   { key: 'clickRate'    as keyof DateMetrics, label: 'CTR%',     color: '#ffe066', lightColor: '#D58B05', tipTitle: 'CTR',           formula: 'Clicks ÷ Opens × 100',          rawFn: (r: DateMetrics) => ({ a: r.clicked,   b: r.opened      }), dec: 1 },
   { key: 'bounceRate'   as keyof DateMetrics, label: 'Bounce%',  color: '#ff6b77', lightColor: '#BD0B19', tipTitle: 'BOUNCE RATE',   formula: 'Bounced ÷ Sent × 100',          rawFn: (r: DateMetrics) => ({ a: r.bounced,   b: r.sent        }), dec: 1 },
   { key: 'unsubRate'    as keyof DateMetrics, label: 'Unsub%',   color: '#ff9a5c', lightColor: '#AF4302', tipTitle: 'UNSUB RATE',    formula: 'Unsubscribed ÷ Opens × 100',    rawFn: (r: DateMetrics) => ({ a: r.unsubscribed ?? 0, b: r.opened }), dec: 3 },
@@ -146,7 +146,7 @@ function trendArrow(cur: number | null, prev: number | null, kpiKey: string, isL
   const diff = cur - prev
   if (Math.abs(diff) < 0.01) return null
   const good = BAD_METRICS.has(kpiKey) ? diff < 0 : diff > 0
-  return { arrow: good ? '▲' : '▼', color: good ? (isLight ? '#076C62' : '#00e5c3') : '#ff4757' }
+  return { arrow: good ? '▲' : '▼', color: good ? (isLight ? '#006a5b' : '#00e5c3') : '#ff4757' }
 }
 
 function destroyAll(ref: React.MutableRefObject<(Chart | null)[]>) {
@@ -316,7 +316,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
   const kc = (kpi: { color: string; lightColor?: string }): string => isLight ? (kpi.lightColor ?? kpi.color) : kpi.color
-  const teal = isLight ? '#076C62' : '#00e5c3'
+  const teal = isLight ? '#006a5b' : '#00e5c3'
 
   // ── IP entity data ───────────────────────────────────────────────
   const espIpmRecords = ipmData.filter(r => r.esp === selectedEsp)
@@ -397,7 +397,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
         datasets: [
           lds('Sent',      dateGroups.map(g => aggDates(od, g.dates)?.sent      ?? null), VOL_COLORS.sent),
           lds('Delivered', dateGroups.map(g => aggDates(od, g.dates)?.delivered ?? null), VOL_COLORS.delivered),
-          lds('Opens',     dateGroups.map(g => aggDates(od, g.dates)?.opened    ?? null), isLight ? '#076C62' : VOL_COLORS.opened),
+          lds('Opens',     dateGroups.map(g => aggDates(od, g.dates)?.opened    ?? null), isLight ? '#006a5b' : VOL_COLORS.opened),
           lds('Clicks',    dateGroups.map(g => aggDates(od, g.dates)?.clicked   ?? null), VOL_COLORS.clicked),
         ],
       },
@@ -441,7 +441,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
         labels: dateGroups.map(g => fmtDL(g.label)),
         datasets: [
           rateDs('Success Rate', rateMetrics.map(r => r?.deliveryRate ?? null), RATE_COLORS.successRate),
-          rateDs('Open Rate',    rateMetrics.map(r => r?.openRate     ?? null), isLight ? '#076C62' : RATE_COLORS.openRate),
+          rateDs('Open Rate',    rateMetrics.map(r => r?.openRate     ?? null), isLight ? '#006a5b' : RATE_COLORS.openRate),
           rateDs('CTR',          rateMetrics.map(r => r?.clickRate    ?? null), RATE_COLORS.clickRate,  [4, 4]),
           rateDs('Bounce Rate',  rateMetrics.map(r => r?.bounceRate   ?? null), RATE_COLORS.bounceRate, [2, 2]),
         ],

@@ -18,7 +18,7 @@ export default function DashboardView() {
 
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
-  const teal = isLight ? '#076C62' : '#00e5c3'
+  const teal = isLight ? '#006a5b' : '#00e5c3'
 
   const sentRef = useRef<HTMLCanvasElement>(null)
   const rateRef = useRef<HTMLCanvasElement>(null)

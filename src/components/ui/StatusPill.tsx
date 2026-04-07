@@ -8,7 +8,7 @@ const PILL_STYLES_DARK: Record<EspStatus, string> = {
   critical:'text-[#ff4757] bg-[#ff4757]/10 border-[#ff4757]/30',
 }
 const PILL_STYLES_LIGHT: Record<EspStatus, string> = {
-  healthy: 'text-[#076C62] bg-[#076C62]/10 border-[#076C62]/25',
+  healthy: 'text-[#006a5b] bg-[#006a5b]/10 border-[#006a5b]/25',
   warn:    'text-[#b45309] bg-[#b45309]/8 border-[#b45309]/20',
   critical:'text-[#dc2626] bg-[#dc2626]/7 border-[#dc2626]/18',
 }
@@ -18,7 +18,7 @@ const PILL_DOTS_DARK: Record<EspStatus, string> = {
   critical:'bg-[#ff4757]',
 }
 const PILL_DOTS_LIGHT: Record<EspStatus, string> = {
-  healthy: 'bg-[#076C62]',
+  healthy: 'bg-[#006a5b]',
   warn:    'bg-[#b45309]',
   critical:'bg-[#dc2626]',
 }

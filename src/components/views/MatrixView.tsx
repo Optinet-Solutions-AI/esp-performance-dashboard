@@ -138,9 +138,17 @@ export default function MatrixView() {
             })
             .sort((a, b) => b.agg.sent - a.agg.sent)
 
-          fdProviders.forEach(({ name: provName, agg: provAgg }) => {
+          const top10Providers = fdProviders.slice(0, 10)
+          const otherProviders = fdProviders.slice(10)
+          const othersAgg = emptyAgg()
+          otherProviders.forEach(({ agg }) => addAgg(othersAgg, agg))
+
+          top10Providers.forEach(({ name: provName, agg: provAgg }) => {
             csvRows.push(aggToRow('Email Provider', espName, ip, fd, provName, provAgg))
           })
+          if (otherProviders.length > 0) {
+            csvRows.push(aggToRow('Email Provider', espName, ip, fd, `Others (${otherProviders.length})`, othersAgg))
+          }
         })
       })
     })
@@ -363,6 +371,11 @@ export default function MatrixView() {
             })
             .sort((a, b) => b.agg.sent - a.agg.sent)
 
+          const top10FdProviders = fdProviders.slice(0, 10)
+          const otherFdProviders = fdProviders.slice(10)
+          const othersFdAgg = emptyAgg()
+          otherFdProviders.forEach(({ agg }) => addAgg(othersFdAgg, agg))
+
           const fdBg = isLight ? 'rgba(0,0,0,.025)' : 'rgba(255,255,255,.025)'
 
           rows.push(
@@ -377,8 +390,8 @@ export default function MatrixView() {
 
           if (!fdEx) return
 
-          // Level 4: Email Providers
-          fdProviders.forEach(({ name: provName, agg: provAgg }) => {
+          // Level 4: Email Providers (top 10 + Others)
+          top10FdProviders.forEach(({ name: provName, agg: provAgg }) => {
             const provBg = isLight ? 'rgba(0,0,0,.035)' : 'rgba(255,255,255,.035)'
             rows.push(
               <tr key={`prov||${espName}||${ip}||${fd}||${provName}`}>
@@ -391,6 +404,19 @@ export default function MatrixView() {
               </tr>
             )
           })
+          if (otherFdProviders.length > 0) {
+            const provBg = isLight ? 'rgba(0,0,0,.035)' : 'rgba(255,255,255,.035)'
+            rows.push(
+              <tr key={`prov||${espName}||${ip}||${fd}||__others__`}>
+                <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: provBg }}></td>
+                <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: provBg, paddingLeft: 60, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted }}>
+                  <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, display: 'inline-block', marginRight: 7, verticalAlign: 'middle' }} />
+                  Others ({otherFdProviders.length})
+                </td>
+                <DataRow agg={othersFdAgg} bg={provBg} />
+              </tr>
+            )
+          }
 
           // From-domain total
           if (fdProviders.length > 0) {

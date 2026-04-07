@@ -122,7 +122,7 @@ export default function Page() {
       }}>
         <div style={{
           width: 40, height: 40, border: '3px solid rgba(0,229,195,0.2)',
-          borderTopColor: isLight ? '#076C62' : '#00e5c3', borderRadius: '50%',
+          borderTopColor: isLight ? '#006a5b' : '#00e5c3', borderRadius: '50%',
           animation: 'spin 0.8s linear infinite',
         }} />
         <div style={{ fontSize: 13, color: '#5a6478', fontFamily: 'Space Mono, monospace' }}>

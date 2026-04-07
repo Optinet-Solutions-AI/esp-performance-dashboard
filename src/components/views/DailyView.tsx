@@ -39,7 +39,7 @@ export default function DailyView() {
   const tc = getTextColor(isLight)
 
   const cardClass = `rounded-xl border ${isLight ? 'bg-white border-black/[0.10] shadow-sm' : 'bg-[#111418] border-white/7'}`
-  const teal = isLight ? '#076C62' : '#00e5c3'
+  const teal = isLight ? '#006a5b' : '#00e5c3'
 
   // Merge all dates across all ESPs
   const allEspData = Object.values(espData)

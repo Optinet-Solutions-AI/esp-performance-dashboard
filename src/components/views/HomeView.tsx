@@ -102,7 +102,7 @@ export default function HomeView() {
 
   const latest = uploadHistory[0]
   const muted = isLight ? '#64748b' : '#5a6478'
-  const teal = isLight ? '#076C62' : '#00e5c3'
+  const teal = isLight ? '#006a5b' : '#00e5c3'
   const textMain = isLight ? '#0f172a' : '#f0f2f5'
   const cardBg = isLight ? '#ffffff' : '#111418'
   const cardBorder = isLight ? 'rgba(0,0,0,0.09)' : 'rgba(255,255,255,0.06)'

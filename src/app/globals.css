@@ -163,13 +163,13 @@ body.light .section-title-sub { color: #64748b; }
 body.light .text-gray-400 { color: #64748b; }
 body.light .text-gray-500 { color: #475569; }
 
-/* ── Light mode: neon teal → professional teal (#076C62) ── */
-body.light .text-\[#00e5c3\] { color: #076C62; }
-body.light .bg-\[#00e5c3\] { background-color: #076C62; }
-body.light .border-\[#00e5c3\] { border-color: #076C62; }
-body.light .text-\[#00ffd5\] { color: #076C62; }
-body.light .bg-\[#00ffd5\] { background-color: #076C62; }
-body.light .border-\[#00ffd5\] { border-color: #076C62; }
+/* ── Light mode: neon teal → professional teal (#006a5b) ── */
+body.light .text-\[#00e5c3\] { color: #006a5b; }
+body.light .bg-\[#00e5c3\] { background-color: #006a5b; }
+body.light .border-\[#00e5c3\] { border-color: #006a5b; }
+body.light .text-\[#00ffd5\] { color: #006a5b; }
+body.light .bg-\[#00ffd5\] { background-color: #006a5b; }
+body.light .border-\[#00ffd5\] { border-color: #006a5b; }
 
 /* ── Light mode: table/chart color corrections ── */
 body.light .text-\[#ffe066\] { color: #D58B05; }

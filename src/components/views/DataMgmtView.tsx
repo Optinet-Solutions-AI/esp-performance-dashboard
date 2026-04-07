@@ -22,7 +22,7 @@ export default function DataMgmtView() {
   const { isLight, dmData, setDmData, resetAllData } = useDashboardStore()
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
-  const teal = isLight ? '#076C62' : '#00e5c3'
+  const teal = isLight ? '#006a5b' : '#00e5c3'
   const [search, setSearch] = useState('')
   const [filterCountry, setFilterCountry] = useState('')
   const [pinModal, setPinModal] = useState(false)
