@@ -406,10 +406,10 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
 
       const metrics = {
         sent:         1,
-        delivered:    isBounced === 0 ? 1 : 0,  // delivered = sent with no bounce
-        opened:       (row['open-time'] || '').trim() !== '' ? 1 : 0,
-        clicked:      Number(row['no.-of-clicks'] || 0) > 0 ? 1 : 0,
-        bounced:      isBounced,
+        delivered:    1,  // Netcore: delivered = sent (same data)
+        opened:       (row['status'] || '').toLowerCase().trim() === 'opened' ? 1 : 0,
+        clicked:      (row['status'] || '').toLowerCase().trim() === 'clicked' ? 1 : 0,
+        bounced:      isSoft,  // Netcore: only soft bounces count
         hardBounced:  isHard,
         softBounced:  isSoft,
         unsubscribed: (row['unsub-reason'] || '').trim() !== '' ? 1 : 0,
@@ -525,6 +525,18 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
     Object.values(d.providers).forEach(recalcRates)
     Object.values(d.domains).forEach(recalcRates)
   })
+
+  // Netcore: override clickRate (clicks/delivered) and unsubRate (unsub/delivered)
+  if (isNetcore) {
+    Object.values(byDate).forEach(d => {
+      const fixRates = (m: DateMetrics) => {
+        m.clickRate = m.delivered > 0 ? (m.clicked / m.delivered) * 100 : 0
+        m.unsubRate = m.delivered > 0 ? ((m.unsubscribed || 0) / m.delivered) * 100 : 0
+      }
+      Object.values(d.providers).forEach(fixRates)
+      Object.values(d.domains).forEach(fixRates)
+    })
+  }
 
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const dates = Object.keys(byDate).sort((a, b) => {
