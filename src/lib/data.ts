@@ -5,6 +5,7 @@ export const INITIAL_ESPS: EspRecord[] = []
 export const ESP_COLORS: Record<string, string> = {
   Mailmodo: '#7c5cfc',
   Ongage: '#c67cff',
+  Netcore: '#f97316',
   Hotsol: '#00e5c3',
   MMS: '#ffd166',
   Moosend: '#ff6b35',

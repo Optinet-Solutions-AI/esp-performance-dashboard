@@ -26,7 +26,7 @@ interface ParseResult {
   skippedNoDate: number
   skippedNoEmail: number
   newDates: number
-  format: 'mailmodo' | 'generic'
+  format: 'mailmodo' | 'generic' | 'netcore'
 }
 
 function splitCsvLine(line: string): string[] {
@@ -167,6 +167,9 @@ export const ESP_CONFIGS: Record<string, EspConfig> = {
     // registry stores them without the "og." prefix (e.g. "dailythrillbox.com")
     stripPrefixes: ['og.'],
   },
+  netcore: {
+    stripPrefixes: [],
+  },
   // Example for future ESPs:
   // klaviyo: { stripPrefixes: ['klv.', 'mail.'] },
   // brevo:   { stripPrefixes: ['bvo.'] },
@@ -306,6 +309,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
   const first = rows[0]
   const isMailmodo = 'campaign-name' in first || 'opens-html' in first
   const isOngage = espName === 'Ongage'
+  const isNetcore = espName === 'Netcore'
   // Ongage aggregated format: one row per ISP per sending domain per date (no per-email rows)
   const isOngageAgg = isOngage && ('domain-grouped-by-esp' in first || 'success' in first)
 
@@ -369,6 +373,67 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
       pd.sent += sent; pd.delivered += delivered; pd.opened += opened; pd.clicked += clicked
       pd.bounced += bounced; pd.hardBounced = (pd.hardBounced || 0) + hardBounced
       pd.softBounced = (pd.softBounced || 0) + softBounced; pd.unsubscribed += unsubscribed
+      return
+    }
+
+    // ── Netcore activity-log format ─────────────────────────────────
+    // One row per event: each row has a Status column (send/open/click)
+    // and a Bounce Type column (hard/soft). Date is mm/dd/yyyy in col F.
+    if (isNetcore) {
+      const rawDate = row['sending-date'] || row['date'] || row['sent-date'] || row['sendingdate'] || row['send-date'] || ''
+      const parsed = parseDate(rawDate, true) // mm/dd/yyyy → monthFirst=true
+      if (!parsed) { skipped++; skippedNoDate++; return }
+      const dateStr = parsed.str
+      dateYears[dateStr] = parsed.year
+
+      const sendingDomain = (row['from-domain'] || row['from'] || row['from-email'] || row['sender-domain'] || row['sender'] || 'unknown').toLowerCase().trim()
+      const email = row['email'] || row['email-address'] || row['recipient'] || row['to'] || row['subscriber'] || ''
+      const providerDomain = email ? extractDomain(email) : 'unknown'
+
+      const status = (row['status'] || '').toLowerCase().trim()
+      const bounceType = (row['bounce-type'] || row['bouncetype'] || row['bounce_type'] || row['bouncedetails'] || row['bounce-reason'] || '').toLowerCase().trim()
+      const unsubRaw = row['reasons'] || row['unsub-reason'] || row['unsubscribed'] || row['unsubscribe-reason'] || ''
+
+      const isSend = (status === 'send' || status === 'sent' || status === 'delivered') ? 1 : 0
+      const isOpen = (status === 'open' || status === 'opened') ? 1 : 0
+      const isClick = (status === 'click' || status === 'clicked') ? 1 : 0
+      const isBounced = bounceType !== '' ? 1 : 0
+      const isHard = bounceType.includes('hard') ? 1 : 0
+      const isSoft = bounceType.includes('soft') ? 1 : 0
+      const isUnsub = unsubRaw.trim() !== '' ? 1 : 0
+
+      const metrics = {
+        sent: isSend,
+        delivered: isSend, // Netcore: sent = delivered (both come from Status = "send")
+        opened: isOpen,
+        clicked: isClick,
+        bounced: isBounced,
+        hardBounced: isHard,
+        softBounced: isSoft,
+        unsubscribed: isUnsub,
+        complained: 0,
+      }
+
+      if (!byDate[dateStr]) byDate[dateStr] = { rows: 0, providers: {}, domains: {}, providerDomains: {} }
+      const bucket = byDate[dateStr]
+      bucket.rows++
+
+      if (!bucket.providers[providerDomain]) bucket.providers[providerDomain] = blankMetrics()
+      mergeMetrics(bucket.providers[providerDomain], metrics)
+
+      if (!bucket.domains[sendingDomain]) bucket.domains[sendingDomain] = blankMetrics()
+      mergeMetrics(bucket.domains[sendingDomain], metrics)
+
+      if (!bucket.providerDomains[providerDomain]) bucket.providerDomains[providerDomain] = {}
+      if (!bucket.providerDomains[providerDomain][sendingDomain]) {
+        bucket.providerDomains[providerDomain][sendingDomain] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, hardBounced: 0, softBounced: 0, unsubscribed: 0 }
+      }
+      const pd = bucket.providerDomains[providerDomain][sendingDomain]
+      pd.sent += metrics.sent; pd.delivered += metrics.delivered; pd.opened += metrics.opened
+      pd.clicked += metrics.clicked; pd.bounced += metrics.bounced
+      pd.hardBounced = (pd.hardBounced || 0) + metrics.hardBounced
+      pd.softBounced = (pd.softBounced || 0) + metrics.softBounced
+      pd.unsubscribed += metrics.unsubscribed
       return
     }
 
@@ -467,7 +532,8 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
     return (MONTHS.indexOf(am) * 31 + parseInt(ad)) - (MONTHS.indexOf(bm) * 31 + parseInt(bd))
   })
 
-  return { byDate, dates, dateYears, totalRows, skipped, skippedNoDate, skippedNoEmail, newDates: 0, format: isMailmodo ? 'mailmodo' : 'generic' }
+  const format = isNetcore ? 'netcore' : isMailmodo ? 'mailmodo' : 'generic'
+  return { byDate, dates, dateYears, totalRows, skipped, skippedNoDate, skippedNoEmail, newDates: 0, format }
 }
 
 export function mergeIntoMmData(current: MmData, result: ReturnType<typeof parseFile> extends Promise<infer T> ? T : never, espName: string): { data: MmData; newDates: number } {
