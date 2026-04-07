@@ -187,7 +187,10 @@ export default function MatrixView() {
   }
 
   function showTip(e: React.MouseEvent, title: string, exact: string, formula: string, calc: string) {
-    setTip({ title, exact, formula, calc, x: e.clientX + 14, y: e.clientY + 14 })
+    const tipW = 260, tipH = 130
+    const x = e.clientX + 14 + tipW > window.innerWidth ? e.clientX - tipW - 8 : e.clientX + 14
+    const y = e.clientY + 14 + tipH > window.innerHeight ? e.clientY - tipH - 8 : e.clientY + 14
+    setTip({ title, exact, formula, calc, x, y })
   }
 
   function DataRow({ agg, isTotal, isFdTotal, bg }: { agg: Agg; isTotal?: boolean; isFdTotal?: boolean; bg?: string }) {

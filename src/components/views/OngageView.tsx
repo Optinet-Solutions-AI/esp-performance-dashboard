@@ -207,14 +207,24 @@ export default function OngageView() {
 
   useEffect(() => {
     if (!kpiTooltip) return
-    const move = (e: MouseEvent) => setKpiTooltip(t => t ? { ...t, x: e.clientX + 14, y: e.clientY + 14 } : null)
+    const move = (e: MouseEvent) => {
+      const tipW = 260, tipH = 130
+      const x = e.clientX + 14 + tipW > window.innerWidth ? e.clientX - tipW - 8 : e.clientX + 14
+      const y = e.clientY + 14 + tipH > window.innerHeight ? e.clientY - tipH - 8 : e.clientY + 14
+      setKpiTooltip(t => t ? { ...t, x, y } : null)
+    }
     window.addEventListener('mousemove', move)
     return () => window.removeEventListener('mousemove', move)
   }, [!!kpiTooltip]) // eslint-disable-line
 
   useEffect(() => {
     if (!gridTip) return
-    const move = (e: MouseEvent) => setGridTip(t => t ? { ...t, x: e.clientX + 14, y: e.clientY + 14 } : null)
+    const move = (e: MouseEvent) => {
+      const tipW = 260, tipH = 130
+      const x = e.clientX + 14 + tipW > window.innerWidth ? e.clientX - tipW - 8 : e.clientX + 14
+      const y = e.clientY + 14 + tipH > window.innerHeight ? e.clientY - tipH - 8 : e.clientY + 14
+      setGridTip(t => t ? { ...t, x, y } : null)
+    }
     window.addEventListener('mousemove', move)
     return () => window.removeEventListener('mousemove', move)
   }, [!!gridTip]) // eslint-disable-line
