@@ -376,42 +376,44 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
       return
     }
 
-    // ── Netcore activity-log format ─────────────────────────────────
-    // One row per event: each row has a Status column (send/open/click)
-    // and a Bounce Type column (hard/soft). Date is mm/dd/yyyy in col F.
+    // ── Netcore per-recipient format ─────────────────────────────────
+    // One row per recipient. Headers (normalized):
+    //   email-(primary-key) → recipient email
+    //   domain              → sending (from) domain
+    //   sent-date           → d/m/yyyy h:mm (monthFirst=false)
+    //   bounce-type         → "Soft Bounce" | "Hard Bounce" | ""
+    //   open-time           → non-empty if opened
+    //   no.-of-clicks       → integer clicks count
+    //   unsub-reason        → non-empty if unsubscribed
+    //   abuse-reason        → non-empty if complained
     if (isNetcore) {
-      const rawDate = row['sending-date'] || row['date'] || row['sent-date'] || row['sendingdate'] || row['send-date'] || ''
-      const parsed = parseDate(rawDate, true) // mm/dd/yyyy → monthFirst=true
+      const rawDate = row['sent-date'] || row['sending-date'] || row['date'] || ''
+      const parsed = parseDate(rawDate, false) // d/m/yyyy → monthFirst=false
       if (!parsed) { skipped++; skippedNoDate++; return }
       const dateStr = parsed.str
       dateYears[dateStr] = parsed.year
 
-      const sendingDomain = (row['from-domain'] || row['from'] || row['from-email'] || row['sender-domain'] || row['sender'] || 'unknown').toLowerCase().trim()
-      const email = row['email'] || row['email-address'] || row['recipient'] || row['to'] || row['subscriber'] || ''
-      const providerDomain = email ? extractDomain(email) : 'unknown'
+      const email = row['email-(primary-key)'] || row['email'] || row['recipient'] || ''
+      if (!email) { skipped++; skippedNoEmail++; return }
+      const providerDomain = extractDomain(email)
 
-      const status = (row['status'] || '').toLowerCase().trim()
-      const bounceType = (row['bounce-type'] || row['bouncetype'] || row['bounce_type'] || row['bouncedetails'] || row['bounce-reason'] || '').toLowerCase().trim()
-      const unsubRaw = row['reasons'] || row['unsub-reason'] || row['unsubscribed'] || row['unsubscribe-reason'] || ''
+      const sendingDomain = (row['domain'] || row['from-domain'] || 'unknown').toLowerCase().trim()
 
-      const isSend = (status === 'send' || status === 'sent' || status === 'delivered') ? 1 : 0
-      const isOpen = (status === 'open' || status === 'opened') ? 1 : 0
-      const isClick = (status === 'click' || status === 'clicked') ? 1 : 0
-      const isBounced = bounceType !== '' ? 1 : 0
-      const isHard = bounceType.includes('hard') ? 1 : 0
-      const isSoft = bounceType.includes('soft') ? 1 : 0
-      const isUnsub = unsubRaw.trim() !== '' ? 1 : 0
+      const bounceType = (row['bounce-type'] || '').toLowerCase().trim()
+      const isBounced  = bounceType !== '' ? 1 : 0
+      const isHard     = bounceType.includes('hard') ? 1 : 0
+      const isSoft     = bounceType.includes('soft') ? 1 : 0
 
       const metrics = {
-        sent: isSend,
-        delivered: isSend, // Netcore: sent = delivered (both come from Status = "send")
-        opened: isOpen,
-        clicked: isClick,
-        bounced: isBounced,
-        hardBounced: isHard,
-        softBounced: isSoft,
-        unsubscribed: isUnsub,
-        complained: 0,
+        sent:         1,
+        delivered:    isBounced === 0 ? 1 : 0,  // delivered = sent with no bounce
+        opened:       (row['open-time'] || '').trim() !== '' ? 1 : 0,
+        clicked:      Number(row['no.-of-clicks'] || 0) > 0 ? 1 : 0,
+        bounced:      isBounced,
+        hardBounced:  isHard,
+        softBounced:  isSoft,
+        unsubscribed: (row['unsub-reason'] || '').trim() !== '' ? 1 : 0,
+        complained:   (row['abuse-reason'] || '').trim() !== '' ? 1 : 0,
       }
 
       if (!byDate[dateStr]) byDate[dateStr] = { rows: 0, providers: {}, domains: {}, providerDomains: {} }
