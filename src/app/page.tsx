@@ -20,10 +20,10 @@ import LogsView from '@/components/views/LogsView'
 
 const VIEW_LABELS: Record<string, string> = {
   home: 'Overview', dashboard: 'Dashboard', mailmodo: 'Mailmodo Review',
-  ongage: 'Ongage Review', upload: 'Upload Report', matrix: 'ESP Deliverability Matrix',
-  datamgmt: 'Data Management', ipmatrix: 'IPs Matrix', performance: 'Performance',
-  logs: 'Activity Logs',
-  daily: 'Daily Report',
+  ongage: 'Ongage Review', netcore: 'Netcore Review', upload: 'Upload Report',
+  matrix: 'ESP Deliverability Matrix', datamgmt: 'Data Management',
+  ipmatrix: 'IPs Matrix', performance: 'Performance',
+  logs: 'Activity Logs', daily: 'Daily Report',
 }
 
 export default function Page() {
@@ -206,6 +206,7 @@ export default function Page() {
           {activeView === 'dashboard' && <DashboardView />}
           {activeView === 'mailmodo' && <MailmodoView filter="mailmodo" />}
           {activeView === 'ongage' && <OngageView />}
+          {activeView === 'netcore' && <MailmodoView filter="netcore" />}
           {activeView === 'upload' && <UploadView />}
           {activeView === 'matrix' && <MatrixView />}
           {activeView === 'datamgmt' && <DataMgmtView />}

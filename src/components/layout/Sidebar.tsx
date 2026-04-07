@@ -111,6 +111,7 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
           <>
             <NavItem id="mailmodo" label="Mailmodo" icon={<span style={{ width: 7, height: 7, borderRadius: '50%', background: '#7c5cfc', display: 'inline-block' }} />} />
             <NavItem id="ongage" label="Ongage" icon={<span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ffd166', display: 'inline-block' }} />} />
+            <NavItem id="netcore" label="Netcore" icon={<span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />} />
           </>
         ) : (
           <>
@@ -135,6 +136,7 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
                 {[
                   { id: 'mailmodo' as ViewName, label: 'Mailmodo Review', color: '#7c5cfc' },
                   { id: 'ongage' as ViewName, label: 'Ongage Review', color: '#ffd166' },
+                  { id: 'netcore' as ViewName, label: 'Netcore Review', color: '#f97316' },
                 ].map(item => {
                   const active = activeView === item.id
                   return (

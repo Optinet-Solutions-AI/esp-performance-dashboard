@@ -187,16 +187,18 @@ function buildIpAggByDate(
 /* ─────────────────────────────────────────────────────────────────
    MAIN VIEW
 ───────────────────────────────────────────────────────────────── */
-export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo' }) {
+export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo' | 'netcore' }) {
   const store     = useDashboardStore()
   const isLight   = store.isLight
   const ipmData   = store.ipmData
   const allEsps   = Object.keys(store.espData)
   const espList   = filter === 'ongage'
     ? allEsps.filter(e => e === 'Ongage')
-    : filter === 'mailmodo'
-      ? allEsps.filter(e => e !== 'Ongage')
-      : allEsps
+    : filter === 'netcore'
+      ? allEsps.filter(e => e === 'Netcore')
+      : filter === 'mailmodo'
+        ? allEsps.filter(e => e !== 'Ongage' && e !== 'Netcore')
+        : allEsps
 
   const [selectedEsp, setSelectedEsp] = useState('')
   const [granularity, setGranularity] = useState<Granularity>('daily')
