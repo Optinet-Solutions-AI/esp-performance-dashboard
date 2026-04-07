@@ -23,7 +23,7 @@ const KPI_DEFS = [
 ]
 const GRID_KPIS = [
   { key: 'deliveryRate' as keyof DateMetrics, label: 'Success%', color: '#b39dff', tipTitle: 'SUCCESS RATE',  formula: 'Delivered ÷ Sent × 100',        rawFn: (r: DateMetrics) => ({ a: r.delivered, b: r.sent        }), dec: 1 },
-  { key: 'openRate'     as keyof DateMetrics, label: 'Open%',    color: '#00ffd5', tipTitle: 'OPEN RATE',     formula: 'Opens ÷ Delivered × 100',       rawFn: (r: DateMetrics) => ({ a: r.opened,    b: r.delivered   }), dec: 1 },
+  { key: 'openRate'     as keyof DateMetrics, label: 'Open%',    color: '#00ffd5', lightColor: '#076C62', tipTitle: 'OPEN RATE',     formula: 'Opens ÷ Delivered × 100',       rawFn: (r: DateMetrics) => ({ a: r.opened,    b: r.delivered   }), dec: 1 },
   { key: 'clickRate'    as keyof DateMetrics, label: 'CTR%',     color: '#ffe066', tipTitle: 'CTR',           formula: 'Clicks ÷ Opens × 100',          rawFn: (r: DateMetrics) => ({ a: r.clicked,   b: r.opened      }), dec: 1 },
   { key: 'bounceRate'   as keyof DateMetrics, label: 'Bounce%',  color: '#ff6b77', tipTitle: 'BOUNCE RATE',   formula: 'Bounced ÷ Sent × 100',          rawFn: (r: DateMetrics) => ({ a: r.bounced,   b: r.sent        }), dec: 1 },
   { key: 'unsubRate'    as keyof DateMetrics, label: 'Unsub%',   color: '#ff9a5c', tipTitle: 'UNSUB RATE',    formula: 'Unsubscribed ÷ Opens × 100',    rawFn: (r: DateMetrics) => ({ a: r.unsubscribed ?? 0, b: r.opened }), dec: 3 },
@@ -315,6 +315,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
 
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
+  const kc = (kpi: { color: string; lightColor?: string }): string => isLight ? (kpi.lightColor ?? kpi.color) : kpi.color
 
   // ── IP entity data ───────────────────────────────────────────────
   const espIpmRecords = ipmData.filter(r => r.esp === selectedEsp)
@@ -501,7 +502,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           data: {
             labels: dateGroups.map(g => fmtDL(g.label)),
             datasets: entityData.map((e, ei) =>
-              rateDs(e.name, kpiMetricsPerEntity[ei].map(r => r ? ((r[kpi.key] as number) ?? null) : null), kpi.color, [], false)
+              rateDs(e.name, kpiMetricsPerEntity[ei].map(r => r ? ((r[kpi.key] as number) ?? null) : null), kc(kpi), [], false)
             ),
           },
           options: {
@@ -536,8 +537,8 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             datasets: [{
               label: kpi.label,
               data: entityData.map(e => (e.data?.[kpi.key] as number) ?? 0),
-              backgroundColor: entityData.map(() => kpi.color + 'aa'),
-              borderColor: entityData.map(() => kpi.color),
+              backgroundColor: entityData.map(() => kc(kpi) + 'aa'),
+              borderColor: entityData.map(() => kc(kpi)),
               borderWidth: 1, borderRadius: 4,
             }],
           },
@@ -867,7 +868,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     {entityData.map(e => (
                       <div key={e.name} className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: kpi.color }} />
+                          <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: kc(kpi) }} />
                           <span className={`text-[9px] font-mono font-semibold ${muted}`}>
                             {e.name.length > 22 ? e.name.slice(0, 20) + '…' : e.name}
                           </span>
@@ -1162,7 +1163,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                         GRID_KPIS.map((kpi, ki) => (
                           <th key={e.name + kpi.key}
                             className={`px-3 py-2 text-right border-b ${ki === 4 && ei < filteredIpEntityData.length - 1 ? 'border-r' : ''} ${isLight ? 'border-black/8' : 'border-white/7'}`}
-                            style={{ color: kpi.color, fontSize: 9, letterSpacing: '0.08em' }}>
+                            style={{ color: kc(kpi), fontSize: 9, letterSpacing: '0.08em' }}>
                             {kpi.label}
                           </th>
                         ))
@@ -1197,9 +1198,9 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                             const valColor = isLight && hasHeatBg
                               ? (kpi.key === 'bounceRate' && val != null && val > 10 ? '#991b1b' : kpi.key === 'bounceRate' && val != null && val > 2 ? '#92400e' : '#111827')
                               : kpi.key === 'bounceRate' && val != null
-                                ? val > 10 ? '#ff6b77' : val > 2 ? '#ffe066' : kpi.color
+                                ? val > 10 ? '#ff6b77' : val > 2 ? '#ffe066' : kc(kpi)
                                 : kpi.key === 'deliveryRate' && val != null && val < 95
-                                  ? '#ffe066' : kpi.color
+                                  ? '#ffe066' : kc(kpi)
 
                             const tipContent = val != null && r ? (() => {
                               const { a, b } = kpi.rawFn(r)
@@ -1246,8 +1247,8 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                           const valColor = isLight
                             ? (kpi.key === 'bounceRate' && val != null && val > 10 ? '#991b1b' : kpi.key === 'bounceRate' && val != null && val > 2 ? '#92400e' : '#111827')
                             : kpi.key === 'bounceRate' && val != null
-                              ? val > 10 ? '#ff6b77' : val > 2 ? '#ffe066' : kpi.color
-                              : kpi.key === 'deliveryRate' && val != null && val < 95 ? '#ffe066' : kpi.color
+                              ? val > 10 ? '#ff6b77' : val > 2 ? '#ffe066' : kc(kpi)
+                              : kpi.key === 'deliveryRate' && val != null && val < 95 ? '#ffe066' : kc(kpi)
 
                           const tipContent = val != null && r ? (() => {
                             const { a, b } = kpi.rawFn(r)
