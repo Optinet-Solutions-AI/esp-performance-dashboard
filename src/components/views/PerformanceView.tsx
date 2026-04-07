@@ -64,10 +64,10 @@ export default function PerformanceView() {
         label: 'Bounce Rate',
         data: activeEsps.map(e => +e.bounceRate.toFixed(2)),
         backgroundColor: activeEsps.map(e =>
-          e.bounceRate > 10 ? '#ff4757cc' : e.bounceRate > 2 ? '#ffd166cc' : teal + 'cc'
+          e.bounceRate > 10 ? (isLight ? '#dc2626cc' : '#ff4757cc') : e.bounceRate > 2 ? (isLight ? '#b45309cc' : '#ffd166cc') : teal + 'cc'
         ),
         borderColor: activeEsps.map(e =>
-          e.bounceRate > 10 ? '#ff4757' : e.bounceRate > 2 ? '#ffd166' : teal
+          e.bounceRate > 10 ? (isLight ? '#dc2626' : '#ff4757') : e.bounceRate > 2 ? (isLight ? '#b45309' : '#ffd166') : teal
         ),
         borderWidth: 1.5,
         borderRadius: 4,
@@ -119,10 +119,10 @@ export default function PerformanceView() {
   }
 
   const kpis = [
-    { label: 'Total Sent', value: fmtN(totalSent), accent: '#a8b0be', sub: `${activeEsps.length} ESP${activeEsps.length !== 1 ? 's' : ''}` },
+    { label: 'Total Sent', value: fmtN(totalSent), accent: isLight ? '#64748b' : '#a8b0be', sub: `${activeEsps.length} ESP${activeEsps.length !== 1 ? 's' : ''}` },
     { label: 'Avg Delivery Rate', value: fmtP(avgDelivery), accent: teal, sub: avgDelivery > 95 ? '▲ Strong delivery' : '▼ Review needed' },
-    { label: 'Avg Open Rate', value: fmtP(avgOpen), accent: '#7c5cfc', sub: sortedByOpen[0] ? `Best: ${sortedByOpen[0].name}` : '' },
-    { label: 'Avg Bounce Rate', value: fmtP(avgBounce), accent: avgBounce > 10 ? '#ff4757' : avgBounce > 2 ? '#ffd166' : teal, sub: avgBounce > 5 ? '⚠ Review needed' : '▲ Within limits' },
+    { label: 'Avg Open Rate', value: fmtP(avgOpen), accent: isLight ? '#5b21b6' : '#7c5cfc', sub: sortedByOpen[0] ? `Best: ${sortedByOpen[0].name}` : '' },
+    { label: 'Avg Bounce Rate', value: fmtP(avgBounce), accent: avgBounce > 10 ? (isLight ? '#dc2626' : '#ff4757') : avgBounce > 2 ? (isLight ? '#b45309' : '#ffd166') : teal, sub: avgBounce > 5 ? '⚠ Review needed' : '▲ Within limits' },
   ]
 
   return (
@@ -258,13 +258,13 @@ export default function PerformanceView() {
                       <td className="px-4 py-2.5 text-right font-mono text-[#00b8d9]">{fmtN(e.clicks)}</td>
                       <td
                         className="px-4 py-2.5 text-right font-mono"
-                        style={{ color: e.bounceRate > 5 ? '#ff4757' : isLight ? '#6b7280' : '#a8b0be' }}
+                        style={{ color: e.bounceRate > 5 ? (isLight ? '#dc2626' : '#ff4757') : isLight ? '#475569' : '#a8b0be' }}
                       >
                         {fmtN(e.bounced)}
                       </td>
                       <td
                         className="px-4 py-2.5 text-right font-mono"
-                        style={{ color: e.deliveryRate > 95 ? teal : e.deliveryRate > 70 ? '#ffd166' : '#ff4757' }}
+                        style={{ color: e.deliveryRate > 95 ? teal : e.deliveryRate > 70 ? (isLight ? '#b45309' : '#ffd166') : (isLight ? '#dc2626' : '#ff4757') }}
                       >
                         {fmtP(e.deliveryRate)}
                       </td>
@@ -272,7 +272,7 @@ export default function PerformanceView() {
                       <td className="px-4 py-2.5 text-right font-mono text-[#00b8d9]">{fmtP(e.clickRate, 2)}</td>
                       <td
                         className="px-4 py-2.5 text-right font-mono font-bold"
-                        style={{ color: e.bounceRate > 10 ? '#ff4757' : e.bounceRate > 2 ? '#ffd166' : teal }}
+                        style={{ color: e.bounceRate > 10 ? (isLight ? '#dc2626' : '#ff4757') : e.bounceRate > 2 ? (isLight ? '#b45309' : '#ffd166') : teal }}
                       >
                         {fmtP(e.bounceRate)}
                       </td>

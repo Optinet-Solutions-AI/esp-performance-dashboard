@@ -121,10 +121,10 @@ export default function DailyView() {
         label: 'Bounced',
         data: rows.map(r => r.bounced),
         backgroundColor: rows.map(r =>
-          r.bounced > 1000 ? '#ff4757cc' : r.bounced > 100 ? '#ffd166cc' : '#a8b0becc'
+          r.bounced > 1000 ? (isLight ? '#dc2626cc' : '#ff4757cc') : r.bounced > 100 ? (isLight ? '#b45309cc' : '#ffd166cc') : (isLight ? '#64748bcc' : '#a8b0becc')
         ),
         borderColor: rows.map(r =>
-          r.bounced > 1000 ? '#ff4757' : r.bounced > 100 ? '#ffd166' : '#a8b0be'
+          r.bounced > 1000 ? (isLight ? '#dc2626' : '#ff4757') : r.bounced > 100 ? (isLight ? '#b45309' : '#ffd166') : (isLight ? '#64748b' : '#a8b0be')
         ),
         borderWidth: 1.5,
         borderRadius: 4,
@@ -294,7 +294,7 @@ export default function DailyView() {
                     >
                       <td
                         className="px-4 py-2.5 font-mono text-xs"
-                        style={{ color: row.bounced > 1000 ? '#ff4757' : isLight ? '#374151' : '#f0f2f5' }}
+                        style={{ color: row.bounced > 1000 ? (isLight ? '#dc2626' : '#ff4757') : isLight ? '#374151' : '#f0f2f5' }}
                       >
                         {row.date}
                         {row.bounced > 1000 && <span className="ml-1.5 text-[#ff4757]">⚠</span>}
@@ -307,7 +307,7 @@ export default function DailyView() {
                       </td>
                       <td
                         className="px-4 py-2.5 text-right font-mono"
-                        style={{ color: row.deliveryRate > 95 ? teal : row.deliveryRate > 70 ? '#ffd166' : '#ff4757' }}
+                        style={{ color: row.deliveryRate > 95 ? teal : row.deliveryRate > 70 ? (isLight ? '#b45309' : '#ffd166') : (isLight ? '#dc2626' : '#ff4757') }}
                       >
                         {fmtP(row.deliveryRate)}
                       </td>
@@ -319,13 +319,13 @@ export default function DailyView() {
                       </td>
                       <td
                         className="px-4 py-2.5 text-right font-mono"
-                        style={{ color: row.bounced > 1000 ? '#ff4757' : row.bounced > 100 ? '#ffd166' : isLight ? '#6b7280' : '#a8b0be' }}
+                        style={{ color: row.bounced > 1000 ? (isLight ? '#dc2626' : '#ff4757') : row.bounced > 100 ? (isLight ? '#b45309' : '#ffd166') : (isLight ? '#475569' : '#a8b0be') }}
                       >
                         {fmtN(row.bounced)}
                       </td>
                       <td
                         className="px-4 py-2.5 text-right font-mono font-bold"
-                        style={{ color: row.bounceRate > 10 ? '#ff4757' : row.bounceRate > 2 ? '#ffd166' : teal }}
+                        style={{ color: row.bounceRate > 10 ? (isLight ? '#dc2626' : '#ff4757') : row.bounceRate > 2 ? (isLight ? '#b45309' : '#ffd166') : teal }}
                       >
                         {fmtP(row.bounceRate)}
                       </td>
