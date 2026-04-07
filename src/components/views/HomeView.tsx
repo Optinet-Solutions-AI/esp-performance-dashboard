@@ -53,7 +53,7 @@ export default function HomeView() {
         datasets: [{
           label: 'Sent',
           data: volumes.length ? volumes : [0],
-          backgroundColor: isLight ? 'rgba(0,160,140,0.55)' : 'rgba(0,229,195,0.65)',
+          backgroundColor: isLight ? 'rgba(13,148,128,0.65)' : 'rgba(0,229,195,0.65)',
           borderRadius: 6,
           borderSkipped: false,
         }],
@@ -101,11 +101,11 @@ export default function HomeView() {
   }, [isLight, JSON.stringify(espSentMap)])
 
   const latest = uploadHistory[0]
-  const muted = isLight ? '#6b7280' : '#5a6478'
-  const textMain = isLight ? '#111827' : '#f0f2f5'
+  const muted = isLight ? '#64748b' : '#5a6478'
+  const textMain = isLight ? '#0f172a' : '#f0f2f5'
   const cardBg = isLight ? '#ffffff' : '#111418'
-  const cardBorder = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'
-  const hoverBg = isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)'
+  const cardBorder = isLight ? 'rgba(0,0,0,0.09)' : 'rgba(255,255,255,0.06)'
+  const hoverBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.02)'
 
   return (
     <div className="view-page fade-up">

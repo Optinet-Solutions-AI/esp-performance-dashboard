@@ -370,12 +370,12 @@ export const CHART_TOOLTIP_OPTS = {
 
 export function chartTooltip(isLight: boolean) {
   return isLight
-    ? { backgroundColor: '#ffffff', titleColor: '#111827', bodyColor: '#374151', borderColor: 'rgba(0,0,0,0.12)', borderWidth: 1 }
+    ? { backgroundColor: '#ffffff', titleColor: '#0f172a', bodyColor: '#475569', borderColor: 'rgba(0,0,0,0.11)', borderWidth: 1, padding: 10 }
     : CHART_TOOLTIP_OPTS
 }
 
 export const getGridColor = (isLight: boolean) =>
-  isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.05)'
+  isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.05)'
 
 export const getTextColor = (isLight: boolean) =>
-  isLight ? '#111827' : '#c8cdd6'
+  isLight ? '#64748b' : '#c8cdd6'

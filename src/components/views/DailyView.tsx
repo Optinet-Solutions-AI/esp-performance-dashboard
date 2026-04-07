@@ -38,7 +38,7 @@ export default function DailyView() {
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
 
-  const cardClass = `rounded-xl border ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`
+  const cardClass = `rounded-xl border ${isLight ? 'bg-white border-black/[0.10] shadow-sm' : 'bg-[#111418] border-white/7'}`
 
   // Merge all dates across all ESPs
   const allEspData = Object.values(espData)

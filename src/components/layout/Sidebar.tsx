@@ -10,6 +10,12 @@ const STATUS_COLORS = {
   critical:{ color: '#ff4757', bg: 'rgba(255,71,87,0.08)',  border: 'rgba(255,71,87,0.25)' },
 } as const
 
+const STATUS_COLORS_LIGHT = {
+  healthy: { color: '#0d9488', bg: 'rgba(13,148,128,0.08)', border: 'rgba(13,148,128,0.20)' },
+  warn:    { color: '#b45309', bg: 'rgba(180,83,9,0.08)',   border: 'rgba(180,83,9,0.20)' },
+  critical:{ color: '#dc2626', bg: 'rgba(220,38,38,0.07)', border: 'rgba(220,38,38,0.18)' },
+}
+
 interface SidebarProps { onClose?: () => void; collapsed?: boolean; onToggleCollapse?: () => void }
 
 export default function Sidebar({ onClose, collapsed, onToggleCollapse }: SidebarProps) {
@@ -20,14 +26,14 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
   function navTo(v: ViewName) { setView(v); onClose?.() }
 
   const bg = isLight ? '#ffffff' : '#0e1116'
-  const borderColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)'
-  const mutedColor = isLight ? '#6b7280' : '#4a5568'
-  const textColor = isLight ? '#374151' : '#8a94a6'
-  const textHover = isLight ? '#111827' : '#d4dae6'
-  const activeAccent = '#00e5c3'
-  const activeBg = isLight ? 'rgba(0,229,195,0.1)' : 'rgba(0,229,195,0.08)'
-  const activeText = isLight ? '#007a67' : '#00e5c3'
-  const hoverBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'
+  const borderColor = isLight ? 'rgba(0,0,0,0.09)' : 'rgba(255,255,255,0.05)'
+  const mutedColor = isLight ? '#64748b' : '#4a5568'
+  const textColor = isLight ? '#475569' : '#8a94a6'
+  const textHover = isLight ? '#0f172a' : '#d4dae6'
+  const activeAccent = isLight ? '#0d9488' : '#00e5c3'
+  const activeBg = isLight ? 'rgba(13,148,128,0.09)' : 'rgba(0,229,195,0.08)'
+  const activeText = isLight ? '#0f766e' : '#00e5c3'
+  const hoverBg = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.04)'
 
   const NavItem = ({ id, label, icon }: { id: ViewName; label: string; icon: React.ReactNode }) => {
     const active = activeView === id
@@ -132,7 +138,7 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
             </button>
 
             {providersOpen && (
-              <div style={{ marginLeft: 16, paddingLeft: 12, borderLeft: '1px solid rgba(0,229,195,0.2)', marginTop: 2, marginBottom: 4 }}>
+              <div style={{ marginLeft: 16, paddingLeft: 12, borderLeft: `1px solid ${isLight ? 'rgba(13,148,128,0.20)' : 'rgba(0,229,195,0.20)'}`, marginTop: 2, marginBottom: 4 }}>
                 {[
                   { id: 'mailmodo' as ViewName, label: 'Mailmodo Review', color: '#7c5cfc' },
                   { id: 'ongage' as ViewName, label: 'Ongage Review', color: '#ffd166' },
@@ -189,7 +195,7 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
                 <span style={{ transition: 'transform 0.2s', transform: espListOpen ? 'rotate(90deg)' : 'none' }}>▶</span>
               </button>
               {espListOpen && activeEsps.map(e => {
-                const sc = STATUS_COLORS[e.status]
+                const sc = isLight ? STATUS_COLORS_LIGHT[e.status] : STATUS_COLORS[e.status]
                 return (
                   <button
                     key={e.name}
@@ -248,8 +254,8 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
               <span>{isLight ? '☀ Light' : '🌙 Dark'}</span>
               <span style={{
                 width: 36, height: 20, borderRadius: 99, flexShrink: 0, position: 'relative', display: 'inline-block',
-                background: isLight ? '#00c4a7' : '#2d3748',
-                border: `1px solid ${isLight ? '#00c4a7' : 'rgba(255,255,255,0.1)'}`,
+                background: isLight ? '#0d9488' : '#2d3748',
+                border: `1px solid ${isLight ? '#0d9488' : 'rgba(255,255,255,0.1)'}`,
                 transition: 'background 0.2s',
               }}>
                 <span style={{

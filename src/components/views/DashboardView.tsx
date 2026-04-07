@@ -200,11 +200,16 @@ export default function DashboardView() {
                 onClick={() => setFilter(f)}
                 className={`px-2.5 py-1 rounded-lg border text-[10px] font-mono uppercase tracking-wider transition-all
                   ${activeFilter === f
-                    ? f === 'all' ? 'border-[#00e5c3]/40 text-[#00e5c3] bg-[#00e5c3]/10'
-                      : f === 'healthy' ? 'border-[#00e5c3]/40 text-[#00e5c3] bg-[#00e5c3]/10'
-                      : f === 'warn' ? 'border-[#ffd166]/40 text-[#ffd166] bg-[#ffd166]/10'
-                      : 'border-[#ff4757]/40 text-[#ff4757] bg-[#ff4757]/10'
-                    : isLight ? 'border-black/15 text-gray-500 hover:border-black/30' : 'border-white/13 text-[#a8b0be] hover:border-white/25'
+                    ? isLight
+                      ? f === 'all' ? 'border-[#0d9488]/40 text-[#0d9488] bg-[#0d9488]/[0.08]'
+                        : f === 'healthy' ? 'border-[#0d9488]/40 text-[#0d9488] bg-[#0d9488]/[0.08]'
+                        : f === 'warn' ? 'border-[#b45309]/40 text-[#b45309] bg-[#b45309]/[0.07]'
+                        : 'border-[#dc2626]/40 text-[#dc2626] bg-[#dc2626]/[0.07]'
+                      : f === 'all' ? 'border-[#00e5c3]/40 text-[#00e5c3] bg-[#00e5c3]/10'
+                        : f === 'healthy' ? 'border-[#00e5c3]/40 text-[#00e5c3] bg-[#00e5c3]/10'
+                        : f === 'warn' ? 'border-[#ffd166]/40 text-[#ffd166] bg-[#ffd166]/10'
+                        : 'border-[#ff4757]/40 text-[#ff4757] bg-[#ff4757]/10'
+                    : isLight ? 'border-black/[0.12] text-[#64748b] hover:border-black/[0.25]' : 'border-white/13 text-[#a8b0be] hover:border-white/25'
                   }`}
               >
                 {f}
@@ -213,7 +218,7 @@ export default function DashboardView() {
           </div>
         </div>
 
-        <div className={`rounded-xl border overflow-hidden ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`}>
+        <div className={`rounded-xl border overflow-hidden ${isLight ? 'bg-white border-black/[0.10] shadow-sm' : 'bg-[#111418] border-white/7'}`}>
           <table className="w-full border-collapse">
             <thead className={isLight ? 'bg-gray-50' : 'bg-[#181c22]'}>
               <tr>
@@ -222,7 +227,7 @@ export default function DashboardView() {
                     key={k}
                     onClick={() => setSort(k)}
                     className={`px-4 py-3 text-left text-[9px] font-mono tracking-wider uppercase border-b select-none cursor-pointer transition-colors
-                      ${isLight ? 'border-black/8 text-gray-700 hover:text-gray-900' : 'border-white/7 text-[#d4dae6] hover:text-[#f0f2f5]'}
+                      ${isLight ? 'border-black/[0.10] text-[#475569] hover:text-[#0f172a]' : 'border-white/7 text-[#d4dae6] hover:text-[#f0f2f5]'}
                       ${k !== 'name' ? 'text-right' : ''}`}
                   >
                     {k === 'name' ? 'ESP' : k === 'sent' ? 'Sent' : k === 'deliveryRate' ? 'Delivery %' : k === 'openRate' ? 'Open %' : k === 'clickRate' ? 'CTR' : 'Bounce %'}
@@ -231,7 +236,7 @@ export default function DashboardView() {
                     </i>
                   </th>
                 ))}
-                <th className={`px-4 py-3 text-left text-[9px] font-mono tracking-wider uppercase border-b ${isLight ? 'border-black/8 text-gray-700' : 'border-white/7 text-[#d4dae6]'}`}>
+                <th className={`px-4 py-3 text-left text-[9px] font-mono tracking-wider uppercase border-b ${isLight ? 'border-black/[0.10] text-[#475569]' : 'border-white/7 text-[#d4dae6]'}`}>
                   Status
                 </th>
               </tr>
@@ -244,8 +249,8 @@ export default function DashboardView() {
                     key={e.name}
                     onClick={() => setActiveEsp(e.name)}
                     className={`cursor-pointer transition-colors border-b last:border-0
-                      ${isLight ? 'border-black/8 hover:bg-black/3' : 'border-white/7 hover:bg-white/3'}
-                      ${activeEsp === e.name ? (isLight ? 'bg-[#009e88]/7' : 'bg-[#00e5c3]/4') : ''}`}
+                      ${isLight ? 'border-black/[0.08] hover:bg-black/[0.04]' : 'border-white/7 hover:bg-white/3'}
+                      ${activeEsp === e.name ? (isLight ? 'bg-[#0d9488]/[0.07]' : 'bg-[#00e5c3]/4') : ''}`}
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -255,7 +260,7 @@ export default function DashboardView() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 justify-end">
-                        <div className={`flex-1 h-1 rounded-full min-w-[40px] ${isLight ? 'bg-black/8' : 'bg-white/6'}`}>
+                        <div className={`flex-1 h-1 rounded-full min-w-[40px] ${isLight ? 'bg-black/[0.09]' : 'bg-white/6'}`}>
                           <div className="h-1 rounded-full" style={{ width: `${(e.sent / maxSent) * 100}%`, background: e.color }} />
                         </div>
                         <span className="text-[11px] font-mono text-[#a8b0be] min-w-[36px] text-right">{fmtN(e.sent)}</span>

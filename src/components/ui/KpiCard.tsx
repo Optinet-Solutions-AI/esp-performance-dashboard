@@ -19,7 +19,7 @@ export default function KpiCard({ label, value, delta, accent = '#00e5c3', icon,
       className={`relative rounded-2xl px-5 py-5 border overflow-hidden transition-all duration-200 group
         ${onClick ? 'cursor-pointer' : ''}
         ${isLight
-          ? 'bg-white border-black/8 hover:border-black/16 hover:shadow-lg hover:shadow-black/5'
+          ? 'bg-white border-black/[0.09] shadow-sm hover:border-black/[0.16] hover:shadow-md hover:shadow-black/[0.07]'
           : 'bg-[#111418] border-white/6 hover:border-white/12 hover:shadow-xl hover:shadow-black/30'
         }`}
     >
@@ -34,11 +34,11 @@ export default function KpiCard({ label, value, delta, accent = '#00e5c3', icon,
       <div className="relative flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className={`text-[10px] font-mono tracking-[0.12em] uppercase mb-2.5 select-none
-            ${isLight ? 'text-gray-400' : 'text-[#5a6478]'}`}>
+            ${isLight ? 'text-[#64748b]' : 'text-[#5a6478]'}`}>
             {label}
           </div>
           <div className={`text-[26px] font-bold tracking-tight leading-none mb-2
-            ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>
+            ${isLight ? 'text-[#0f172a]' : 'text-[#f0f2f5]'}`}>
             {value}
           </div>
           {delta && (
