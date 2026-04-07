@@ -187,14 +187,47 @@ function normalizeDomainForEsp(domain: string, espName?: string): string {
   return d
 }
 
-function extractSendingDomain(campaignName: string): string {
-  // A "domain" here = a word followed by optional .subdomain segments ending in a TLD.
-  // Use \b word boundary so hyphens/underscores in campaign names act as separators.
-  // Examples this should match correctly:
-  //   "rboy-au-opens-p22-p35-pm-50fs-march25-dailydealhive.com"       -> dailydealhive.com
-  //   "WP_march10_dailydealhive.com"                                  -> dailydealhive.com
-  //   "alerts.dealdivaz.com"                                          -> alerts.dealdivaz.com
-  //   "dailypromoinfo.com - Spring Sale"                              -> dailypromoinfo.com
+/**
+ * Find a registered domain inside a campaign name (substring match).
+ *
+ * Tries the full domain first (e.g. "alerts.dailypromosdeal.com"), then the
+ * brand stem without TLD (e.g. "dailypromosdeal"). Longest known domain wins
+ * to prefer specific subdomains over root domains.
+ *
+ * Examples (with knownDomains = ["dailydealhive.com", "alerts.dealdivaz.com"]):
+ *   "RBOY-AU-Opens-P42-March26-Dealsonoffers"            -> null
+ *   "MNU-CA-Opens-P3-LV-$5-March28-Dailydealhive"        -> "dailydealhive.com"
+ *   "alerts.dailypromosdeal.com - Mar 05, 2026"          -> "alerts.dailypromosdeal.com" (if registered)
+ */
+function findKnownDomain(campaignName: string, knownDomains: string[]): string | null {
+  if (!knownDomains || !knownDomains.length) return null
+  const haystack = campaignName.toLowerCase()
+  // Sort by length desc so "alerts.dailypromosdeal.com" beats "dailypromosdeal.com"
+  const sorted = [...new Set(knownDomains.map(d => d.toLowerCase().trim()).filter(Boolean))]
+    .sort((a, b) => b.length - a.length)
+  for (const domain of sorted) {
+    // Try full domain (with TLD) as substring
+    if (haystack.includes(domain)) return domain
+  }
+  // Then try brand stems (domain without TLD) — handles campaigns with no .com suffix
+  for (const domain of sorted) {
+    const stem = domain.replace(/\.[a-z]{2,}(?:\.[a-z]{2,})?$/i, '')
+    if (stem.length >= 5 && haystack.includes(stem)) return domain
+  }
+  return null
+}
+
+function extractSendingDomain(campaignName: string, knownDomains?: string[]): string {
+  // 1. Highest priority: match against domains registered in the IP Matrix.
+  //    This is the most reliable approach because it relies on user-curated data,
+  //    not pattern guessing. Adding a domain to IP Matrix automatically improves
+  //    parsing — no code changes needed.
+  const matched = findKnownDomain(campaignName, knownDomains || [])
+  if (matched) return matched
+
+  // 2. Fall back to regex extraction for campaigns where the domain isn't registered yet.
+  //    A "domain" here = a word followed by optional .subdomain segments ending in a TLD.
+  //    Use \b word boundary so hyphens/underscores in campaign names act as separators.
 
   // Try domain at end: match the last dot-separated domain bounded by a word boundary
   const mEnd = campaignName.match(/(?:^|[^a-z0-9.])([a-z0-9]+(?:\.[a-z0-9]+)*\.[a-z]{2,})$/i)
@@ -242,7 +275,7 @@ function blankMetrics(): DateMetrics {
   return { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, hardBounced: 0, softBounced: 0, unsubscribed: 0, complained: 0, deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0 }
 }
 
-export async function parseFile(file: File, espName?: string): Promise<ParseResult> {
+export async function parseFile(file: File, espName?: string, knownDomains?: string[]): Promise<ParseResult> {
   const isXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
   let rows: Record<string, string>[]
 
@@ -294,11 +327,16 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
 
       const providerDomain = (row['domain-grouped-by-esp'] || 'unknown').toLowerCase().trim()
       // Ongage ESP column format: "Ongage SMTP - og.example.com" or "Ongage SMTP - og.weekly-surprise.com"
-      // Take everything after the last " - " to preserve hyphens inside the real domain,
-      // then apply ESP prefix stripping (og.).
+      // Try IP Matrix lookup first, then fall back to splitting on " - ".
       const espValue = (row['esp'] || '').trim()
-      const afterDash = espValue.split(/\s+-\s+/).pop()?.toLowerCase().trim() || ''
-      const rawDomain = afterDash || extractSendingDomain(espValue)
+      const knownMatch = findKnownDomain(espValue, knownDomains || [])
+      let rawDomain: string
+      if (knownMatch) {
+        rawDomain = knownMatch
+      } else {
+        const afterDash = espValue.split(/\s+-\s+/).pop()?.toLowerCase().trim() || ''
+        rawDomain = afterDash || extractSendingDomain(espValue, knownDomains)
+      }
       const sendingDomain = normalizeDomainForEsp(rawDomain, espName) || 'unknown'
 
       if (!byDate[dateStr]) byDate[dateStr] = { rows: 0, providers: {}, domains: {}, providerDomains: {} }
@@ -345,7 +383,8 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
     if (!email) { skipped++; skippedNoEmail++; return }
 
     const providerDomain = extractDomain(email)
-    // Extract sending (from) domain — check explicit columns first, then fall back to campaign name
+    // Extract sending (from) domain — check explicit columns first, then fall back to campaign name.
+    // For campaign names, extractSendingDomain consults the IP Matrix registry first.
     const explicitFromDomain = row['from-domain'] || row['from_domain'] || row['sending_domain'] || row['sender-domain'] || ''
     const explicitFromEmail = row['from-email'] || row['from-address'] || row['from_address'] || row['sender'] || ''
     const rawSendingDomain = explicitFromDomain
@@ -353,7 +392,7 @@ export async function parseFile(file: File, espName?: string): Promise<ParseResu
       : explicitFromEmail
         ? extractDomain(explicitFromEmail)
         : isMailmodo
-          ? extractSendingDomain(row['campaign-name'] || '')
+          ? extractSendingDomain(row['campaign-name'] || '', knownDomains)
           : 'unknown'
     const sendingDomain = normalizeDomainForEsp(rawSendingDomain, espName)
 

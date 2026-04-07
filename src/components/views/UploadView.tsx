@@ -20,7 +20,7 @@ interface UploadRecord {
 }
 
 export default function UploadView() {
-  const { isLight, espData, setEspData, addUploadHistory, esps, setEsps } = useDashboardStore()
+  const { isLight, espData, setEspData, addUploadHistory, esps, setEsps, ipmData } = useDashboardStore()
 
   const [esp, setEsp] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -66,7 +66,15 @@ export default function UploadView() {
 
     try {
       addLog(`📂 Reading ${file.name}…`)
-      const parsed = await parseFile(file, esp)
+      // Get registered from-domains for this ESP from IP Matrix — used by parser
+      // for fuzzy substring matching against campaign names. Adding a domain to the
+      // IP Matrix automatically improves parsing without code changes.
+      const knownDomains = ipmData
+        .filter(r => r.esp?.toLowerCase() === esp.toLowerCase())
+        .map(r => r.domain?.trim())
+        .filter((d): d is string => !!d)
+      if (knownDomains.length) addLog(`🔎 Using ${knownDomains.length} registered domain(s) from IP Matrix for matching`)
+      const parsed = await parseFile(file, esp, knownDomains)
       const skipDetail = parsed.skipped > 0
         ? ` — ${parsed.skippedNoDate} no-date, ${parsed.skippedNoEmail} no-email`
         : ''
