@@ -53,3 +53,8 @@ export const IP_COLOR_PALETTE = [
   '#00ffd5', '#b39dff', '#ffe066', '#ff9a5c', '#ff6b77',
   '#60d4f0', '#c5f27a', '#f9a8e8', '#ff7b6b', '#a78bff', '#ffcc44', '#c4a8ff',
 ]
+
+export const IP_COLOR_PALETTE_LIGHT = [
+  '#00C4A4', '#7c5cfc', '#c49500', '#d46020', '#e04040',
+  '#2196b5', '#5a9e30', '#c054a0', '#d43030', '#6b4fd4', '#b08000', '#8b5cd4',
+]

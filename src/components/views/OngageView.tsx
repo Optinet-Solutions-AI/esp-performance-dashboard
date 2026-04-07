@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Chart } from 'chart.js/auto'
 import { useDashboardStore } from '@/lib/store'
 import { aggDates, fmtN, fmtP, fmtDateLabel, getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
-import { DOMAIN_COLORS, IP_COLOR_PALETTE, ESP_COLORS } from '@/lib/data'
+import { DOMAIN_COLORS, IP_COLOR_PALETTE, IP_COLOR_PALETTE_LIGHT, ESP_COLORS } from '@/lib/data'
 import type { MmData, MmTabType, DateMetrics } from '@/lib/types'
 import CalendarPicker from '@/components/ui/CalendarPicker'
 
@@ -321,10 +321,11 @@ export default function OngageView() {
     if (!ipDomainsMap[r.ip]) ipDomainsMap[r.ip] = []
     if (norm && !ipDomainsMap[r.ip].includes(norm)) ipDomainsMap[r.ip].push(norm)
   })
+  const ipPalette = isLight ? IP_COLOR_PALETTE_LIGHT : IP_COLOR_PALETTE
   const ipEntityData = Object.entries(ipDomainsMap)
     .map(([ip, subDomains], idx) => {
       const byDate = buildIpAggByDate(data.domains, subDomains)
-      return { name: ip, subDomains, color: IP_COLOR_PALETTE[idx % IP_COLOR_PALETTE.length], byDate, data: aggDates(byDate, activeDates) }
+      return { name: ip, subDomains, color: ipPalette[idx % ipPalette.length], byDate, data: aggDates(byDate, activeDates) }
     })
     .filter(e => e.data && e.data.sent > 0)
     .sort((a, b) => (b.data?.sent ?? 0) - (a.data?.sent ?? 0))
@@ -582,11 +583,11 @@ export default function OngageView() {
           const cy = (chartArea.top  + chartArea.bottom) / 2
           ctx.save()
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-          ctx.fillStyle = isLight ? '#111827' : '#f0f2f5'
+          ctx.fillStyle = isLight ? '#0f172a' : '#f0f2f5'
           ctx.font = 'bold 14px "Space Mono", monospace'
           ctx.fillText(fmtN(total), cx, cy - 7)
           ctx.font = '8px "Space Mono", monospace'
-          ctx.fillStyle = isLight ? '#6b7280' : '#a8b0be'
+          ctx.fillStyle = isLight ? '#64748b' : '#a8b0be'
           ctx.fillText('TOTAL', cx, cy + 8)
           ctx.restore()
         },
