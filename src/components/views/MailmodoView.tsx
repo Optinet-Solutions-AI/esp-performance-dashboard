@@ -613,7 +613,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
       {/* ── Header ───────────────────────────────────────────────── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className={`text-xl font-bold tracking-tight ${txt}`}>Mailmodo Review</h1>
+          <h1 className={`text-xl font-bold tracking-tight ${txt}`}>{filter === 'netcore' ? 'Netcore Review' : filter === 'ongage' ? 'Ongage Review' : 'Mailmodo Review'}</h1>
           <p className={`text-[11px] mt-1 font-mono ${muted}`}>{rangeLabel}</p>
         </div>
 
