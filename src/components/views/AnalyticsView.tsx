@@ -144,6 +144,10 @@ const ESP_IPM_ALIASES: Record<string, string[]> = {
   '171 mailsapp': ['171'],
 }
 
+function isIPv4(str: string): boolean {
+  return /^(\d{1,3}\.){3}\d{1,3}$/.test(str)
+}
+
 // ── Main view ────────────────────────────────────────────────────
 export default function AnalyticsView() {
   const { espData, ipmData, isLight } = useDashboardStore()
@@ -151,6 +155,7 @@ export default function AnalyticsView() {
   const espNames = Object.keys(espData)
   const [selectedEsp, setSelectedEsp] = useState<string>(espNames[0] ?? '')
   const [activeTab, setActiveTab]     = useState<AnalyticsTab>('isp')
+  const [tabKey, setTabKey]           = useState(0)  // bumped on every tab click to bust stale memo
   const [sortCol, setSortCol]         = useState<SortCol>('sent')
   const [sortDir, setSortDir]         = useState<1 | -1>(-1)
   const [searchQ, setSearchQ]         = useState('')
@@ -199,7 +204,13 @@ export default function AnalyticsView() {
     const ipmMatchNames = [espNameLower, ...espAliases.map(a => a.toLowerCase())]
     const espIpmRecs = ipmData.filter(r => ipmMatchNames.includes(r.esp?.toLowerCase() ?? ''))
 
-    if (activeTab === 'isp') return buildRows(mmData.providers, selectedDates)
+    if (activeTab === 'isp') {
+      // Filter out IPv4-format keys — those are sending IPs, not real ISP names
+      const ispSource = Object.fromEntries(
+        Object.entries(mmData.providers).filter(([k]) => !isIPv4(k))
+      )
+      return buildRows(ispSource, selectedDates)
+    }
 
     if (activeTab === 'domain') {
       const rows = buildRows(mmData.domains, selectedDates)
@@ -245,7 +256,8 @@ export default function AnalyticsView() {
         trendData,
       }]
     })
-  }, [mmData, activeTab, selectedDates, ipmData, selectedEsp])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mmData, activeTab, selectedDates, ipmData, selectedEsp, tabKey])
 
   const sorted = useMemo(() => {
     return [...rawRows].sort((a, b) => {
@@ -406,7 +418,7 @@ export default function AnalyticsView() {
           return (
             <button
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setSortCol('sent'); setSortDir(-1); setSearchQ('') }}
+              onClick={() => { setActiveTab(tab.id); setTabKey(k => k + 1); setSortCol('sent'); setSortDir(-1); setSearchQ('') }}
               style={{
                 padding: '8px 20px', borderRadius: 10, border: `1px solid ${active ? 'transparent' : cardBorder}`,
                 cursor: 'pointer', fontSize: 13, fontWeight: active ? 600 : 400,
