@@ -123,5 +123,6 @@ export type ViewName =
   | 'datamgmt'
   | 'ipmatrix'
   | 'logs'
+  | 'analytics'
 
 export type MmTabType = 'ip' | 'provider' | 'domain'
