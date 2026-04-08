@@ -31,11 +31,14 @@ function mxAgg(byDate: Record<string, DateMetrics>, dates: string[]): Agg {
 }
 
 function rates(a: Agg) {
+  const thr = Math.max(0, a.sent - a.delivered - a.bounced)
   return {
     sr: a.sent > 0 ? a.delivered / a.sent * 100 : 0,
     or: a.delivered > 0 ? a.opened / a.delivered * 100 : 0,
     ctr: a.opened > 0 ? a.clicked / a.opened * 100 : 0,
     br: a.sent > 0 ? a.bounced / a.sent * 100 : 0,
+    thr,
+    trr: a.sent > 0 ? thr / a.sent * 100 : 0,
   }
 }
 
