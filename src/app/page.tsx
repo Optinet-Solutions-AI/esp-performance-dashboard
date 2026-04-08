@@ -21,7 +21,7 @@ import AnalyticsView from '@/components/views/AnalyticsView'
 
 const VIEW_LABELS: Record<string, string> = {
   home: 'Overview', dashboard: 'Dashboard', mailmodo: 'Mailmodo Review',
-  ongage: 'Ongage Review', netcore: 'Netcore Review', mms: 'MMS Review', upload: 'Upload Report',
+  ongage: 'Ongage Review', netcore: 'Netcore Review', mms: 'MMS Review', hotsol: 'Hotsol Review', '171mailsapp': '171 MailsApp Review', upload: 'Upload Report',
   matrix: 'ESP Deliverability Matrix', datamgmt: 'Data Management',
   ipmatrix: 'IPs Matrix', performance: 'Performance',
   logs: 'Activity Logs', daily: 'Daily Report',
@@ -210,6 +210,8 @@ export default function Page() {
           {activeView === 'ongage' && <OngageView />}
           {activeView === 'netcore' && <MailmodoView filter="netcore" />}
           {activeView === 'mms' && <MailmodoView filter="mms" />}
+          {activeView === 'hotsol' && <MailmodoView filter="hotsol" />}
+          {activeView === '171mailsapp' && <MailmodoView filter="171mailsapp" />}
           {activeView === 'upload' && <UploadView />}
           {activeView === 'matrix' && <MatrixView />}
           {activeView === 'datamgmt' && <DataMgmtView />}

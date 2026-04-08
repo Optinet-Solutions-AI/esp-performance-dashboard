@@ -313,7 +313,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
   const isMailmodo = 'campaign-name' in first || 'opens-html' in first
   const isOngage = espName === 'Ongage'
   const isNetcore = espName === 'Netcore'
-  const isMMS = espName === 'MMS'
+  const isMMS = espName === 'MMS' || espName === 'Hotsol' || espName === '171 MailsApp'
   // Ongage aggregated format: one row per ISP per sending domain per date (no per-email rows)
   const isOngageAgg = isOngage && ('domain-grouped-by-esp' in first || 'success' in first)
 
@@ -468,7 +468,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
         const d = new Date(year, month - 1, day)
         parsed = { str: d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0'), year }
       } else {
-        parsed = parseDate(datePart, true)  // fallback: treat as M/D/YYYY
+        parsed = parseDate(datePart, false)  // fallback: handles DD-MM-YYYY (171 MailsApp) and M/D/YYYY
       }
       if (!parsed) { skipped++; skippedNoDate++; return }
       const dateStr = parsed.str

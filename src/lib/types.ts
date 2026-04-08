@@ -118,6 +118,8 @@ export type ViewName =
   | 'ongage'
   | 'netcore'
   | 'mms'
+  | 'hotsol'
+  | '171mailsapp'
   | 'upload'
   | 'matrix'
   | 'datamgmt'

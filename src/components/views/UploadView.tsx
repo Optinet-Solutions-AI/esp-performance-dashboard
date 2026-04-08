@@ -7,7 +7,7 @@ import { ESP_COLORS } from '@/lib/data'
 import type { MmData } from '@/lib/types'
 import { supabase, addLog as logToDb } from '@/lib/supabase'
 
-const ESP_LIST = ['Mailmodo', 'Ongage', 'Netcore', 'Hotsol', 'MMS', 'Moosend', 'Omnisend', 'Klaviyo', 'Brevo']
+const ESP_LIST = ['Mailmodo', 'Ongage', 'Netcore', 'Hotsol', 'MMS', '171 MailsApp', 'Moosend', 'Omnisend', 'Klaviyo', 'Brevo']
 
 interface UploadRecord {
   id: string

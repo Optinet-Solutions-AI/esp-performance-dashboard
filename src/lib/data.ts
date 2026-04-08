@@ -8,6 +8,7 @@ export const ESP_COLORS: Record<string, string> = {
   Netcore: '#f97316',
   Hotsol: '#00e5c3',
   MMS: '#ffd166',
+  '171 MailsApp': '#ff6b9d',
   Moosend: '#ff6b35',
   Omnisend: '#ff4757',
   Klaviyo: '#60d4f0',
