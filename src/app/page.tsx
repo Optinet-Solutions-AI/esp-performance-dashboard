@@ -17,6 +17,7 @@ import IPMatrixView from '@/components/views/IPMatrixView'
 import PerformanceView from '@/components/views/PerformanceView'
 import DailyView from '@/components/views/DailyView'
 import LogsView from '@/components/views/LogsView'
+import AnalyticsView from '@/components/views/AnalyticsView'
 
 const VIEW_LABELS: Record<string, string> = {
   home: 'Overview', dashboard: 'Dashboard', mailmodo: 'Mailmodo Review',
@@ -24,6 +25,7 @@ const VIEW_LABELS: Record<string, string> = {
   matrix: 'ESP Deliverability Matrix', datamgmt: 'Data Management',
   ipmatrix: 'IPs Matrix', performance: 'Performance',
   logs: 'Activity Logs', daily: 'Daily Report',
+  analytics: 'Analytics',
 }
 
 export default function Page() {
@@ -215,6 +217,7 @@ export default function Page() {
           {activeView === 'performance' && <PerformanceView />}
           {activeView === 'daily' && <DailyView />}
           {activeView === 'logs' && <LogsView />}
+          {activeView === 'analytics' && <AnalyticsView />}
         </main>
       </div>
     </div>
