@@ -67,7 +67,7 @@ export default function MatrixView() {
   function handleAll() { setFromDate(''); setToDate('') }
 
   function downloadCsv() {
-    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Complaints', 'Unsubscribed']
+    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'Throttled', 'Throttle %', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Complaints', 'Unsubscribed']
     const csvRows: string[][] = [headers]
 
     function aggToRow(level: string, esp: string, ip: string, fd: string, prov: string, agg: Agg): string[] {
@@ -75,6 +75,8 @@ export default function MatrixView() {
       return [
         level, esp, ip, fd, prov,
         String(agg.sent), String(agg.delivered), String(agg.bounced), String(agg.softBounced), String(agg.hardBounced),
+        String(R.thr),
+        R.trr > 0 ? R.trr.toFixed(2) + '%' : '',
         String(agg.opened),
         agg.delivered > 0 ? R.or.toFixed(2) + '%' : '',
         String(agg.clicked),
