@@ -117,6 +117,7 @@ export type ViewName =
   | 'mailmodo'
   | 'ongage'
   | 'netcore'
+  | 'mms'
   | 'upload'
   | 'matrix'
   | 'datamgmt'

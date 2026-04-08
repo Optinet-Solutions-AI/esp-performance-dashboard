@@ -187,7 +187,7 @@ function buildIpAggByDate(
 /* ─────────────────────────────────────────────────────────────────
    MAIN VIEW
 ───────────────────────────────────────────────────────────────── */
-export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo' | 'netcore' }) {
+export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo' | 'netcore' | 'mms' }) {
   const store     = useDashboardStore()
   const isLight   = store.isLight
   const ipmData   = store.ipmData
@@ -196,9 +196,11 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
     ? allEsps.filter(e => e === 'Ongage')
     : filter === 'netcore'
       ? allEsps.filter(e => e === 'Netcore')
-      : filter === 'mailmodo'
-        ? allEsps.filter(e => e !== 'Ongage' && e !== 'Netcore')
-        : allEsps
+      : filter === 'mms'
+        ? allEsps.filter(e => e === 'MMS')
+        : filter === 'mailmodo'
+          ? allEsps.filter(e => e !== 'Ongage' && e !== 'Netcore' && e !== 'MMS')
+          : allEsps
 
   const [selectedEsp, setSelectedEsp] = useState('')
   const [granularity, setGranularity] = useState<Granularity>('daily')
@@ -646,7 +648,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
       {/* ── Header ───────────────────────────────────────────────── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className={`text-xl font-bold tracking-tight ${txt}`}>{filter === 'netcore' ? 'Netcore Review' : filter === 'ongage' ? 'Ongage Review' : 'Mailmodo Review'}</h1>
+          <h1 className={`text-xl font-bold tracking-tight ${txt}`}>{filter === 'netcore' ? 'Netcore Review' : filter === 'ongage' ? 'Ongage Review' : filter === 'mms' ? 'MMS Review' : 'Mailmodo Review'}</h1>
           <p className={`text-[11px] mt-1 font-mono ${muted}`}>{rangeLabel}</p>
         </div>
 

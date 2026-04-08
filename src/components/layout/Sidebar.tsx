@@ -143,6 +143,7 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
                   { id: 'mailmodo' as ViewName, label: 'Mailmodo Review', color: '#7c5cfc' },
                   { id: 'ongage' as ViewName, label: 'Ongage Review', color: '#ffd166' },
                   { id: 'netcore' as ViewName, label: 'Netcore Review', color: '#f97316' },
+                  { id: 'mms' as ViewName, label: 'MMS Review', color: '#ffd166' },
                 ].map(item => {
                   const active = activeView === item.id
                   return (

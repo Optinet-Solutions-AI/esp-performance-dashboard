@@ -26,7 +26,7 @@ interface ParseResult {
   skippedNoDate: number
   skippedNoEmail: number
   newDates: number
-  format: 'mailmodo' | 'generic' | 'netcore'
+  format: 'mailmodo' | 'generic' | 'netcore' | 'mms'
 }
 
 function splitCsvLine(line: string): string[] {
@@ -170,6 +170,9 @@ export const ESP_CONFIGS: Record<string, EspConfig> = {
   netcore: {
     stripPrefixes: [],
   },
+  mms: {
+    stripPrefixes: [],
+  },
   // Example for future ESPs:
   // klaviyo: { stripPrefixes: ['klv.', 'mail.'] },
   // brevo:   { stripPrefixes: ['bvo.'] },
@@ -310,6 +313,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
   const isMailmodo = 'campaign-name' in first || 'opens-html' in first
   const isOngage = espName === 'Ongage'
   const isNetcore = espName === 'Netcore'
+  const isMMS = espName === 'MMS'
   // Ongage aggregated format: one row per ISP per sending domain per date (no per-email rows)
   const isOngageAgg = isOngage && ('domain-grouped-by-esp' in first || 'success' in first)
 
@@ -440,6 +444,82 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
       return
     }
 
+    // ── MMS per-recipient format ─────────────────────────────────────
+    // One row per sent email. Headers (normalized):
+    //   domain          → sending (from) domain (Column A)
+    //   sent-email      → recipient email (Column C)
+    //   process-status  → "Success" = delivered (Column D)
+    //   date-added      → "M/D/YY, H:MM AM/PM" (Column F)
+    //   open-email      → non-empty = 1 open (Column G)
+    //   clicks          → non-empty = 1 click (Column H)
+    //   unsubscribe-    → non-empty = 1 unsub (Column I — trailing space in header)
+    //   bounce          → non-empty = bounced (Column J)
+    //   bounce-type     → "Hard Bounce"/"Internal" = hard, "Soft Bounce" = soft (Column K)
+    if (isMMS) {
+      const rawDate = row['date-added'] || row['date'] || ''
+      // Date format: "3/24/26, 10:46 AM" — strip time, parse M/D/YY
+      const datePart = rawDate.split(',')[0].trim()
+      const mmsMatch = datePart.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/)
+      let parsed: { str: string; year: number } | null = null
+      if (mmsMatch) {
+        const month = parseInt(mmsMatch[1])
+        const day   = parseInt(mmsMatch[2])
+        const year  = 2000 + parseInt(mmsMatch[3])
+        const d = new Date(year, month - 1, day)
+        parsed = { str: d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0'), year }
+      } else {
+        parsed = parseDate(datePart, true)  // fallback: treat as M/D/YYYY
+      }
+      if (!parsed) { skipped++; skippedNoDate++; return }
+      const dateStr = parsed.str
+      dateYears[dateStr] = parsed.year
+
+      const email = row['sent-email'] || row['email'] || ''
+      if (!email) { skipped++; skippedNoEmail++; return }
+      const providerDomain = extractDomain(email)
+      const sendingDomain = (row['domain'] || 'unknown').toLowerCase().trim()
+
+      const bounceRaw      = (row['bounce'] || '').trim()
+      const bounceTypeRaw  = (row['bounce-type'] || '').toLowerCase().trim()
+      const isBounced      = bounceRaw !== '' ? 1 : 0
+      const isHard         = (bounceTypeRaw.includes('hard') || bounceTypeRaw.includes('internal')) ? isBounced : 0
+      const isSoft         = bounceTypeRaw.includes('soft') ? isBounced : 0
+
+      const metrics = {
+        sent:         1,
+        delivered:    (row['process-status'] || '').toLowerCase() === 'success' ? 1 : 0,
+        opened:       (row['open-email'] || '').trim() !== '' ? 1 : 0,
+        clicked:      (row['clicks'] || '').trim() !== '' ? 1 : 0,
+        bounced:      isBounced,
+        hardBounced:  isHard,
+        softBounced:  isSoft,
+        unsubscribed: (row['unsubscribe-'] || row['unsubscribe'] || '').trim() !== '' ? 1 : 0,
+        complained:   0,
+      }
+
+      if (!byDate[dateStr]) byDate[dateStr] = { rows: 0, providers: {}, domains: {}, providerDomains: {} }
+      const bucket = byDate[dateStr]
+      bucket.rows++
+
+      if (!bucket.providers[providerDomain]) bucket.providers[providerDomain] = blankMetrics()
+      mergeMetrics(bucket.providers[providerDomain], metrics)
+
+      if (!bucket.domains[sendingDomain]) bucket.domains[sendingDomain] = blankMetrics()
+      mergeMetrics(bucket.domains[sendingDomain], metrics)
+
+      if (!bucket.providerDomains[providerDomain]) bucket.providerDomains[providerDomain] = {}
+      if (!bucket.providerDomains[providerDomain][sendingDomain]) {
+        bucket.providerDomains[providerDomain][sendingDomain] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, hardBounced: 0, softBounced: 0, unsubscribed: 0 }
+      }
+      const pd = bucket.providerDomains[providerDomain][sendingDomain]
+      pd.sent += metrics.sent; pd.delivered += metrics.delivered; pd.opened += metrics.opened
+      pd.clicked += metrics.clicked; pd.bounced += metrics.bounced
+      pd.hardBounced = (pd.hardBounced || 0) + metrics.hardBounced
+      pd.softBounced = (pd.softBounced || 0) + metrics.softBounced
+      pd.unsubscribed += metrics.unsubscribed
+      return
+    }
+
     // ── Per-email formats (Mailmodo / generic) ──────────────────────
     const rawDate = row['sent-time'] || row['date'] || row['action_timestamp_rounded'] || row['timestamp'] || ''
     const parsed = parseDate(rawDate !== '' && !isNaN(Number(rawDate)) ? Number(rawDate) : rawDate, isOngage)
@@ -539,6 +619,19 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
     })
   }
 
+  // MMS: rates relative to delivered (open/delivered, click/delivered, unsub/delivered)
+  if (isMMS) {
+    Object.values(byDate).forEach(d => {
+      const fixRates = (m: DateMetrics) => {
+        m.openRate  = m.delivered > 0 ? (m.opened  / m.delivered) * 100 : 0
+        m.clickRate = m.delivered > 0 ? (m.clicked / m.delivered) * 100 : 0
+        m.unsubRate = m.delivered > 0 ? ((m.unsubscribed || 0) / m.delivered) * 100 : 0
+      }
+      Object.values(d.providers).forEach(fixRates)
+      Object.values(d.domains).forEach(fixRates)
+    })
+  }
+
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const dates = Object.keys(byDate).sort((a, b) => {
     const ay = dateYears[a] || 0, by_ = dateYears[b] || 0
@@ -547,7 +640,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
     return (MONTHS.indexOf(am) * 31 + parseInt(ad)) - (MONTHS.indexOf(bm) * 31 + parseInt(bd))
   })
 
-  const format = isNetcore ? 'netcore' : isMailmodo ? 'mailmodo' : 'generic'
+  const format = isMMS ? 'mms' : isNetcore ? 'netcore' : isMailmodo ? 'mailmodo' : 'generic'
   return { byDate, dates, dateYears, totalRows, skipped, skippedNoDate, skippedNoEmail, newDates: 0, format }
 }
 
