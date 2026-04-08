@@ -194,12 +194,13 @@ export default function AnalyticsView() {
     })
   }, [allDates, datesFull, fromIso, toIso])
 
-  // ── Row computation — intentionally NOT memoized so it always reflects
-  //    the current activeTab on every render (avoids stale cache after tab switches)
-  const espNameLower = selectedEsp?.toLowerCase() ?? ''
-  const espAliases   = ESP_IPM_ALIASES[espNameLower] ?? []
+  // ── Data pipeline — fully inline, zero memoization.
+  //    Memos were causing stale IP-tab data to persist when switching tabs.
+  //    Dataset sizes (~50–200 entries) make the cost of recomputing negligible.
+  const espNameLower  = selectedEsp?.toLowerCase() ?? ''
+  const espAliases    = ESP_IPM_ALIASES[espNameLower] ?? []
   const ipmMatchNames = [espNameLower, ...espAliases.map(a => a.toLowerCase())]
-  const espIpmRecs   = ipmData.filter(r => ipmMatchNames.includes(r.esp?.toLowerCase() ?? ''))
+  const espIpmRecs    = ipmData.filter(r => ipmMatchNames.includes(r.esp?.toLowerCase() ?? ''))
 
   let rawRows: AnalyticsRow[] = []
   if (mmData) {
@@ -210,7 +211,6 @@ export default function AnalyticsView() {
       const src = Object.fromEntries(Object.entries(mmData.domains).filter(([k]) => !isIPv4(k)))
       rawRows = buildRows(src, selectedDates)
     } else {
-      // IP tab — one row per IP Matrix record for this ESP
       rawRows = espIpmRecs.flatMap(rec => {
         const domainData = mmData.domains[rec.domain] ?? mmData.domains[rec.ip]
         if (!domainData) {
@@ -224,27 +224,17 @@ export default function AnalyticsView() {
     }
   }
 
-  // Sort + search + paginate — memoized on the derived rawRows reference
-  const sorted = useMemo(() => {
-    return [...rawRows].sort((a, b) => {
-      const av = a[sortCol]
-      const bv = b[sortCol]
-      if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv) * sortDir
-      return ((av as number) - (bv as number)) * sortDir
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, mmData, selectedDates, ipmData, selectedEsp, sortCol, sortDir])
+  const sorted = [...rawRows].sort((a, b) => {
+    const av = a[sortCol], bv = b[sortCol]
+    if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv) * sortDir
+    return ((av as number) - (bv as number)) * sortDir
+  })
 
-  const searched = useMemo(() => {
-    if (!searchQ.trim()) return sorted
-    const q = searchQ.toLowerCase()
-    return sorted.filter(r => r.entity.toLowerCase().includes(q))
-  }, [sorted, searchQ])
+  const searched = searchQ.trim()
+    ? sorted.filter(r => r.entity.toLowerCase().includes(searchQ.toLowerCase()))
+    : sorted
 
-  const displayed = useMemo(() => {
-    if (topN === 'all') return searched
-    return searched.slice(0, topN)
-  }, [searched, topN])
+  const displayed = topN === 'all' ? searched : searched.slice(0, topN)
 
   function handleSort(col: SortCol) {
     if (sortCol === col) setSortDir(d => d === 1 ? -1 : 1)
