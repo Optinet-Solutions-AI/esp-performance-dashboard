@@ -221,6 +221,10 @@ export default function MatrixView() {
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.br, false, 5, 10)) }}>{fmtMx(agg.bounced)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.softBounced)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.br, false, 5, 10)) }}>{fmtMx(agg.hardBounced)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(R.thr)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.trr, false, 5, 15)), cursor: R.trr > 0 ? 'help' : undefined }}
+          onMouseEnter={e => { if (R.trr > 0) showTip(e, 'THROTTLE RATE', R.trr.toFixed(2) + '%', '(Sent − Delivered − Bounced) ÷ Sent × 100', `(${fmtMx(agg.sent)} − ${fmtMx(agg.delivered)} − ${fmtMx(agg.bounced)}) ÷ ${fmtMx(agg.sent)} × 100 = ${R.trr.toFixed(2)}%`) }}
+          onMouseLeave={() => setTip(null)}>{R.trr > 0 ? R.trr.toFixed(1) + '%' : ''}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.or, true, 30, 60)) }}>{fmtMx(agg.opened)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.or, true, 30, 60)), cursor: R.or > 0 ? 'help' : undefined }}
           onMouseEnter={e => { if (R.or > 0) showTip(e, 'OPEN RATE', R.or.toFixed(2) + '%', 'Opens ÷ Delivered × 100', `${fmtMx(agg.opened)} ÷ ${fmtMx(agg.delivered)} × 100 = ${R.or.toFixed(2)}%`) }}
