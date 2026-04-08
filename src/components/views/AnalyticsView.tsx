@@ -155,7 +155,6 @@ export default function AnalyticsView() {
   const espNames = Object.keys(espData)
   const [selectedEsp, setSelectedEsp] = useState<string>(espNames[0] ?? '')
   const [activeTab, setActiveTab]     = useState<AnalyticsTab>('isp')
-  const [tabKey, setTabKey]           = useState(0)  // bumped on every tab click to bust stale memo
   const [sortCol, setSortCol]         = useState<SortCol>('sent')
   const [sortDir, setSortDir]         = useState<1 | -1>(-1)
   const [searchQ, setSearchQ]         = useState('')
@@ -195,65 +194,37 @@ export default function AnalyticsView() {
     })
   }, [allDates, datesFull, fromIso, toIso])
 
-  const rawRows = useMemo((): AnalyticsRow[] => {
-    if (!mmData) return []
+  // ── Row computation — intentionally NOT memoized so it always reflects
+  //    the current activeTab on every render (avoids stale cache after tab switches)
+  const espNameLower = selectedEsp?.toLowerCase() ?? ''
+  const espAliases   = ESP_IPM_ALIASES[espNameLower] ?? []
+  const ipmMatchNames = [espNameLower, ...espAliases.map(a => a.toLowerCase())]
+  const espIpmRecs   = ipmData.filter(r => ipmMatchNames.includes(r.esp?.toLowerCase() ?? ''))
 
-    // Alias-aware IP Matrix records for this ESP
-    const espNameLower = selectedEsp?.toLowerCase() ?? ''
-    const espAliases = ESP_IPM_ALIASES[espNameLower] ?? []
-    const ipmMatchNames = [espNameLower, ...espAliases.map(a => a.toLowerCase())]
-    const espIpmRecs = ipmData.filter(r => ipmMatchNames.includes(r.esp?.toLowerCase() ?? ''))
-
+  let rawRows: AnalyticsRow[] = []
+  if (mmData) {
     if (activeTab === 'isp') {
-      // Filter out IPv4-format keys — those are sending IPs, not real ISP names
-      const ispSource = Object.fromEntries(
-        Object.entries(mmData.providers).filter(([k]) => !isIPv4(k))
-      )
-      return buildRows(ispSource, selectedDates)
+      const src = Object.fromEntries(Object.entries(mmData.providers).filter(([k]) => !isIPv4(k)))
+      rawRows = buildRows(src, selectedDates)
+    } else if (activeTab === 'domain') {
+      const src = Object.fromEntries(Object.entries(mmData.domains).filter(([k]) => !isIPv4(k)))
+      rawRows = buildRows(src, selectedDates)
+    } else {
+      // IP tab — one row per IP Matrix record for this ESP
+      rawRows = espIpmRecs.flatMap(rec => {
+        const domainData = mmData.domains[rec.domain] ?? mmData.domains[rec.ip]
+        if (!domainData) {
+          return [{ entity: rec.ip, rowKey: `${rec.ip}-${rec.domain}-nodata`, sent: 0, delivered: 0, deliveryRate: 0, opened: 0, openRate: 0, clicked: 0, clickRate: 0, bounced: 0, bounceRate: 0, unsub: 0, complaintRate: 0, trendData: [], noData: true }]
+        }
+        const agg = aggDates(domainData.byDate, selectedDates)
+        if (!agg) return [{ entity: rec.ip, rowKey: `${rec.ip}-${rec.domain}-noagg`, sent: 0, delivered: 0, deliveryRate: 0, opened: 0, openRate: 0, clicked: 0, clickRate: 0, bounced: 0, bounceRate: 0, unsub: 0, complaintRate: 0, trendData: [], noData: true }]
+        const trendData = selectedDates.map(d => domainData.byDate[d]?.deliveryRate ?? null).filter((v): v is number => v !== null)
+        return [{ entity: rec.ip, rowKey: `${rec.ip}-${rec.domain}`, sent: agg.sent, delivered: agg.delivered, deliveryRate: agg.deliveryRate, opened: agg.opened, openRate: agg.openRate, clicked: agg.clicked, clickRate: agg.clickRate, bounced: agg.bounced, bounceRate: agg.bounceRate, unsub: agg.unsubscribed ?? 0, complaintRate: agg.complaintRate ?? 0, trendData }]
+      })
     }
+  }
 
-    if (activeTab === 'domain') {
-      // Filter out IPv4-format keys — those belong in the IP tab, not Domain
-      const domainSource = Object.fromEntries(
-        Object.entries(mmData.domains).filter(([k]) => !isIPv4(k))
-      )
-      return buildRows(domainSource, selectedDates)
-    }
-
-    // IP tab: each IP Matrix record for this ESP, joined with its domain/IP metrics
-    return espIpmRecs.flatMap(rec => {
-      // Try domain-name key first; fall back to IP key (for ESPs where mmData.domains is keyed by IP)
-      const domainData = mmData.domains[rec.domain] ?? mmData.domains[rec.ip]
-      if (!domainData) {
-        return [{
-          entity: rec.ip, rowKey: `${rec.ip}-${rec.domain}-nodata`, sent: 0, delivered: 0, deliveryRate: 0,
-          opened: 0, openRate: 0, clicked: 0, clickRate: 0,
-          bounced: 0, bounceRate: 0, unsub: 0, complaintRate: 0, trendData: [], noData: true,
-        }]
-      }
-      const agg = aggDates(domainData.byDate, selectedDates)
-      if (!agg) return [{
-        entity: rec.ip, rowKey: `${rec.ip}-${rec.domain}-noagg`, sent: 0, delivered: 0, deliveryRate: 0,
-        opened: 0, openRate: 0, clicked: 0, clickRate: 0,
-        bounced: 0, bounceRate: 0, unsub: 0, complaintRate: 0, trendData: [], noData: true,
-      }]
-      const trendData = selectedDates
-        .map(d => domainData.byDate[d]?.deliveryRate ?? null)
-        .filter((v): v is number => v !== null)
-      return [{
-        entity: rec.ip,
-        rowKey: `${rec.ip}-${rec.domain}`,
-        sent: agg.sent, delivered: agg.delivered, deliveryRate: agg.deliveryRate,
-        opened: agg.opened, openRate: agg.openRate,
-        clicked: agg.clicked, clickRate: agg.clickRate,
-        bounced: agg.bounced, bounceRate: agg.bounceRate,
-        unsub: agg.unsubscribed ?? 0, complaintRate: agg.complaintRate ?? 0,
-        trendData,
-      }]
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mmData, activeTab, selectedDates, ipmData, selectedEsp, tabKey])
-
+  // Sort + search + paginate — memoized on the derived rawRows reference
   const sorted = useMemo(() => {
     return [...rawRows].sort((a, b) => {
       const av = a[sortCol]
@@ -261,7 +232,8 @@ export default function AnalyticsView() {
       if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv) * sortDir
       return ((av as number) - (bv as number)) * sortDir
     })
-  }, [rawRows, sortCol, sortDir])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, mmData, selectedDates, ipmData, selectedEsp, sortCol, sortDir])
 
   const searched = useMemo(() => {
     if (!searchQ.trim()) return sorted
@@ -413,7 +385,7 @@ export default function AnalyticsView() {
           return (
             <button
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setTabKey(k => k + 1); setSortCol('sent'); setSortDir(-1); setSearchQ('') }}
+              onClick={() => { setActiveTab(tab.id); setSortCol('sent'); setSortDir(-1); setSearchQ('') }}
               style={{
                 padding: '8px 20px', borderRadius: 10, border: `1px solid ${active ? 'transparent' : cardBorder}`,
                 cursor: 'pointer', fontSize: 13, fontWeight: active ? 600 : 400,
