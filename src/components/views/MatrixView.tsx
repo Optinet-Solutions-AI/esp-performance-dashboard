@@ -67,7 +67,7 @@ export default function MatrixView() {
   function handleAll() { setFromDate(''); setToDate('') }
 
   function downloadCsv() {
-    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Unsubscribed', 'Complaints', 'Throttled', 'Throttle %']
+    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Unsubscribed', 'Complaints', 'Throttling']
     const csvRows: string[][] = [headers]
 
     function aggToRow(level: string, esp: string, ip: string, fd: string, prov: string, agg: Agg): string[] {
@@ -80,8 +80,7 @@ export default function MatrixView() {
         String(agg.clicked),
         agg.opened > 0 ? R.ctr.toFixed(2) + '%' : '',
         String(agg.unsubscribed || 0), String(agg.complained || 0),
-        String(R.thr),
-        R.trr > 0 ? R.trr.toFixed(2) + '%' : ''
+        R.thr > 0 ? `${R.thr} (${R.trr.toFixed(2)}%)` : '0'
       ]
     }
 
@@ -233,10 +232,9 @@ export default function MatrixView() {
           onMouseLeave={() => setTip(null)}>{R.ctr > 0 ? R.ctr.toFixed(1) + '%' : ''}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.unsubscribed || 0)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: (agg.complained || 0) > 0 ? (isLight ? '#991b1b' : '#ff4757') : txt }}>{fmtMx(agg.complained || 0)}</td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(R.thr)}</td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.trr, false, 5, 15)), cursor: R.trr > 0 ? 'help' : undefined }}
-          onMouseEnter={e => { if (R.trr > 0) showTip(e, 'THROTTLE RATE', R.trr.toFixed(2) + '%', '(Sent − Delivered − Bounced) ÷ Sent × 100', `(${fmtMx(agg.sent)} − ${fmtMx(agg.delivered)} − ${fmtMx(agg.bounced)}) ÷ ${fmtMx(agg.sent)} × 100 = ${R.trr.toFixed(2)}%`) }}
-          onMouseLeave={() => setTip(null)}>{R.trr > 0 ? R.trr.toFixed(1) + '%' : ''}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.trr, false, 5, 15)), cursor: R.thr > 0 ? 'help' : undefined }}
+          onMouseEnter={e => { if (R.thr > 0) showTip(e, 'THROTTLING', R.trr.toFixed(2) + '%', '(Sent − Delivered − Bounced) ÷ Sent × 100', `(${fmtMx(agg.sent)} − ${fmtMx(agg.delivered)} − ${fmtMx(agg.bounced)}) ÷ ${fmtMx(agg.sent)} × 100 = ${R.trr.toFixed(2)}%`) }}
+          onMouseLeave={() => setTip(null)}>{R.thr > 0 ? `${fmtMx(R.thr)} (${R.trr.toFixed(1)}%)` : ''}</td>
       </>
     )
   }
@@ -567,8 +565,7 @@ export default function MatrixView() {
                 <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Click Rate %</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Unsubscribed</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Complaints</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Throttled</th>
-                <th className={thCls} style={{ borderColor: bdr, color: isLight ? '#b45309' : '#ffd166', position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Throttle %</th>
+                <th className={thCls} style={{ borderColor: bdr, color: isLight ? '#b45309' : '#ffd166', position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Throttling</th>
               </tr>
             </thead>
             <tbody>{buildRows()}</tbody>
