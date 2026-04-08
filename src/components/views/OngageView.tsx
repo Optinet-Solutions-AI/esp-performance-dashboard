@@ -507,7 +507,7 @@ export default function OngageView() {
           data: {
             labels: dateGroups.map(g => fmtDL(g.label)),
             datasets: entityData.map((e, ei) =>
-              rateDs(e.name, kpiMetricsPerEntity[ei].map(r => r ? (kpi.getValue(r) ?? null) : null), kc(kpi), [], false)
+              rateDs(e.name, kpiMetricsPerEntity[ei].map(r => r ? (kpi.getValue(r) ?? null) : null), e.color, [], false)
             ),
           },
           options: {
@@ -542,8 +542,8 @@ export default function OngageView() {
             datasets: [{
               label: kpi.label,
               data: entityData.map(e => e.data ? kpi.getValue(e.data) : 0),
-              backgroundColor: entityData.map(() => kc(kpi) + 'aa'),
-              borderColor: entityData.map(() => kc(kpi)),
+              backgroundColor: entityData.map(e => e.color + 'aa'),
+              borderColor: entityData.map(e => e.color),
               borderWidth: 1, borderRadius: 4,
             }],
           },

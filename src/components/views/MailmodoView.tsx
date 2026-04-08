@@ -504,7 +504,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           data: {
             labels: dateGroups.map(g => fmtDL(g.label)),
             datasets: entityData.map((e, ei) =>
-              rateDs(e.name, kpiMetricsPerEntity[ei].map(r => r ? ((r[kpi.key] as number) ?? null) : null), kc(kpi), [], false)
+              rateDs(e.name, kpiMetricsPerEntity[ei].map(r => r ? ((r[kpi.key] as number) ?? null) : null), e.color, [], false)
             ),
           },
           options: {
@@ -539,8 +539,8 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             datasets: [{
               label: kpi.label,
               data: entityData.map(e => (e.data?.[kpi.key] as number) ?? 0),
-              backgroundColor: entityData.map(() => kc(kpi) + 'aa'),
-              borderColor: entityData.map(() => kc(kpi)),
+              backgroundColor: entityData.map(e => e.color + 'aa'),
+              borderColor: entityData.map(e => e.color),
               borderWidth: 1, borderRadius: 4,
             }],
           },
