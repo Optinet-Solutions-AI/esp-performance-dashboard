@@ -25,6 +25,7 @@ interface AnalyticsRow {
   unsub: number
   complaintRate: number
   trendData: number[]
+  noData?: boolean
 }
 
 // ── Sparkline ────────────────────────────────────────────────────
@@ -187,14 +188,14 @@ export default function AnalyticsView() {
         return [{
           entity: rec.ip, sent: 0, delivered: 0, deliveryRate: 0,
           opened: 0, openRate: 0, clicked: 0, clickRate: 0,
-          bounced: 0, bounceRate: 0, unsub: 0, complaintRate: 0, trendData: [],
+          bounced: 0, bounceRate: 0, unsub: 0, complaintRate: 0, trendData: [], noData: true,
         }]
       }
       const agg = aggDates(domainData.byDate, selectedDates)
       if (!agg) return [{
         entity: rec.ip, sent: 0, delivered: 0, deliveryRate: 0,
         opened: 0, openRate: 0, clicked: 0, clickRate: 0,
-        bounced: 0, bounceRate: 0, unsub: 0, complaintRate: 0, trendData: [],
+        bounced: 0, bounceRate: 0, unsub: 0, complaintRate: 0, trendData: [], noData: true,
       }]
       const trendData = selectedDates
         .map(d => domainData.byDate[d]?.deliveryRate ?? null)
@@ -291,7 +292,7 @@ export default function AnalyticsView() {
     if (key === 'entity') {
       return <span style={{ fontFamily: 'Space Mono, monospace', fontSize: 11 }}>{row.entity}</span>
     }
-    if (row.sent === 0) return <span style={{ color: mutedColor }}>—</span>
+    if (row.noData) return <span style={{ color: mutedColor }}>—</span>
     const v = row[key] as number
     if (key === 'bounceRate') {
       const s = bounceCellStyle(v)
