@@ -139,6 +139,11 @@ function KpiSummary({ rows, isLight }: { rows: AnalyticsRow[]; isLight: boolean 
   )
 }
 
+// ESP name → IP Matrix alias(es) — same map as MatrixView / MailmodoView
+const ESP_IPM_ALIASES: Record<string, string[]> = {
+  '171 mailsapp': ['171'],
+}
+
 // ── Main view ────────────────────────────────────────────────────
 export default function AnalyticsView() {
   const { espData, ipmData, isLight } = useDashboardStore()
@@ -187,12 +192,32 @@ export default function AnalyticsView() {
 
   const rawRows = useMemo((): AnalyticsRow[] => {
     if (!mmData) return []
-    if (activeTab === 'isp')    return buildRows(mmData.providers, selectedDates)
-    if (activeTab === 'domain') return buildRows(mmData.domains,   selectedDates)
-    // IP tab: each ipmData record for this ESP, joined with its domain metrics
-    const espIps = ipmData.filter(r => r.esp === selectedEsp)
-    return espIps.flatMap(rec => {
-      const domainData = mmData.domains[rec.domain]
+
+    // Alias-aware IP Matrix records for this ESP
+    const espNameLower = selectedEsp?.toLowerCase() ?? ''
+    const espAliases = ESP_IPM_ALIASES[espNameLower] ?? []
+    const ipmMatchNames = [espNameLower, ...espAliases.map(a => a.toLowerCase())]
+    const espIpmRecs = ipmData.filter(r => ipmMatchNames.includes(r.esp?.toLowerCase() ?? ''))
+
+    if (activeTab === 'isp') return buildRows(mmData.providers, selectedDates)
+
+    if (activeTab === 'domain') {
+      const rows = buildRows(mmData.domains, selectedDates)
+      // If the domain CSV column contains IP addresses, resolve them to domain names via IP Matrix
+      const ipToDomain: Record<string, string> = {}
+      espIpmRecs.forEach(r => { if (r.ip && r.domain) ipToDomain[r.ip] = r.domain.toLowerCase().trim() })
+      return rows.map(row => {
+        const resolved = ipToDomain[row.entity]
+        return resolved
+          ? { ...row, entity: resolved, rowKey: `domain-${resolved}` }
+          : row
+      })
+    }
+
+    // IP tab: each IP Matrix record for this ESP, joined with its domain/IP metrics
+    return espIpmRecs.flatMap(rec => {
+      // Try domain-name key first; fall back to IP key (for ESPs where mmData.domains is keyed by IP)
+      const domainData = mmData.domains[rec.domain] ?? mmData.domains[rec.ip]
       if (!domainData) {
         return [{
           entity: rec.ip, rowKey: `${rec.ip}-${rec.domain}-nodata`, sent: 0, delivered: 0, deliveryRate: 0,
