@@ -173,6 +173,9 @@ export const ESP_CONFIGS: Record<string, EspConfig> = {
   mms: {
     stripPrefixes: [],
   },
+  moosend: {
+    stripPrefixes: [],
+  },
   // Example for future ESPs:
   // klaviyo: { stripPrefixes: ['klv.', 'mail.'] },
   // brevo:   { stripPrefixes: ['bvo.'] },
