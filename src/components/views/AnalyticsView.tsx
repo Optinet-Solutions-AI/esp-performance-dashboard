@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { aggDates, fmtN, fmtP, getEspStatus } from '@/lib/utils'
 import CalendarPicker from '@/components/ui/CalendarPicker'
@@ -13,6 +13,7 @@ type TopN = 10 | 25 | 50 | 'all'
 
 interface AnalyticsRow {
   entity: string
+  rowKey: string
   sent: number
   delivered: number
   deliveryRate: number
@@ -77,6 +78,7 @@ function buildRows(
 
     return [{
       entity,
+      rowKey: entity,
       sent: agg.sent,
       delivered: agg.delivered,
       deliveryRate: agg.deliveryRate,
@@ -149,6 +151,13 @@ export default function AnalyticsView() {
   const [searchQ, setSearchQ]         = useState('')
   const [topN, setTopN]               = useState<TopN>(25)
 
+  // Re-sync selectedEsp when espData loads (Supabase loads async on mount)
+  useEffect(() => {
+    if (!selectedEsp && espNames.length > 0) {
+      setSelectedEsp(espNames[0])
+    }
+  }, [espNames, selectedEsp])
+
   const mmData    = espData[selectedEsp]
   const allDates  = mmData?.dates ?? []
   const datesFull = mmData?.datesFull ?? []
@@ -186,14 +195,14 @@ export default function AnalyticsView() {
       const domainData = mmData.domains[rec.domain]
       if (!domainData) {
         return [{
-          entity: rec.ip, sent: 0, delivered: 0, deliveryRate: 0,
+          entity: rec.ip, rowKey: `${rec.ip}-${rec.domain}-nodata`, sent: 0, delivered: 0, deliveryRate: 0,
           opened: 0, openRate: 0, clicked: 0, clickRate: 0,
           bounced: 0, bounceRate: 0, unsub: 0, complaintRate: 0, trendData: [], noData: true,
         }]
       }
       const agg = aggDates(domainData.byDate, selectedDates)
       if (!agg) return [{
-        entity: rec.ip, sent: 0, delivered: 0, deliveryRate: 0,
+        entity: rec.ip, rowKey: `${rec.ip}-${rec.domain}-noagg`, sent: 0, delivered: 0, deliveryRate: 0,
         opened: 0, openRate: 0, clicked: 0, clickRate: 0,
         bounced: 0, bounceRate: 0, unsub: 0, complaintRate: 0, trendData: [], noData: true,
       }]
@@ -202,6 +211,7 @@ export default function AnalyticsView() {
         .filter((v): v is number => v !== null)
       return [{
         entity: rec.ip,
+        rowKey: `${rec.ip}-${rec.domain}`,
         sent: agg.sent, delivered: agg.delivered, deliveryRate: agg.deliveryRate,
         opened: agg.opened, openRate: agg.openRate,
         clicked: agg.clicked, clickRate: agg.clickRate,
@@ -387,7 +397,7 @@ export default function AnalyticsView() {
       </div>
 
       {/* ── KPI row ── */}
-      <KpiSummary rows={displayed} isLight={isLight} />
+      <KpiSummary rows={searched} isLight={isLight} />
 
       {/* ── Filter bar ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
@@ -468,7 +478,7 @@ export default function AnalyticsView() {
                 </tr>
               ) : displayed.map((row, i) => (
                 <tr
-                  key={row.entity + i}
+                  key={row.rowKey}
                   style={{ borderBottom: `1px solid ${borderColor}`, transition: 'background 0.1s' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = rowHover }}
                   onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent' }}
