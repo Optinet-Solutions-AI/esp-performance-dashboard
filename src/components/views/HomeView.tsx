@@ -4,6 +4,7 @@ import { Chart } from 'chart.js/auto'
 import { useDashboardStore } from '@/lib/store'
 import { fmtN, getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
 import { ESP_COLORS } from '@/lib/data'
+import type { ViewName } from '@/lib/types'
 import KpiCard from '@/components/ui/KpiCard'
 import ChartCard, { LegendItem } from '@/components/ui/ChartCard'
 
@@ -15,6 +16,11 @@ export default function HomeView() {
   const catChart = useRef<Chart | null>(null)
 
   const espList = Object.keys(espData)
+
+  const ESP_VIEW_MAP: Record<string, ViewName> = {
+    Ongage: 'ongage', Netcore: 'netcore', MMS: 'mms',
+    Hotsol: 'hotsol', '171 MailsApp': '171mailsapp', Moosend: 'moosend',
+  }
   const allEspData = Object.values(espData)
 
   // Aggregate monthly totals across all ESPs
@@ -192,7 +198,7 @@ export default function HomeView() {
             return (
               <button
                 key={name}
-                onClick={() => { setReviewEsp(name); setView('mailmodo') }}
+                onClick={() => { setReviewEsp(name); setView(ESP_VIEW_MAP[name] ?? 'mailmodo') }}
                 style={{
                   background: cardBg, border: `1px solid ${cardBorder}`,
                   borderRadius: 16, padding: '20px 20px', textAlign: 'left', cursor: 'pointer',
