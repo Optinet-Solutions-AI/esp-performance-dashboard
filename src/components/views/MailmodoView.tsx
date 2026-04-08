@@ -333,7 +333,6 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
       const byDate = buildIpAggByDate(data.domains, subDomains)
       return { name: ip, subDomains, color: ipPalette[idx % ipPalette.length], byDate, data: aggDates(byDate, activeDates) }
     })
-    .filter(e => e.data && e.data.sent > 0)
     .sort((a, b) => (b.data?.sent ?? 0) - (a.data?.sent ?? 0))
 
   // ── Filtered IP entity data (Daily KPIs table) ──────────────────
