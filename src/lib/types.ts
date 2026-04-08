@@ -126,5 +126,6 @@ export type ViewName =
   | 'ipmatrix'
   | 'logs'
   | 'analytics'
+  | 'moosend'
 
 export type MmTabType = 'ip' | 'provider' | 'domain'

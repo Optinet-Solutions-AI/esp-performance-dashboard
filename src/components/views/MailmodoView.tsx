@@ -193,7 +193,7 @@ function buildIpAggByDate(
 /* ─────────────────────────────────────────────────────────────────
    MAIN VIEW
 ───────────────────────────────────────────────────────────────── */
-export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo' | 'netcore' | 'mms' | 'hotsol' | '171mailsapp' }) {
+export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo' | 'netcore' | 'mms' | 'hotsol' | '171mailsapp' | 'moosend' }) {
   const store     = useDashboardStore()
   const isLight   = store.isLight
   const ipmData   = store.ipmData
@@ -208,9 +208,11 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           ? allEsps.filter(e => e === 'Hotsol')
           : filter === '171mailsapp'
             ? allEsps.filter(e => e === '171 MailsApp')
-            : filter === 'mailmodo'
-              ? allEsps.filter(e => e !== 'Ongage' && e !== 'Netcore' && e !== 'MMS' && e !== 'Hotsol' && e !== '171 MailsApp')
-              : allEsps
+            : filter === 'moosend'
+              ? allEsps.filter(e => e === 'Moosend')
+              : filter === 'mailmodo'
+                ? allEsps.filter(e => e !== 'Ongage' && e !== 'Netcore' && e !== 'MMS' && e !== 'Hotsol' && e !== '171 MailsApp' && e !== 'Moosend')
+                : allEsps
 
   const [selectedEsp, setSelectedEsp] = useState('')
   const [granularity, setGranularity] = useState<Granularity>('daily')
@@ -660,7 +662,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
       {/* ── Header ───────────────────────────────────────────────── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className={`text-xl font-bold tracking-tight ${txt}`}>{filter === 'netcore' ? 'Netcore Review' : filter === 'ongage' ? 'Ongage Review' : filter === 'mms' ? 'MMS Review' : filter === 'hotsol' ? 'Hotsol Review' : filter === '171mailsapp' ? '171 MailsApp Review' : 'Mailmodo Review'}</h1>
+          <h1 className={`text-xl font-bold tracking-tight ${txt}`}>{filter === 'netcore' ? 'Netcore Review' : filter === 'ongage' ? 'Ongage Review' : filter === 'mms' ? 'MMS Review' : filter === 'hotsol' ? 'Hotsol Review' : filter === '171mailsapp' ? '171 MailsApp Review' : filter === 'moosend' ? 'Moosend Review' : 'Mailmodo Review'}</h1>
           <p className={`text-[11px] mt-1 font-mono ${muted}`}>{rangeLabel}</p>
         </div>
 

@@ -25,7 +25,7 @@ const VIEW_LABELS: Record<string, string> = {
   matrix: 'ESP Deliverability Matrix', datamgmt: 'Data Management',
   ipmatrix: 'IPs Matrix', performance: 'Performance',
   logs: 'Activity Logs', daily: 'Daily Report',
-  analytics: 'Analytics',
+  analytics: 'Analytics', moosend: 'Moosend Review',
 }
 
 export default function Page() {
@@ -212,6 +212,7 @@ export default function Page() {
           {activeView === 'mms' && <MailmodoView filter="mms" />}
           {activeView === 'hotsol' && <MailmodoView filter="hotsol" />}
           {activeView === '171mailsapp' && <MailmodoView filter="171mailsapp" />}
+          {activeView === 'moosend' && <MailmodoView filter="moosend" />}
           {activeView === 'upload' && <UploadView />}
           {activeView === 'matrix' && <MatrixView />}
           {activeView === 'datamgmt' && <DataMgmtView />}
