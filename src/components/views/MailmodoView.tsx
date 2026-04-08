@@ -331,7 +331,10 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const teal = isLight ? '#006a5b' : '#00e5c3'
 
   // ── IP entity data ───────────────────────────────────────────────
-  const espIpmRecords = ipmData.filter(r => r.esp?.toLowerCase() === selectedEsp?.toLowerCase())
+  const ESP_IPM_ALIASES: Record<string, string[]> = { '171 mailsapp': ['171'], }
+  const ipmAliases = ESP_IPM_ALIASES[selectedEsp?.toLowerCase() ?? ''] ?? []
+  const ipmMatchNames = [selectedEsp?.toLowerCase(), ...ipmAliases.map(a => a.toLowerCase())]
+  const espIpmRecords = ipmData.filter(r => ipmMatchNames.includes(r.esp?.toLowerCase() ?? ''))
   const ipDomainsMap: Record<string, string[]> = {}
   espIpmRecords.forEach(r => {
     if (!ipDomainsMap[r.ip]) ipDomainsMap[r.ip] = []

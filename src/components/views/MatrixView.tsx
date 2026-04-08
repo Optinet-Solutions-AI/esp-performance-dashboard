@@ -170,10 +170,18 @@ export default function MatrixView() {
 
   function toggle(key: string) { setExpanded(p => ({ ...p, [key]: !p[key] })) }
 
+  // ESP name aliases: keys are canonical ESP names (lowercase), values are additional IP Matrix names to match
+  const ESP_IPM_ALIASES: Record<string, string[]> = {
+    '171 mailsapp': ['171'],
+    'hotsol': ['hotsol'],
+  }
+
   // Build IP → fromDomain map from ipmData for each ESP
   function getIpMap(espName: string): Record<string, string[]> {
     const map: Record<string, string[]> = {}
-    ipmData.filter(r => r.esp?.toLowerCase() === espName.toLowerCase()).forEach(r => {
+    const aliases = ESP_IPM_ALIASES[espName.toLowerCase()] ?? []
+    const matchNames = [espName.toLowerCase(), ...aliases.map(a => a.toLowerCase())]
+    ipmData.filter(r => matchNames.includes(r.esp?.toLowerCase() ?? '')).forEach(r => {
       if (!r.ip) return
       if (!map[r.ip]) map[r.ip] = []
       const norm = r.domain ? r.domain.toLowerCase().trim() : ''
