@@ -555,6 +555,8 @@ export default function MatrixView() {
                 <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Total Bounces</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Soft Bounce</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Hard Bounce</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Throttled</th>
+                <th className={thCls} style={{ borderColor: bdr, color: isLight ? '#b45309' : '#ffd166', position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Throttle %</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Opens</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Open Rate %</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Clicks</th>
