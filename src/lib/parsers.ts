@@ -404,11 +404,12 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
       const isHard     = bounceType.includes('hard') ? 1 : 0
       const isSoft     = bounceType.includes('soft') ? 1 : 0
 
+      const statusVal = (row['status'] || '').toLowerCase().trim()
       const metrics = {
-        sent:         1,
-        delivered:    1,  // Netcore: delivered = sent (same data)
-        opened:       (row['status'] || '').toLowerCase().trim() === 'opened' ? 1 : 0,
-        clicked:      (row['status'] || '').toLowerCase().trim() === 'clicked' ? 1 : 0,
+        sent:         statusVal === 'sent' ? 1 : 0,
+        delivered:    statusVal === 'sent' ? 1 : 0,  // Netcore: delivered = sent rows only
+        opened:       statusVal === 'opened' ? 1 : 0,
+        clicked:      statusVal === 'clicked' ? 1 : 0,
         bounced:      isSoft,  // Netcore: only soft bounces count
         hardBounced:  isHard,
         softBounced:  isSoft,
