@@ -331,7 +331,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const teal = isLight ? '#006a5b' : '#00e5c3'
 
   // ── IP entity data ───────────────────────────────────────────────
-  const espIpmRecords = ipmData.filter(r => r.esp === selectedEsp)
+  const espIpmRecords = ipmData.filter(r => r.esp?.toLowerCase() === selectedEsp?.toLowerCase())
   const ipDomainsMap: Record<string, string[]> = {}
   espIpmRecords.forEach(r => {
     if (!ipDomainsMap[r.ip]) ipDomainsMap[r.ip] = []
@@ -657,7 +657,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
       {/* ── Header ───────────────────────────────────────────────── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className={`text-xl font-bold tracking-tight ${txt}`}>{filter === 'netcore' ? 'Netcore Review' : filter === 'ongage' ? 'Ongage Review' : filter === 'mms' ? 'MMS Review' : 'Mailmodo Review'}</h1>
+          <h1 className={`text-xl font-bold tracking-tight ${txt}`}>{filter === 'netcore' ? 'Netcore Review' : filter === 'ongage' ? 'Ongage Review' : filter === 'mms' ? 'MMS Review' : filter === 'hotsol' ? 'Hotsol Review' : filter === '171mailsapp' ? '171 MailsApp Review' : 'Mailmodo Review'}</h1>
           <p className={`text-[11px] mt-1 font-mono ${muted}`}>{rangeLabel}</p>
         </div>
 
