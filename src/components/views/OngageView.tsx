@@ -149,6 +149,12 @@ function trendArrow(cur: number | null, prev: number | null, kpiKey: string, isL
   return { arrow: good ? '▲' : '▼', color: good ? (isLight ? '#006a5b' : '#00e5c3') : '#ff4757' }
 }
 
+function ipColorIndex(ip: string, len: number): number {
+  let h = 5381
+  for (let i = 0; i < ip.length; i++) h = ((h << 5) + h + ip.charCodeAt(i)) >>> 0
+  return h % len
+}
+
 function destroyAll(ref: React.MutableRefObject<(Chart | null)[]>) {
   ref.current.forEach(c => c?.destroy())
   ref.current = ref.current.map(() => null)
@@ -327,7 +333,7 @@ export default function OngageView() {
   const ipEntityData = Object.entries(ipDomainsMap)
     .map(([ip, subDomains], idx) => {
       const byDate = buildIpAggByDate(data.domains, subDomains)
-      return { name: ip, subDomains, color: ipPalette[idx % ipPalette.length], byDate, data: aggDates(byDate, activeDates) }
+      return { name: ip, subDomains, color: ipPalette[ipColorIndex(ip, ipPalette.length)], byDate, data: aggDates(byDate, activeDates) }
     })
     .filter(e => e.data && e.data.sent > 0)
     .sort((a, b) => (b.data?.sent ?? 0) - (a.data?.sent ?? 0))
