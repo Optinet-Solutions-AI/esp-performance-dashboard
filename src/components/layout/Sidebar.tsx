@@ -83,6 +83,7 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
   const iconDb   = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><ellipse cx="9" cy="4.5" rx="6" ry="2.5" /><path d="M3 4.5v4.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V4.5" strokeLinecap="round" /><path d="M3 9v4.5C3 14.9 5.7 16 9 16s6-1.1 6-2.5V9" strokeLinecap="round" /></svg>
   const iconIP   = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><rect x="1.5" y="3.5" width="15" height="11" rx="2.5" /><path d="M5.5 8h7M5.5 11h5" strokeLinecap="round" /></svg>
   const iconEmail= <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><rect x="1.5" y="3.5" width="15" height="11" rx="2" /><path d="M1.5 7l7.5 5 7.5-5" strokeLinecap="round" /></svg>
+  const iconAnalytics = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><rect x="1.5" y="9.5" width="3" height="7" rx="1" /><rect x="7" y="5.5" width="3" height="11" rx="1" /><rect x="12.5" y="2" width="3" height="14.5" rx="1" /></svg>
 
   return (
     <aside style={{
@@ -171,6 +172,7 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
 
 
         <SectionLabel text="Tools" />
+        <NavItem id="analytics" label="Analytics" icon={iconAnalytics} />
         <NavItem id="upload" label="Upload Report" icon={iconUp} />
         <NavItem id="matrix" label="ESP Deliverability" icon={iconGrid} />
         <NavItem id="datamgmt" label="Data Management" icon={iconDb} />
