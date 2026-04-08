@@ -876,7 +876,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     {entityData.map(e => (
                       <div key={e.name} className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: kc(kpi) }} />
+                          <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: e.color }} />
                           <span className={`text-[11px] font-mono font-semibold ${muted}`}>
                             {e.name.length > 22 ? e.name.slice(0, 20) + '…' : e.name}
                           </span>
