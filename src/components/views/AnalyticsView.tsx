@@ -213,16 +213,11 @@ export default function AnalyticsView() {
     }
 
     if (activeTab === 'domain') {
-      const rows = buildRows(mmData.domains, selectedDates)
-      // If the domain CSV column contains IP addresses, resolve them to domain names via IP Matrix
-      const ipToDomain: Record<string, string> = {}
-      espIpmRecs.forEach(r => { if (r.ip && r.domain) ipToDomain[r.ip] = r.domain.toLowerCase().trim() })
-      return rows.map(row => {
-        const resolved = ipToDomain[row.entity]
-        return resolved
-          ? { ...row, entity: resolved, rowKey: `domain-${resolved}` }
-          : row
-      })
+      // Filter out IPv4-format keys — those belong in the IP tab, not Domain
+      const domainSource = Object.fromEntries(
+        Object.entries(mmData.domains).filter(([k]) => !isIPv4(k))
+      )
+      return buildRows(domainSource, selectedDates)
     }
 
     // IP tab: each IP Matrix record for this ESP, joined with its domain/IP metrics
