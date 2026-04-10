@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx'
 import { useDashboardStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
 import type { IpmRecord, IpmUploadRecord } from '@/lib/types'
+import CustomSelect from '@/components/ui/CustomSelect'
 
 /* ── Colors ─────────────────────────────────────────────────────── */
 const ESP_PALETTE: Record<string, { bg: string; text: string }> = {
@@ -70,13 +71,6 @@ export default function IPMatrixView() {
   const [filterEsp,    setFilterEsp]    = useState('')
   const [filterIp,     setFilterIp]     = useState('')
   const [filterDomain, setFilterDomain] = useState('')
-  // Filter dropdown open state
-  const [filterEspOpen,    setFilterEspOpen]    = useState(false)
-  const [filterIpOpen,     setFilterIpOpen]     = useState(false)
-  const [filterDomainOpen, setFilterDomainOpen] = useState(false)
-  const filterEspRef    = useRef<HTMLDivElement>(null)
-  const filterIpRef     = useRef<HTMLDivElement>(null)
-  const filterDomainRef = useRef<HTMLDivElement>(null)
   // Sort
   const [sortCol, setSortCol] = useState<keyof IpmRecord | null>(null)
   const [sortDir, setSortDir] = useState(1)
@@ -94,16 +88,6 @@ export default function IPMatrixView() {
 
   useEffect(() => { fetchUploadHistory() }, [])
 
-  // Close filter dropdowns on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (filterEspRef.current    && !filterEspRef.current.contains(e.target as Node))    setFilterEspOpen(false)
-      if (filterIpRef.current     && !filterIpRef.current.contains(e.target as Node))     setFilterIpOpen(false)
-      if (filterDomainRef.current && !filterDomainRef.current.contains(e.target as Node)) setFilterDomainOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
 
   async function fetchUploadHistory() {
     const { data } = await supabase
@@ -446,93 +430,21 @@ export default function IPMatrixView() {
 
       {/* ── Filter row ──────────────────────────────────────────── */}
       <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
-        {/* Filter by ESP */}
         <div>
           <div className={`text-[11px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>Filter by ESP</div>
-          <div ref={filterEspRef} className="relative">
-            <button
-              onClick={() => { setFilterEspOpen(o => !o); setFilterIpOpen(false); setFilterDomainOpen(false) }}
-              className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-xs font-mono transition-all
-                ${isLight ? 'bg-[#f4f5f8] border-black/18 text-gray-800 hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/14 text-white hover:border-[#0d9488]'}
-                ${filterEspOpen ? (isLight ? 'border-[#0d9488]' : 'border-[#0d9488]') : ''}`}
-            >
-              <span className="truncate">{filterEsp || 'All ESPs'}</span>
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="flex-shrink-0 opacity-50">
-                <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            {filterEspOpen && (
-              <div className="absolute z-50 left-0 right-0 shadow-2xl rounded-xl overflow-hidden" style={{ top: '100%', marginTop: 6, background: isLight ? '#ffffff' : '#181c22', border: `1px solid ${isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'}`, maxHeight: 220, overflowY: 'auto' }}>
-                {(['', ...allEspsSorted] as string[]).map(val => (
-                  <button key={val} onClick={() => { setFilterEsp(val); setFilterEspOpen(false) }}
-                    className={`w-full text-left px-4 py-2.5 text-xs font-mono font-semibold transition-all
-                      ${filterEsp === val ? 'bg-[#0d9488] text-white' : isLight ? 'text-gray-700 hover:bg-[#0d9488]/10' : 'text-[#c8cdd6] hover:bg-[#0d9488]/15'}`}>
-                    {val || 'All ESPs'}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <CustomSelect value={filterEsp} onChange={setFilterEsp} isLight={isLight} maxHeight={220} className="w-full"
+            options={[{ value: '', label: 'All ESPs' }, ...allEspsSorted.map(e => ({ value: e, label: e }))]} />
         </div>
-
-        {/* Filter by IP */}
         <div>
           <div className={`text-[11px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>Filter by IP</div>
-          <div ref={filterIpRef} className="relative">
-            <button
-              onClick={() => { setFilterIpOpen(o => !o); setFilterEspOpen(false); setFilterDomainOpen(false) }}
-              className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-xs font-mono transition-all
-                ${isLight ? 'bg-[#f4f5f8] border-black/18 text-gray-800 hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/14 text-white hover:border-[#0d9488]'}
-                ${filterIpOpen ? (isLight ? 'border-[#0d9488]' : 'border-[#0d9488]') : ''}`}
-            >
-              <span className="truncate">{filterIp || 'All IPs'}</span>
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="flex-shrink-0 opacity-50">
-                <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            {filterIpOpen && (
-              <div className="absolute z-50 left-0 right-0 shadow-2xl rounded-xl overflow-hidden" style={{ top: '100%', marginTop: 6, background: isLight ? '#ffffff' : '#181c22', border: `1px solid ${isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'}`, maxHeight: 220, overflowY: 'auto' }}>
-                {(['', ...uniqueIps] as string[]).map(val => (
-                  <button key={val} onClick={() => { setFilterIp(val); setFilterIpOpen(false) }}
-                    className={`w-full text-left px-4 py-2.5 text-xs font-mono font-semibold transition-all
-                      ${filterIp === val ? 'bg-[#0d9488] text-white' : isLight ? 'text-gray-700 hover:bg-[#0d9488]/10' : 'text-[#c8cdd6] hover:bg-[#0d9488]/15'}`}>
-                    {val || 'All IPs'}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <CustomSelect value={filterIp} onChange={setFilterIp} isLight={isLight} maxHeight={220} className="w-full"
+            options={[{ value: '', label: 'All IPs' }, ...uniqueIps.map(ip => ({ value: ip, label: ip }))]} />
         </div>
-
-        {/* Filter by Domain */}
         <div>
           <div className={`text-[11px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>Filter by From Domain</div>
-          <div ref={filterDomainRef} className="relative">
-            <button
-              onClick={() => { setFilterDomainOpen(o => !o); setFilterEspOpen(false); setFilterIpOpen(false) }}
-              className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-xs font-mono transition-all
-                ${isLight ? 'bg-[#f4f5f8] border-black/18 text-gray-800 hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/14 text-white hover:border-[#0d9488]'}
-                ${filterDomainOpen ? (isLight ? 'border-[#0d9488]' : 'border-[#0d9488]') : ''}`}
-            >
-              <span className="truncate">{filterDomain || 'All Domains'}</span>
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="flex-shrink-0 opacity-50">
-                <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            {filterDomainOpen && (
-              <div className="absolute z-50 left-0 right-0 shadow-2xl rounded-xl overflow-hidden" style={{ top: '100%', marginTop: 6, background: isLight ? '#ffffff' : '#181c22', border: `1px solid ${isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'}`, maxHeight: 220, overflowY: 'auto' }}>
-                {(['', ...uniqueDomains] as string[]).map(val => (
-                  <button key={val} onClick={() => { setFilterDomain(val); setFilterDomainOpen(false) }}
-                    className={`w-full text-left px-4 py-2.5 text-xs font-mono font-semibold transition-all
-                      ${filterDomain === val ? 'bg-[#0d9488] text-white' : isLight ? 'text-gray-700 hover:bg-[#0d9488]/10' : 'text-[#c8cdd6] hover:bg-[#0d9488]/15'}`}>
-                    {val || 'All Domains'}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <CustomSelect value={filterDomain} onChange={setFilterDomain} isLight={isLight} maxHeight={220} className="w-full"
+            options={[{ value: '', label: 'All Domains' }, ...uniqueDomains.map(d => ({ value: d, label: d }))]} />
         </div>
-
         <div className="flex items-end pb-0.5">
           <span className={`text-[11px] font-mono ${muted}`}>{rows.length} of {ipmData.length} records</span>
         </div>

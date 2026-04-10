@@ -1,8 +1,9 @@
 'use client'
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { aggDates, fmtN, fmtP, getEspStatus } from '@/lib/utils'
 import CalendarPicker from '@/components/ui/CalendarPicker'
+import CustomSelect from '@/components/ui/CustomSelect'
 import type { ProviderData } from '@/lib/types'
 
 // ── Types ────────────────────────────────────────────────────────
@@ -154,22 +155,11 @@ export default function AnalyticsView() {
 
   const espNames = Object.keys(espData)
   const [selectedEsp, setSelectedEsp] = useState<string>(espNames[0] ?? '')
-  const [espOpen, setEspOpen]         = useState(false)
-  const espRef                        = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab]     = useState<AnalyticsTab>('isp')
   const [sortCol, setSortCol]         = useState<SortCol>('sent')
   const [sortDir, setSortDir]         = useState<1 | -1>(-1)
   const [searchQ, setSearchQ]         = useState('')
   const [topN, setTopN]               = useState<TopN>(25)
-
-  // Close ESP dropdown on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (espRef.current && !espRef.current.contains(e.target as Node)) setEspOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
 
   // Re-sync selectedEsp when espData loads (Supabase loads async on mount)
   useEffect(() => {
@@ -341,62 +331,13 @@ export default function AnalyticsView() {
 
       {/* ── Header controls ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-        {/* ESP custom dropdown */}
-        <div ref={espRef} style={{ position: 'relative' }}>
-          <button
-            onClick={() => setEspOpen(o => !o)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: inputBg, border: `1px solid ${inputBorder}`, borderRadius: 10,
-              color: textColor, fontSize: 13, fontWeight: 600, padding: '8px 14px',
-              cursor: 'pointer', outline: 'none', minWidth: 120,
-            }}
-          >
-            {selectedEsp}
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ opacity: 0.6, marginLeft: 'auto' }}>
-              <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          {espOpen && (
-            <div style={{
-              position: 'absolute', top: '100%', marginTop: 8, left: 0,
-              zIndex: 50, borderRadius: 12, overflow: 'hidden',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
-              background: isLight ? '#ffffff' : '#181c22',
-              border: `1px solid ${isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'}`,
-              minWidth: 140,
-            }}>
-              {espNames.map(name => (
-                <button
-                  key={name}
-                  onClick={() => { handleEspChange(name); setEspOpen(false) }}
-                  style={{
-                    display: 'block', width: '100%', textAlign: 'left',
-                    padding: '10px 16px', fontSize: 12, fontWeight: 600,
-                    fontFamily: 'Space Mono, monospace', cursor: 'pointer', border: 'none',
-                    background: selectedEsp === name
-                      ? '#0d9488'
-                      : 'transparent',
-                    color: selectedEsp === name
-                      ? '#ffffff'
-                      : isLight ? '#374151' : '#c8cdd6',
-                    transition: 'background 0.12s',
-                  }}
-                  onMouseEnter={e => {
-                    if (selectedEsp !== name)
-                      (e.currentTarget as HTMLButtonElement).style.background = isLight ? 'rgba(13,148,136,0.10)' : 'rgba(13,148,136,0.15)'
-                  }}
-                  onMouseLeave={e => {
-                    if (selectedEsp !== name)
-                      (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
-                  }}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <CustomSelect
+          value={selectedEsp}
+          onChange={handleEspChange}
+          options={espNames.map(n => ({ value: n, label: n }))}
+          isLight={isLight}
+          minWidth={130}
+        />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <CalendarPicker

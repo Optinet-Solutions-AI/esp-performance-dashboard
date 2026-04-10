@@ -6,6 +6,7 @@ import { aggDates, fmtN, fmtP, fmtDateLabel, getGridColor, getTextColor, chartTo
 import { PROVIDER_COLORS, DOMAIN_COLORS, IP_COLOR_PALETTE, IP_COLOR_PALETTE_LIGHT, ESP_COLORS } from '@/lib/data'
 import type { MmData, MmTabType, DateMetrics } from '@/lib/types'
 import CalendarPicker from '@/components/ui/CalendarPicker'
+import CustomSelect from '@/components/ui/CustomSelect'
 
 /* ─────────────────────────────────────────────────────────────────
    CONSTANTS
@@ -217,17 +218,9 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
   const [selectedEsp, setSelectedEsp] = useState('')
   const [granularity, setGranularity] = useState<Granularity>('daily')
   const [embedView,   setEmbedView]   = useState<EmbedView>('date')
-  const [granOpen,    setGranOpen]    = useState(false)
   const [filterIp,       setFilterIp]       = useState('all')
   const [filterDomain,   setFilterDomain]   = useState('all')
   const [filterProvider, setFilterProvider] = useState('all')
-  const [filterIpOpen,       setFilterIpOpen]       = useState(false)
-  const [filterDomainOpen,   setFilterDomainOpen]   = useState(false)
-  const [filterProviderOpen, setFilterProviderOpen] = useState(false)
-  const granRef         = useRef<HTMLDivElement>(null)
-  const filterIpRef     = useRef<HTMLDivElement>(null)
-  const filterDomainRef = useRef<HTMLDivElement>(null)
-  const filterProvRef   = useRef<HTMLDivElement>(null)
   const [kpiTooltip, setKpiTooltip] = useState<{ idx: number; x: number; y: number } | null>(null)
   const [gridTip, setGridTip] = useState<{ title: string; exact: string; formula: string; calc: string; color: string; x: number; y: number } | null>(null)
 
@@ -255,24 +248,6 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
     return () => window.removeEventListener('mousemove', move)
   }, [!!gridTip]) // eslint-disable-line
 
-  useEffect(() => {
-    if (!granOpen) return
-    const handler = (e: MouseEvent) => {
-      if (granRef.current && !granRef.current.contains(e.target as Node)) setGranOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [granOpen])
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (filterIpRef.current     && !filterIpRef.current.contains(e.target as Node))     setFilterIpOpen(false)
-      if (filterDomainRef.current && !filterDomainRef.current.contains(e.target as Node)) setFilterDomainOpen(false)
-      if (filterProvRef.current   && !filterProvRef.current.contains(e.target as Node))   setFilterProviderOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
 
   // ── Pick initial ESP ────────────────────────────────────────────
   useEffect(() => {
@@ -685,9 +660,13 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
         <div className="flex items-center gap-2 flex-wrap">
           {/* ESP selector */}
           {espList.length > 1 && (
-            <select value={selectedEsp} onChange={e => setSelectedEsp(e.target.value)} className={selCls}>
-              {espList.map(e => <option key={e} value={e}>{e}</option>)}
-            </select>
+            <CustomSelect
+              value={selectedEsp}
+              onChange={setSelectedEsp}
+              options={espList.map(e => ({ value: e, label: e }))}
+              isLight={isLight}
+              minWidth={110}
+            />
           )}
 
           {/* Calendar pickers */}
@@ -701,39 +680,13 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           >All</button>
 
           {/* Granularity dropdown */}
-          <div ref={granRef} className="relative">
-            <button
-              onClick={() => setGranOpen(o => !o)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono font-semibold transition-all
-                ${isLight ? 'bg-white border-black/20 text-gray-800 hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/18 text-white hover:border-[#0d9488]'}`}
-              style={{ minWidth: 80 }}
-            >
-              {{ daily: 'DAILY', weekly: 'WEEKLY', monthly: 'MONTHLY' }[granularity]}
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="opacity-60 ml-auto">
-                <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            {granOpen && (
-              <div
-                className="absolute z-50 left-0 shadow-2xl rounded-xl overflow-hidden"
-                style={{ top: '100%', marginTop: 8, minWidth: 100, background: isLight ? '#ffffff' : '#181c22', border: `1px solid ${isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'}` }}
-              >
-                {([['daily', 'DAILY'], ['weekly', 'WEEKLY'], ['monthly', 'MONTHLY']] as [Granularity, string][]).map(([val, label]) => (
-                  <button
-                    key={val}
-                    onClick={() => { setGranularity(val); setGranOpen(false) }}
-                    className={`w-full text-left px-4 py-2.5 text-xs font-mono font-semibold transition-all
-                      ${granularity === val
-                        ? 'bg-[#0d9488] text-white'
-                        : isLight ? 'text-gray-700 hover:bg-[#0d9488]/10' : 'text-[#c8cdd6] hover:bg-[#0d9488]/15'
-                      }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <CustomSelect
+            value={granularity}
+            onChange={v => setGranularity(v as Granularity)}
+            options={[{ value: 'daily', label: 'DAILY' }, { value: 'weekly', label: 'WEEKLY' }, { value: 'monthly', label: 'MONTHLY' }]}
+            isLight={isLight}
+            minWidth={90}
+          />
         </div>
       </div>
 
@@ -1128,73 +1081,12 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                   {activeDates.length > 0 && ` · ${fmtDL(activeDates[0])} – ${fmtDL(activeDates[activeDates.length - 1])}`}
                 </span>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* IP filter */}
-                  <div ref={filterIpRef} className="relative">
-                    <button onClick={() => { setFilterIpOpen(o => !o); setFilterDomainOpen(false); setFilterProviderOpen(false) }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono font-semibold transition-all
-                        ${isLight ? 'bg-white border-black/20 text-gray-800 hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/18 text-white hover:border-[#0d9488]'}
-                        ${filterIpOpen ? 'border-[#0d9488]' : ''}`}
-                      style={{ minWidth: 90 }}>
-                      <span className="truncate max-w-[120px]">{filterIp === 'all' ? 'All IPs' : filterIp}</span>
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="opacity-50 ml-auto flex-shrink-0"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </button>
-                    {filterIpOpen && (
-                      <div className="absolute z-50 left-0 shadow-2xl rounded-xl overflow-hidden" style={{ top: '100%', marginTop: 6, minWidth: 140, background: isLight ? '#fff' : '#181c22', border: `1px solid ${isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'}`, maxHeight: 200, overflowY: 'auto' }}>
-                        {(['all', ...ipEntityData.map(e => e.name)] as string[]).map(val => (
-                          <button key={val} onClick={() => { setFilterIp(val); setFilterIpOpen(false) }}
-                            className={`w-full text-left px-4 py-2.5 text-xs font-mono font-semibold transition-all
-                              ${filterIp === val ? 'bg-[#0d9488] text-white' : isLight ? 'text-gray-700 hover:bg-[#0d9488]/10' : 'text-[#c8cdd6] hover:bg-[#0d9488]/15'}`}>
-                            {val === 'all' ? 'All IPs' : val}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {/* From Domain filter */}
-                  <div ref={filterDomainRef} className="relative">
-                    <button onClick={() => { setFilterDomainOpen(o => !o); setFilterIpOpen(false); setFilterProviderOpen(false) }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono font-semibold transition-all
-                        ${isLight ? 'bg-white border-black/20 text-gray-800 hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/18 text-white hover:border-[#0d9488]'}
-                        ${filterDomainOpen ? 'border-[#0d9488]' : ''}`}
-                      style={{ minWidth: 110 }}>
-                      <span className="truncate max-w-[120px]">{filterDomain === 'all' ? 'All Domains' : filterDomain}</span>
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="opacity-50 ml-auto flex-shrink-0"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </button>
-                    {filterDomainOpen && (
-                      <div className="absolute z-50 left-0 shadow-2xl rounded-xl overflow-hidden" style={{ top: '100%', marginTop: 6, minWidth: 150, background: isLight ? '#fff' : '#181c22', border: `1px solid ${isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'}`, maxHeight: 200, overflowY: 'auto' }}>
-                        {(['all', ...Object.keys(data.domains)] as string[]).map(val => (
-                          <button key={val} onClick={() => { setFilterDomain(val); setFilterDomainOpen(false) }}
-                            className={`w-full text-left px-4 py-2.5 text-xs font-mono font-semibold transition-all
-                              ${filterDomain === val ? 'bg-[#0d9488] text-white' : isLight ? 'text-gray-700 hover:bg-[#0d9488]/10' : 'text-[#c8cdd6] hover:bg-[#0d9488]/15'}`}>
-                            {val === 'all' ? 'All Domains' : val}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {/* Email Provider filter */}
-                  <div ref={filterProvRef} className="relative">
-                    <button onClick={() => { setFilterProviderOpen(o => !o); setFilterIpOpen(false); setFilterDomainOpen(false) }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono font-semibold transition-all
-                        ${isLight ? 'bg-white border-black/20 text-gray-800 hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/18 text-white hover:border-[#0d9488]'}
-                        ${filterProviderOpen ? 'border-[#0d9488]' : ''}`}
-                      style={{ minWidth: 110 }}>
-                      <span className="truncate max-w-[120px]">{filterProvider === 'all' ? 'All Providers' : filterProvider}</span>
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="opacity-50 ml-auto flex-shrink-0"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </button>
-                    {filterProviderOpen && (
-                      <div className="absolute z-50 left-0 shadow-2xl rounded-xl overflow-hidden" style={{ top: '100%', marginTop: 6, minWidth: 150, background: isLight ? '#fff' : '#181c22', border: `1px solid ${isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'}`, maxHeight: 200, overflowY: 'auto' }}>
-                        {(['all', ...Object.keys(data.providerDomains)] as string[]).map(val => (
-                          <button key={val} onClick={() => { setFilterProvider(val); setFilterProviderOpen(false) }}
-                            className={`w-full text-left px-4 py-2.5 text-xs font-mono font-semibold transition-all
-                              ${filterProvider === val ? 'bg-[#0d9488] text-white' : isLight ? 'text-gray-700 hover:bg-[#0d9488]/10' : 'text-[#c8cdd6] hover:bg-[#0d9488]/15'}`}>
-                            {val === 'all' ? 'All Providers' : val}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {/* Reset button */}
+                  <CustomSelect value={filterIp} onChange={setFilterIp} isLight={isLight} minWidth={90} maxHeight={200}
+                    options={[{ value: 'all', label: 'All IPs' }, ...ipEntityData.map(e => ({ value: e.name, label: e.name }))]} />
+                  <CustomSelect value={filterDomain} onChange={setFilterDomain} isLight={isLight} minWidth={110} maxHeight={200}
+                    options={[{ value: 'all', label: 'All Domains' }, ...Object.keys(data.domains).map(d => ({ value: d, label: d }))]} />
+                  <CustomSelect value={filterProvider} onChange={setFilterProvider} isLight={isLight} minWidth={120} maxHeight={200}
+                    options={[{ value: 'all', label: 'All Providers' }, ...Object.keys(data.providerDomains).map(p => ({ value: p, label: p }))]} />
                   {(filterIp !== 'all' || filterDomain !== 'all' || filterProvider !== 'all') && (
                     <button
                       onClick={() => { setFilterIp('all'); setFilterDomain('all'); setFilterProvider('all') }}
