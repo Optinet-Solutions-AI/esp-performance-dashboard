@@ -209,8 +209,8 @@ export default function UploadView() {
   const surface = isLight ? 'bg-white border-black/8' : 'bg-[#111418] border-white/6'
   const inputCls = `w-full px-3.5 py-2.5 rounded-xl border outline-none text-sm transition-all appearance-none
     ${isLight
-      ? 'bg-white border-black/15 text-gray-900 focus:border-[#009e88] focus:ring-2 focus:ring-[#009e88]/10'
-      : 'bg-[#1a1e26] border-white/10 text-[#f0f2f5] focus:border-[#00e5c3] focus:ring-2 focus:ring-[#00e5c3]/10'
+      ? 'bg-white border-black/15 text-gray-900 focus:border-[#0d9488] focus:ring-2 focus:ring-[#0d9488]/10 hover:border-[#0d9488]'
+      : 'bg-[#1a1e26] border-white/10 text-[#f0f2f5] focus:border-[#0d9488] focus:ring-2 focus:ring-[#0d9488]/10 hover:border-[#0d9488]'
     }`
 
   const stepCircle = (n: number, label: string) => {
@@ -459,7 +459,7 @@ export default function UploadView() {
                         }
                       }}
                       className={`px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all border
-                        ${isLight ? 'border-black/15 text-gray-500 hover:border-[#7c5cfc] hover:text-[#7c5cfc]' : 'border-white/13 text-[#a8b0be] hover:border-[#7c5cfc] hover:text-[#7c5cfc]'}`}
+                        ${isLight ? 'border-black/15 text-gray-500 hover:border-[#0d9488] hover:text-[#0d9488]' : 'border-white/13 text-[#a8b0be] hover:border-[#0d9488] hover:text-[#0d9488]'}`}
                     >
                       Download
                     </button>

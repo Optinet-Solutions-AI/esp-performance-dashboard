@@ -124,7 +124,7 @@ export default function DashboardView() {
         <button
           onClick={() => exportCSV(filtered)}
           className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-mono transition-all
-            ${isLight ? 'bg-white border-black/20 text-gray-600 hover:border-[#009e88] hover:text-[#009e88]' : 'bg-transparent border-white/13 text-[#a8b0be] hover:border-[#00e5c3] hover:text-[#00e5c3]'}`}
+            ${isLight ? 'bg-white border-black/20 text-gray-600 hover:border-[#0d9488] hover:text-[#0d9488]' : 'bg-transparent border-white/13 text-[#a8b0be] hover:border-[#0d9488] hover:text-[#0d9488]'}`}
         >
           <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M8 2v8M5 7l3 3 3-3" /><rect x="2" y="11" width="12" height="3" rx="1" />
@@ -193,7 +193,7 @@ export default function DashboardView() {
               onChange={e => setSearch(e.target.value)}
               placeholder="Search..."
               className={`px-3 py-1.5 rounded-lg border text-xs font-mono outline-none transition-all w-36
-                ${isLight ? 'bg-gray-50 border-black/15 text-gray-900 placeholder-gray-400 focus:border-[#009e88]' : 'bg-[#181c22] border-white/13 text-[#f0f2f5] placeholder-[#a8b0be] focus:border-[#00e5c3]'}`}
+                ${isLight ? 'bg-gray-50 border-black/15 text-gray-900 placeholder-gray-400 focus:border-[#0d9488] hover:border-[#0d9488]' : 'bg-[#181c22] border-white/13 text-[#f0f2f5] placeholder-[#a8b0be] focus:border-[#0d9488] hover:border-[#0d9488]'}`}
             />
             {(['all', 'healthy', 'warn', 'critical'] as const).map(f => (
               <button

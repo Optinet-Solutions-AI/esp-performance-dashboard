@@ -628,7 +628,7 @@ export default function OngageView() {
 
   // ── Style shorthands ─────────────────────────────────────────────
   const card    = `rounded-xl border ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`
-  const selCls  = `px-3 py-1.5 rounded-lg border text-xs font-mono outline-none appearance-none ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`
+  const selCls  = `px-3 py-1.5 rounded-lg border text-xs font-mono outline-none appearance-none transition-all ${isLight ? 'bg-white border-black/20 text-gray-800 focus:border-[#0d9488] hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/18 text-white focus:border-[#0d9488] hover:border-[#0d9488]'}`
   const muted   = isLight ? 'text-gray-500' : 'text-[#a8b0be]'
   const txt     = isLight ? 'text-gray-900' : 'text-[#f0f2f5]'
   const divBdr  = { borderColor: isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.07)' }
@@ -672,7 +672,7 @@ export default function OngageView() {
           <button
             onClick={handleAll}
             className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-mono uppercase transition-all
-              ${isLight ? 'border-black/20 text-gray-500 hover:border-[#009e88]' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}
+              ${isLight ? 'border-black/20 text-gray-500 hover:border-[#0d9488]' : 'border-white/13 text-[#a8b0be] hover:border-[#0d9488]'}`}
           >All</button>
 
           {/* Granularity dropdown */}
@@ -680,7 +680,7 @@ export default function OngageView() {
             <button
               onClick={() => setGranOpen(o => !o)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono font-semibold transition-all
-                ${isLight ? 'bg-white border-black/20 text-gray-800 hover:border-violet-400' : 'bg-[#1e232b] border-white/18 text-white hover:border-[#7c5cfc]'}`}
+                ${isLight ? 'bg-white border-black/20 text-gray-800 hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/18 text-white hover:border-[#0d9488]'}`}
               style={{ minWidth: 80 }}
             >
               {{ daily: 'DAILY', weekly: 'WEEKLY', monthly: 'MONTHLY' }[granularity]}
@@ -699,8 +699,8 @@ export default function OngageView() {
                     onClick={() => { setGranularity(val); setGranOpen(false) }}
                     className={`w-full text-left px-4 py-2.5 text-xs font-mono font-semibold transition-all
                       ${granularity === val
-                        ? 'bg-[#7c5cfc] text-white'
-                        : isLight ? 'text-gray-700 hover:bg-gray-100' : 'text-[#c8cdd6] hover:bg-white/8'
+                        ? 'bg-[#0d9488] text-white'
+                        : isLight ? 'text-gray-700 hover:bg-[#0d9488]/10' : 'text-[#c8cdd6] hover:bg-[#0d9488]/15'
                       }`}
                   >
                     {label}

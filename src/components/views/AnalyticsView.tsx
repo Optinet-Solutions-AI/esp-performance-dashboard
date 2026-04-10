@@ -375,7 +375,7 @@ export default function AnalyticsView() {
                     padding: '10px 16px', fontSize: 12, fontWeight: 600,
                     fontFamily: 'Space Mono, monospace', cursor: 'pointer', border: 'none',
                     background: selectedEsp === name
-                      ? '#7c5cfc'
+                      ? '#0d9488'
                       : 'transparent',
                     color: selectedEsp === name
                       ? '#ffffff'
@@ -384,7 +384,7 @@ export default function AnalyticsView() {
                   }}
                   onMouseEnter={e => {
                     if (selectedEsp !== name)
-                      (e.currentTarget as HTMLButtonElement).style.background = isLight ? '#f3f4f6' : 'rgba(255,255,255,0.08)'
+                      (e.currentTarget as HTMLButtonElement).style.background = isLight ? 'rgba(13,148,136,0.10)' : 'rgba(13,148,136,0.15)'
                   }}
                   onMouseLeave={e => {
                     if (selectedEsp !== name)

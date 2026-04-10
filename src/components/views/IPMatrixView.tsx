@@ -247,13 +247,13 @@ export default function IPMatrixView() {
   const hdrCls   = `font-family-mono text-[11px] font-mono tracking-widest uppercase border-b ${bdr} ${isLight ? 'text-gray-600' : 'text-[#6b7280]'}`
 
   const searchCls = `w-full pl-7 pr-3 py-2 rounded-lg border text-xs font-mono outline-none transition-all
-    ${isLight ? 'bg-[#f4f5f8] border-black/18 text-gray-900 placeholder-gray-400 focus:border-violet-400' : 'bg-[#1e232b] border-white/14 text-white placeholder-[#4a5568] focus:border-[#7c5cfc]'}`
+    ${isLight ? 'bg-[#f4f5f8] border-black/18 text-gray-900 placeholder-gray-400 focus:border-[#0d9488] hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/14 text-white placeholder-[#4a5568] focus:border-[#0d9488] hover:border-[#0d9488]'}`
 
-  const selectCls = `w-full px-3 py-2 rounded-lg border text-xs font-mono outline-none cursor-pointer
-    ${isLight ? 'bg-[#f4f5f8] border-black/18 text-gray-800' : 'bg-[#1e232b] border-white/14 text-white'}`
+  const selectCls = `w-full px-3 py-2 rounded-lg border text-xs font-mono outline-none cursor-pointer transition-all
+    ${isLight ? 'bg-[#f4f5f8] border-black/18 text-gray-800 focus:border-[#0d9488] hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/14 text-white focus:border-[#0d9488] hover:border-[#0d9488]'}`
 
   const inputCls = `w-full px-3 py-2 rounded-lg border text-sm font-mono outline-none transition-all
-    ${isLight ? 'bg-[#f4f5f8] border-black/20 text-gray-900 focus:border-violet-400' : 'bg-[#1e232b] border-white/18 text-white focus:border-[#7c5cfc]'}`
+    ${isLight ? 'bg-[#f4f5f8] border-black/20 text-gray-900 focus:border-[#0d9488] hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/18 text-white focus:border-[#0d9488] hover:border-[#0d9488]'}`
 
   /* ── Summary section ───────────────────────────────────────────── */
   const espGroups = allEspsSorted.map(esp => {
@@ -278,7 +278,7 @@ export default function IPMatrixView() {
           <button
             onClick={() => fileInputRef.current?.click()}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-mono uppercase tracking-wider transition-all
-              ${isLight ? 'border-black/20 text-gray-600 hover:border-violet-400' : 'border-white/13 text-[#a8b0be] hover:border-[#00e5c3]'}`}
+              ${isLight ? 'border-black/20 text-gray-600 hover:border-[#0d9488]' : 'border-white/13 text-[#a8b0be] hover:border-[#0d9488]'}`}
           >
             <IconUpload /> Upload File
           </button>

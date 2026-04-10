@@ -80,13 +80,13 @@ export default function CalendarPicker({
   const popBg      = isLight ? '#ffffff'         : '#181c22'
   const popBdr     = isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'
   const btnCls     = isLight
-    ? 'bg-white border-black/20 text-gray-800 hover:border-violet-400'
-    : 'bg-[#1e232b] border-white/18 text-white hover:border-[#7c5cfc]'
+    ? 'bg-white border-black/20 text-gray-800 hover:border-[#0d9488]'
+    : 'bg-[#1e232b] border-white/18 text-white hover:border-[#0d9488]'
   const navBtnCls  = isLight ? 'text-gray-500 hover:bg-gray-100' : 'text-[#c8cdd6] hover:bg-white/8'
 
   function dayCls(day: number) {
-    if (isSelected(day) || isRangeEdge(day)) return 'bg-[#7c5cfc] text-white font-bold z-10 relative'
-    if (isInRange(day)) return isLight ? 'text-gray-700 hover:bg-violet-100' : 'text-[#c8cdd6] hover:bg-[#7c5cfc]/20'
+    if (isSelected(day) || isRangeEdge(day)) return 'bg-[#0d9488] text-white font-bold z-10 relative'
+    if (isInRange(day)) return isLight ? 'text-gray-700 hover:bg-[#0d9488]/20' : 'text-[#c8cdd6] hover:bg-[#0d9488]/20'
     return isLight ? 'text-gray-700 hover:bg-gray-100' : 'text-[#c8cdd6] hover:bg-white/8'
   }
 
@@ -96,7 +96,7 @@ export default function CalendarPicker({
     const lo  = rangeStart < rangeEnd ? rangeStart : rangeEnd
     const hi  = rangeStart < rangeEnd ? rangeEnd   : rangeStart
     if (iso < lo || iso > hi) return 'transparent'
-    return isLight ? 'rgba(124,92,252,0.12)' : 'rgba(124,92,252,0.18)'
+    return isLight ? 'rgba(13,148,136,0.12)' : 'rgba(13,148,136,0.18)'
   }
 
   return (
