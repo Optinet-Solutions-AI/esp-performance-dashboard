@@ -11,12 +11,13 @@ interface Props {
   minWidth?: number
   maxHeight?: number
   className?: string
+  align?: 'left' | 'right' | 'auto'
 }
 
-export default function CustomSelect({ value, onChange, options, isLight, minWidth = 100, maxHeight = 220, className }: Props) {
+export default function CustomSelect({ value, onChange, options, isLight, minWidth = 100, maxHeight = 220, className, align = 'auto' }: Props) {
   const [open, setOpen]     = useState(false)
   const [above, setAbove]   = useState(false)
-  const [alignRight, setAlignRight] = useState(false)
+  const [autoRight, setAutoRight] = useState(false)
   const wrapRef             = useRef<HTMLDivElement>(null)
   const btnRef              = useRef<HTMLButtonElement>(null)
 
@@ -35,17 +36,19 @@ export default function CustomSelect({ value, onChange, options, isLight, minWid
       const spaceBelow = window.innerHeight - rect.bottom
       const spaceAbove = rect.top
       setAbove(spaceBelow < maxHeight && spaceAbove > spaceBelow)
-      setAlignRight(rect.left + minWidth > window.innerWidth - 8)
+      setAutoRight(rect.left + minWidth > window.innerWidth - 8)
     }
     setOpen(o => !o)
   }
+
+  const isRightAligned = align === 'right' || (align === 'auto' && autoRight)
 
   const selected = options.find(o => o.value === value)?.label ?? options[0]?.label ?? ''
 
   const panelStyle: React.CSSProperties = {
     position: 'absolute',
     ...(above ? { bottom: '100%', marginBottom: 6 } : { top: '100%', marginTop: 6 }),
-    ...(alignRight ? { right: 0 } : { left: 0 }),
+    ...(isRightAligned ? { right: 0 } : { left: 0 }),
     zIndex: 50,
     minWidth,
     maxHeight,

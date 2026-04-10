@@ -1085,7 +1085,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                     options={[{ value: 'all', label: 'All IPs' }, ...ipEntityData.map(e => ({ value: e.name, label: e.name }))]} />
                   <CustomSelect value={filterDomain} onChange={setFilterDomain} isLight={isLight} minWidth={110} maxHeight={200}
                     options={[{ value: 'all', label: 'All Domains' }, ...Object.keys(data.domains).map(d => ({ value: d, label: d }))]} />
-                  <CustomSelect value={filterProvider} onChange={setFilterProvider} isLight={isLight} minWidth={120} maxHeight={200}
+                  <CustomSelect value={filterProvider} onChange={setFilterProvider} isLight={isLight} minWidth={120} maxHeight={200} align="right"
                     options={[{ value: 'all', label: 'All Providers' }, ...Object.keys(data.providerDomains).map(p => ({ value: p, label: p }))]} />
                   {(filterIp !== 'all' || filterDomain !== 'all' || filterProvider !== 'all') && (
                     <button
