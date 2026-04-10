@@ -56,7 +56,7 @@ export default function LogsView() {
         <select
           value={filterAction}
           onChange={e => setFilterAction(e.target.value)}
-          className={`px-3 py-1.5 rounded-lg border text-xs font-mono outline-none ${isLight ? 'bg-white border-black/20 text-gray-800' : 'bg-[#1e232b] border-white/18 text-white'}`}
+          className={`px-3 py-1.5 rounded-lg border text-xs font-mono outline-none transition-all ${isLight ? 'bg-white border-black/20 text-gray-800 focus:border-[#0d9488] hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/18 text-white focus:border-[#0d9488] hover:border-[#0d9488]'}`}
         >
           <option value="">All Actions</option>
           <option value="upload">Uploads</option>
