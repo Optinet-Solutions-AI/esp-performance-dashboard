@@ -1,16 +1,33 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
 import type { LogEntry } from '@/lib/types'
+
+const FILTER_OPTIONS = [
+  { value: '', label: 'All Actions' },
+  { value: 'upload', label: 'Uploads' },
+  { value: 'download', label: 'Downloads' },
+  { value: 'delete', label: 'Deletes' },
+]
 
 export default function LogsView() {
   const { isLight } = useDashboardStore()
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [filterAction, setFilterAction] = useState('')
+  const [filterOpen, setFilterOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const filterRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { fetchLogs() }, [])
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setFilterOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   async function fetchLogs() {
     setLoading(true)
@@ -45,6 +62,8 @@ export default function LogsView() {
     })
   }
 
+  const selectedLabel = FILTER_OPTIONS.find(o => o.value === filterAction)?.label ?? 'All Actions'
+
   return (
     <div className="p-6" style={{ maxWidth: 900 }}>
       <div className="mb-5">
@@ -53,16 +72,33 @@ export default function LogsView() {
       </div>
 
       <div className="flex items-center gap-2 mb-4">
-        <select
-          value={filterAction}
-          onChange={e => setFilterAction(e.target.value)}
-          className={`px-3 py-1.5 rounded-lg border text-xs font-mono outline-none transition-all ${isLight ? 'bg-white border-black/20 text-gray-800 focus:border-[#0d9488] hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/18 text-white focus:border-[#0d9488] hover:border-[#0d9488]'}`}
-        >
-          <option value="">All Actions</option>
-          <option value="upload">Uploads</option>
-          <option value="download">Downloads</option>
-          <option value="delete">Deletes</option>
-        </select>
+        <div ref={filterRef} className="relative">
+          <button
+            onClick={() => setFilterOpen(o => !o)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono font-semibold transition-all min-w-[130px]
+              ${isLight ? 'bg-white border-black/20 text-gray-800 hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/18 text-white hover:border-[#0d9488]'}
+              ${filterOpen ? 'border-[#0d9488]' : ''}`}
+          >
+            <span className="flex-1 text-left">{selectedLabel}</span>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="opacity-50 flex-shrink-0">
+              <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          {filterOpen && (
+            <div className="absolute z-50 left-0 shadow-2xl rounded-xl overflow-hidden" style={{ top: '100%', marginTop: 6, minWidth: '100%', background: isLight ? '#ffffff' : '#181c22', border: `1px solid ${isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'}` }}>
+              {FILTER_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => { setFilterAction(opt.value); setFilterOpen(false) }}
+                  className={`w-full text-left px-4 py-2.5 text-xs font-mono font-semibold transition-all
+                    ${filterAction === opt.value ? 'bg-[#0d9488] text-white' : isLight ? 'text-gray-700 hover:bg-[#0d9488]/10' : 'text-[#c8cdd6] hover:bg-[#0d9488]/15'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <span className={`text-[11px] font-mono ${muted}`}>{filtered.length} entries</span>
       </div>
 
