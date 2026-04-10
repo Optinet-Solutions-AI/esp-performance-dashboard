@@ -32,9 +32,19 @@ export default function UploadView() {
   const [history, setHistory] = useState<UploadRecord[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
   const [historyEspFilter, setHistoryEspFilter] = useState('')
+  const [historyEspOpen, setHistoryEspOpen] = useState(false)
+  const historyEspRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { fetchHistory() }, [])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (historyEspRef.current && !historyEspRef.current.contains(e.target as Node)) setHistoryEspOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   async function fetchHistory() {
     const { data } = await supabase
@@ -403,14 +413,33 @@ export default function UploadView() {
 
         {/* ESP filter */}
         <div className="mb-4">
-          <select
-            value={historyEspFilter}
-            onChange={e => setHistoryEspFilter(e.target.value)}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-mono outline-none transition-all ${isLight ? 'bg-white border-black/20 text-gray-800 focus:border-[#0d9488] hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/18 text-white focus:border-[#0d9488] hover:border-[#0d9488]'}`}
-          >
-            <option value="">All ESPs</option>
-            {[...new Set(history.map(h => h.esp))].sort().map(e => <option key={e} value={e}>{e}</option>)}
-          </select>
+          <div ref={historyEspRef} className="relative inline-block">
+            <button
+              onClick={() => setHistoryEspOpen(o => !o)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all min-w-[120px]
+                ${isLight ? 'bg-white border-black/20 text-gray-800 hover:border-[#0d9488]' : 'bg-[#1e232b] border-white/18 text-white hover:border-[#0d9488]'}
+                ${historyEspOpen ? 'border-[#0d9488]' : ''}`}
+            >
+              <span className="flex-1 text-left">{historyEspFilter || 'All ESPs'}</span>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="opacity-50 flex-shrink-0">
+                <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {historyEspOpen && (
+              <div className="absolute z-50 left-0 shadow-2xl rounded-xl overflow-hidden" style={{ top: '100%', marginTop: 6, minWidth: '100%', background: isLight ? '#ffffff' : '#181c22', border: `1px solid ${isLight ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.12)'}` }}>
+                {(['', ...[...new Set(history.map(h => h.esp))].sort()] as string[]).map(val => (
+                  <button
+                    key={val}
+                    onClick={() => { setHistoryEspFilter(val); setHistoryEspOpen(false) }}
+                    className={`w-full text-left px-4 py-2.5 text-xs font-mono font-semibold transition-all
+                      ${historyEspFilter === val ? 'bg-[#0d9488] text-white' : isLight ? 'text-gray-700 hover:bg-[#0d9488]/10' : 'text-[#c8cdd6] hover:bg-[#0d9488]/15'}`}
+                  >
+                    {val || 'All ESPs'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {(() => {
