@@ -14,10 +14,11 @@ interface Props {
 }
 
 export default function CustomSelect({ value, onChange, options, isLight, minWidth = 100, maxHeight = 220, className }: Props) {
-  const [open, setOpen]   = useState(false)
-  const [above, setAbove] = useState(false)
-  const wrapRef           = useRef<HTMLDivElement>(null)
-  const btnRef            = useRef<HTMLButtonElement>(null)
+  const [open, setOpen]     = useState(false)
+  const [above, setAbove]   = useState(false)
+  const [alignRight, setAlignRight] = useState(false)
+  const wrapRef             = useRef<HTMLDivElement>(null)
+  const btnRef              = useRef<HTMLButtonElement>(null)
 
   // Outside click
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function CustomSelect({ value, onChange, options, isLight, minWid
       const spaceBelow = window.innerHeight - rect.bottom
       const spaceAbove = rect.top
       setAbove(spaceBelow < maxHeight && spaceAbove > spaceBelow)
+      setAlignRight(rect.left + minWidth > window.innerWidth - 8)
     }
     setOpen(o => !o)
   }
@@ -43,7 +45,7 @@ export default function CustomSelect({ value, onChange, options, isLight, minWid
   const panelStyle: React.CSSProperties = {
     position: 'absolute',
     ...(above ? { bottom: '100%', marginBottom: 6 } : { top: '100%', marginTop: 6 }),
-    left: 0,
+    ...(alignRight ? { right: 0 } : { left: 0 }),
     zIndex: 50,
     minWidth,
     maxHeight,
