@@ -270,7 +270,7 @@ export default function UploadView() {
               onChange={handleEspChange}
               options={[
                 { value: '', label: 'Select ESP…' },
-                ...ESP_LIST.map(e => ({ value: e, label: e, color: ESP_COLORS[e] }))
+                ...ESP_LIST.map(e => ({ value: e, label: e }))
               ]}
               isLight={isLight}
               fullWidth
