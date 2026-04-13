@@ -535,7 +535,8 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
     //   opened        → opener email (Column D) — contains '@' = 1 open
     //   clicked       → clicker email (Column E) — contains '@' = 1 click
     //   unsubscribes  → unsubscriber email (Column F) — contains '@' = 1 unsub
-    //   sent-on       → "DD-MM-YYYY HH:MM" date (Column G)
+    //   sent-on       → "D/M/YYYY" or "DD-MM-YYYY HH:MM" date (Column G)
+    //   bounced       → bounced email (Column H) — contains '@' = 1 bounce (absent in older exports)
     if (isMoosend) {
       const rawDate = row['sent-on'] || ''
       const parsed = parseDate(rawDate, false)
@@ -548,12 +549,14 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
       const providerDomain = extractDomain(email)
       const sendingDomain = (row['domain'] || 'unknown').toLowerCase().trim()
 
+      const isBounced = (row['bounced'] || '').includes('@') ? 1 : 0
+
       const metrics = {
         sent:         1,
-        delivered:    1,
+        delivered:    isBounced ? 0 : 1,
         opened:       (row['opened'] || '').includes('@') ? 1 : 0,
         clicked:      (row['clicked'] || '').includes('@') ? 1 : 0,
-        bounced:      0,
+        bounced:      isBounced,
         hardBounced:  0,
         softBounced:  0,
         unsubscribed: (row['unsubscribes'] || '').includes('@') ? 1 : 0,
