@@ -127,5 +127,6 @@ export type ViewName =
   | 'logs'
   | 'analytics'
   | 'moosend'
+  | 'kenscio'
 
 export type MmTabType = 'ip' | 'provider' | 'domain'
