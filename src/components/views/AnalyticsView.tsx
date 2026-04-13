@@ -146,7 +146,7 @@ const ESP_IPM_ALIASES: Record<string, string[]> = {
 }
 
 function isIPv4(str: string): boolean {
-  return /^(\d{1,3}\.){3}\d{1,3}$/.test(str)
+  return /^(\d{1,3}\.){3}\d{1,3}$/.test(str.trim())
 }
 
 // ── Main view ────────────────────────────────────────────────────
@@ -425,7 +425,7 @@ export default function AnalyticsView() {
       </div>
 
       {/* ── Table ── */}
-      <div style={{
+      <div key={activeTab} style={{
         background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 14, overflow: 'hidden',
       }}>
         <div style={{ overflowX: 'auto' }}>
