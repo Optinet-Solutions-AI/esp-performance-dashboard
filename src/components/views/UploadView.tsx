@@ -265,10 +265,17 @@ export default function UploadView() {
         <div className="p-5">
           <div>
             <label className={`block text-[11px] font-mono tracking-[0.08em] uppercase mb-1.5 ${muted}`}>ESP Provider</label>
-            <select value={esp} onChange={e => handleEspChange(e.target.value)} className={inputCls}>
-              <option value="">Select ESP…</option>
-              {ESP_LIST.map(e => <option key={e} value={e}>{e}</option>)}
-            </select>
+            <CustomSelect
+              value={esp}
+              onChange={handleEspChange}
+              options={[
+                { value: '', label: 'Select ESP…' },
+                ...ESP_LIST.map(e => ({ value: e, label: e, color: ESP_COLORS[e] }))
+              ]}
+              isLight={isLight}
+              fullWidth
+              maxHeight={280}
+            />
           </div>
         </div>
       </div>

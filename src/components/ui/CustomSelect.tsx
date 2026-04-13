@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 
-interface Option { value: string; label: string }
+interface Option { value: string; label: string; color?: string }
 
 interface Props {
   value: string
@@ -12,9 +12,10 @@ interface Props {
   maxHeight?: number
   className?: string
   align?: 'left' | 'right' | 'auto'
+  fullWidth?: boolean
 }
 
-export default function CustomSelect({ value, onChange, options, isLight, minWidth = 100, maxHeight = 220, className, align = 'auto' }: Props) {
+export default function CustomSelect({ value, onChange, options, isLight, minWidth = 100, maxHeight = 220, className, align = 'auto', fullWidth = false }: Props) {
   const [open, setOpen]     = useState(false)
   const [above, setAbove]   = useState(false)
   const [autoRight, setAutoRight] = useState(false)
@@ -65,11 +66,12 @@ export default function CustomSelect({ value, onChange, options, isLight, minWid
         ref={btnRef}
         onClick={handleToggle}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono font-semibold transition-all
+          ${fullWidth ? 'w-full' : ''}
           ${isLight
             ? `bg-white border-black/20 text-gray-800 hover:border-[#0d9488] ${open ? 'border-[#0d9488]' : ''}`
             : `bg-[#1e232b] border-white/18 text-white hover:border-[#0d9488] ${open ? 'border-[#0d9488]' : ''}`
           }`}
-        style={{ minWidth }}
+        style={fullWidth ? undefined : { minWidth }}
       >
         <span className="flex-1 text-left truncate">{selected}</span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="opacity-50 flex-shrink-0"
@@ -87,8 +89,9 @@ export default function CustomSelect({ value, onChange, options, isLight, minWid
               className={`w-full text-left px-4 py-2.5 text-xs font-mono font-semibold transition-all
                 ${value === opt.value
                   ? 'bg-[#0d9488] text-white'
-                  : isLight ? 'text-gray-700 hover:bg-[#0d9488]/10' : 'text-[#c8cdd6] hover:bg-[#0d9488]/15'
+                  : isLight ? 'hover:bg-[#0d9488]/10' : 'hover:bg-[#0d9488]/15'
                 }`}
+              style={value !== opt.value && opt.color ? { color: opt.color } : undefined}
             >
               {opt.label}
             </button>
