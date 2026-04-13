@@ -13,6 +13,7 @@ export const ESP_COLORS: Record<string, string> = {
   Omnisend: '#ff4757',
   Klaviyo: '#60d4f0',
   Brevo: '#c5f27a',
+  Kenscio: '#e63946',
 }
 
 export const INITIAL_DAILY7: DailyRecord[] = []
