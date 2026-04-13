@@ -17,6 +17,7 @@ const ESP_PALETTE: Record<string, { bg: string; text: string }> = {
   Omnisend: { bg: '#d97706', text: '#fff' },
   Klaviyo:  { bg: '#0369a1', text: '#fff' },
   Brevo:    { bg: '#065f46', text: '#fff' },
+  Kenscio:  { bg: '#e63946', text: '#fff' },
 }
 const FALLBACK_PALETTE = [
   { bg: '#7c3aed', text: '#fff' }, { bg: '#0891b2', text: '#fff' },
