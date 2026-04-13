@@ -17,7 +17,7 @@ const EMPTY: MmData = {
 const VOL_COLORS  = { sent: '#6b7280', delivered: '#e63946', opened: '#00e5c3', clicked: '#ffd166' }
 const RATE_COLORS = { successRate: '#e63946', openRate: '#00e5c3', clickRate: '#ffd166', bounceRate: '#ff4757' }
 
-// Ongage-specific: CTR = Clicks ÷ Delivered, Unsub = Unsubs ÷ Delivered
+// Kenscio-specific: CTR = Clicks ÷ Delivered, Unsub = Unsubs ÷ Delivered
 const KPI_DEFS = [
   { key: 'openRate'   as keyof DateMetrics, label: 'Open Rate %',   color: '#00e5c3', lightColor: '#006a5b', formula: 'Opens ÷ Delivered × 100',        getValue: (r: DateMetrics) => r.openRate },
   { key: 'clickRate'  as keyof DateMetrics, label: 'CTR %',         color: '#ffd166', lightColor: '#D58B05', formula: 'Clicks ÷ Delivered × 100',       getValue: (r: DateMetrics) => r.delivered > 0 ? (r.clicked / r.delivered) * 100 : 0 },
@@ -183,10 +183,10 @@ function buildIpAggByDate(
       sent, delivered, opened, clicked, bounced, unsubscribed, complained,
       deliveryRate: (delivered / sent) * 100, successRate: (delivered / sent) * 100,
       openRate: delivered > 0 ? (opened / delivered) * 100 : 0,
-      // Ongage: CTR = clicks / delivered
+      // Kenscio: CTR = clicks / delivered
       clickRate: delivered > 0 ? (clicked / delivered) * 100 : 0,
       bounceRate: (bounced / sent) * 100,
-      // Ongage: unsub rate = unsubs / delivered
+      // Kenscio: unsub rate = unsubs / delivered
       unsubRate: delivered > 0 ? (unsubscribed / delivered) * 100 : 0,
       complaintRate: delivered > 0 ? (complained / delivered) * 100 : 0,
     }
@@ -432,7 +432,7 @@ export default function KenscioView() {
 
     const rateMetrics = dateGroups.map(g => aggDates(src, g.dates))
 
-    // Ongage: CTR = clicks / delivered
+    // Kenscio: CTR = clicks / delivered
     const ogCtr = (r: DateMetrics | null) => r && r.delivered > 0 ? (r.clicked / r.delivered) * 100 : null
 
     rateInst.current = new Chart(rateRef.current, {
@@ -484,7 +484,7 @@ export default function KenscioView() {
     destroyAll(kpiInsts)
     if (!activeDates.length || !entityData.length) return
 
-    // Ongage-specific tooltip labels
+    // Kenscio-specific tooltip labels
     const kpiCalcLabel = (kpiKey: string, r: DateMetrics | null, pct: string) => {
       if (!r) return pct + '%'
       if (kpiKey === 'openRate')   return `${pct}% (${fmtN(r.opened)} / ${fmtN(r.delivered)})`
@@ -694,7 +694,7 @@ export default function KenscioView() {
           {/* ── KPI Cards ─────────────────────────────────────────── */}
           {aggOverall && (() => {
             const bounceAccent = aggOverall.bounceRate > 10 ? '#ff4757' : aggOverall.bounceRate > 2 ? '#ffd166' : teal
-            // Ongage: CTR = clicks / delivered
+            // Kenscio: CTR = clicks / delivered
             const ogCtr       = aggOverall.delivered > 0 ? (aggOverall.clicked / aggOverall.delivered) * 100 : 0
             const ogUnsubRate  = aggOverall.delivered > 0 ? ((aggOverall.unsubscribed ?? 0) / aggOverall.delivered) * 100 : 0
             const kpiCards = [
@@ -927,7 +927,7 @@ export default function KenscioView() {
                   {entityData.map(({ name, data: d, color }) => {
                     const s = d?.sent ?? 0, del = d?.delivered ?? 0, op = d?.opened ?? 0
                     const cl = d?.clicked ?? 0, bo = d?.bounced ?? 0, un = d?.unsubscribed ?? 0
-                    // Ongage formulas
+                    // Kenscio formulas
                     const ctr      = del > 0 ? (cl / del) * 100 : 0
                     const unsubPct = del > 0 ? (un / del) * 100 : 0
                     const tip = (title: string, exact: string, formula: string, calc: string, color: string) =>
