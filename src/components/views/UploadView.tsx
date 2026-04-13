@@ -257,7 +257,7 @@ export default function UploadView() {
       </div>
 
       {/* Step 1 */}
-      <div className={`rounded-2xl border mb-4 overflow-hidden ${surface}`}>
+      <div className={`rounded-2xl border mb-4 ${surface}`}>
         <div className={`px-5 py-3.5 border-b ${isLight ? 'border-black/6 bg-gray-50/60' : 'border-white/5 bg-white/[0.02]'}`}>
           <div className={`text-[11px] font-mono tracking-[0.15em] uppercase ${muted}`}>Step 1</div>
           <div className={`text-sm font-semibold mt-0.5 ${textMain}`}>Select ESP Provider</div>
