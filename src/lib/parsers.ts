@@ -770,12 +770,13 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
     })
   }
 
-  // Kenscio: openRate = open/delivered, clickRate = click/delivered
+  // Kenscio: openRate = open/delivered, clickRate = click/delivered, unsubRate = unsub/delivered
   if (isKenscio) {
     Object.values(byDate).forEach(d => {
       const fixRates = (m: DateMetrics) => {
         m.openRate  = m.delivered > 0 ? (m.opened  / m.delivered) * 100 : 0
         m.clickRate = m.delivered > 0 ? (m.clicked / m.delivered) * 100 : 0
+        m.unsubRate = m.delivered > 0 ? ((m.unsubscribed || 0) / m.delivered) * 100 : 0
       }
       Object.values(d.providers).forEach(fixRates)
       Object.values(d.domains).forEach(fixRates)

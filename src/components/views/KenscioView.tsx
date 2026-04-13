@@ -574,7 +574,7 @@ export default function KenscioView() {
       const total = vals.reduce((a, b) => a + b, 0)
 
       const centerPlugin = {
-        id: `pie_center_og_${i}`,
+        id: `pie_center_kenscio_${i}`,
         beforeDraw(chart: Chart) {
           const { ctx, chartArea } = chart
           if (!chartArea) return
@@ -649,7 +649,7 @@ export default function KenscioView() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* ESP selector (if multiple Ongage ESPs) */}
+          {/* ESP selector (if multiple Kenscio ESPs) */}
           {espList.length > 1 && (
             <CustomSelect
               value={selectedEsp}
