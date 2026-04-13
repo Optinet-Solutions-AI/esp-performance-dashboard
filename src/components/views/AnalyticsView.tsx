@@ -122,7 +122,7 @@ function KpiSummary({ rows, isLight }: { rows: AnalyticsRow[]; isLight: boolean 
   ]
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
+    <div className="grid-kpi-5">
       {kpis.map(k => (
         <div key={k.label} style={{
           background: cardBg, border: `1px solid ${cardBorder}`,
