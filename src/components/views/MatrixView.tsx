@@ -422,31 +422,7 @@ export default function MatrixView() {
             )
           }
 
-          // From-domain total
-          if (fdProviders.length > 0) {
-            rows.push(
-              <tr key={fdKey + '-total'}>
-                <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', paddingLeft: 40, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted, borderTop: `1px solid ${bdr}` }}>
-                  {fd} — total
-                </td>
-                <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', borderTop: `1px solid ${bdr}` }}></td>
-                <DataRow agg={fdAgg} isFdTotal />
-              </tr>
-            )
-          }
         })
-
-        // IP total
-        const ipTotalBg = isLight ? 'rgba(3,105,161,.07)' : 'rgba(125,211,252,.07)'
-        rows.push(
-          <tr key={ipKey + '-total'}>
-            <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: ipTotalBg, paddingLeft: 20, fontFamily: 'var(--font-mono)', fontSize: 11, color: ipColor, borderTop: `1px solid ${bdr}` }}>
-              {isNotFound ? '\u26A0 IP NOT FOUND' : ip} — total
-            </td>
-            <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: ipTotalBg, borderTop: `1px solid ${bdr}` }}></td>
-            <DataRow agg={ipTot} bg={ipTotalBg} />
-          </tr>
-        )
       })
 
     })
