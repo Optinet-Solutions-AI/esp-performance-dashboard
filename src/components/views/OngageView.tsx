@@ -763,7 +763,7 @@ export default function OngageView() {
           <div className="flex items-center gap-1">
             <button
               className="px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider text-white"
-              style={{ backgroundColor: '#c67cff', borderColor: '#c67cff' }}
+              style={{ backgroundColor: '#ffd166', borderColor: '#ffd166' }}
             >
               IP Address
             </button>

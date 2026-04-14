@@ -215,6 +215,14 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                 ? allEsps.filter(e => e !== 'Ongage' && e !== 'Netcore' && e !== 'MMS' && e !== 'Hotsol' && e !== '171 MailsApp' && e !== 'Moosend')
                 : allEsps
 
+  const brandColor = filter === 'netcore' ? '#f97316'
+    : filter === 'mms'        ? '#ffd166'
+    : filter === 'hotsol'     ? '#00e5c3'
+    : filter === '171mailsapp'? '#ff6b9d'
+    : filter === 'moosend'    ? '#ff6b35'
+    : filter === 'ongage'     ? '#ffd166'
+    : '#7c5cfc' // mailmodo default
+
   const [selectedEsp, setSelectedEsp] = useState('')
   const [granularity, setGranularity] = useState<Granularity>('daily')
   const [embedView,   setEmbedView]   = useState<EmbedView>('date')
@@ -769,7 +777,7 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
           <div className="flex items-center gap-1">
             <button
               className="px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider text-white"
-              style={{ backgroundColor: '#7c5cfc', borderColor: '#7c5cfc' }}
+              style={{ backgroundColor: brandColor, borderColor: brandColor }}
             >
               IP Address
             </button>
