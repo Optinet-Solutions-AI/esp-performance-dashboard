@@ -762,7 +762,8 @@ export default function OngageView() {
           {/* ── Tab Switcher ──────────────────────────────────────── */}
           <div className="flex items-center gap-1">
             <button
-              className="px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider bg-[#4a2fa0] border-[#4a2fa0] text-white"
+              className="px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider text-white"
+              style={{ backgroundColor: '#c67cff', borderColor: '#c67cff' }}
             >
               IP Address
             </button>
