@@ -196,7 +196,7 @@ export default function MatrixView() {
   const headerBg = isLight ? '#f1f3f7' : '#181c22'
   const surfaceBg = isLight ? '#ffffff' : '#111418'
 
-  const thCls = `px-3 py-2.5 text-[11px] font-mono tracking-widest uppercase text-right border-b`
+  const thCls = `px-3 py-2.5 text-[11px] font-mono tracking-widest uppercase text-right border-b whitespace-nowrap overflow-hidden`
   const tdCls = `px-3 py-2.5 text-right text-[11px] font-mono border-b`
 
   function rateColor(cls: string) {
