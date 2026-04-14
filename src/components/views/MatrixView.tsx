@@ -400,7 +400,7 @@ export default function MatrixView() {
             rows.push(
               <tr key={`prov||${espName}||${ip}||${fd}||${provName}`}>
                 <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: provBg }}></td>
-                <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: provBg, paddingLeft: 60, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted }}>
+                <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: provBg, paddingLeft: 60, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted, textAlign: 'left' }}>
                   <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, display: 'inline-block', marginRight: 7, verticalAlign: 'middle' }} />
                   {provName}
                 </td>
@@ -413,7 +413,7 @@ export default function MatrixView() {
             rows.push(
               <tr key={`prov||${espName}||${ip}||${fd}||__others__`}>
                 <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: provBg }}></td>
-                <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: provBg, paddingLeft: 60, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted }}>
+                <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: provBg, paddingLeft: 60, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted, textAlign: 'left' }}>
                   <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, display: 'inline-block', marginRight: 7, verticalAlign: 'middle' }} />
                   Others ({otherFdProviders.length})
                 </td>
