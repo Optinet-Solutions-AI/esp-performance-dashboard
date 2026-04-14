@@ -254,7 +254,7 @@ export default function MatrixView() {
           {ex ? '−' : '+'}
         </span>
         <span className="font-semibold">{label}</span>
-        {count && <span className="text-[11px] font-mono ml-1.5" style={{ color: muted }}>{count}</span>}
+        {count && <span className="text-[11px] font-mono ml-1.5 flex-shrink-0" style={{ color: muted, whiteSpace: 'nowrap' }}>{count}</span>}
       </div>
     )
   }
@@ -315,18 +315,7 @@ export default function MatrixView() {
         </tr>
       )
 
-      if (!espEx) {
-        rows.push(
-          <tr key={espKey + '-total'}>
-            <td className={`${tdCls} text-left font-bold`} style={{ background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}`, borderBottom: `1px solid ${bdr}`, color: espColor }}>
-              {espName} — Total
-            </td>
-            <td className={tdCls} style={{ background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}`, borderBottom: `1px solid ${bdr}` }}></td>
-            <DataRow agg={espTot} isTotal />
-          </tr>
-        )
-        return
-      }
+      if (!espEx) return
 
       // Level 2: IPs
       sortedIps.forEach(ip => {
@@ -352,7 +341,6 @@ export default function MatrixView() {
 
         rows.push(
           <tr key={ipKey} className="cursor-pointer" onClick={() => toggle(ipKey)}>
-            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt }}></td>
             <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt, paddingLeft: 20 }}>
               <ToggleBtn
                 expanded={ipEx}
@@ -363,6 +351,7 @@ export default function MatrixView() {
                 count={`${activeFds.length} from-domains`}
               />
             </td>
+            <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg }}></td>
             <DataRow agg={ipTot} bg={ipBg} />
           </tr>
         )
@@ -395,10 +384,10 @@ export default function MatrixView() {
 
           rows.push(
             <tr key={fdKey} className="cursor-pointer" onClick={() => toggle(fdKey)}>
-              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg }}></td>
               <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg, paddingLeft: 40, color: muted, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
                 <ToggleBtn expanded={fdEx} label={<span style={{ color: muted, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
               </td>
+              <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg }}></td>
               <DataRow agg={fdAgg} bg={fdBg} />
             </tr>
           )
@@ -437,10 +426,10 @@ export default function MatrixView() {
           if (fdProviders.length > 0) {
             rows.push(
               <tr key={fdKey + '-total'}>
-                <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', borderTop: `1px solid ${bdr}` }}></td>
                 <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', paddingLeft: 40, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted, borderTop: `1px solid ${bdr}` }}>
                   {fd} — total
                 </td>
+                <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', borderTop: `1px solid ${bdr}` }}></td>
                 <DataRow agg={fdAgg} isFdTotal />
               </tr>
             )
@@ -451,25 +440,15 @@ export default function MatrixView() {
         const ipTotalBg = isLight ? 'rgba(3,105,161,.07)' : 'rgba(125,211,252,.07)'
         rows.push(
           <tr key={ipKey + '-total'}>
-            <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: ipTotalBg, borderTop: `1px solid ${bdr}` }}></td>
             <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: ipTotalBg, paddingLeft: 20, fontFamily: 'var(--font-mono)', fontSize: 11, color: ipColor, borderTop: `1px solid ${bdr}` }}>
               {isNotFound ? '\u26A0 IP NOT FOUND' : ip} — total
             </td>
+            <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: ipTotalBg, borderTop: `1px solid ${bdr}` }}></td>
             <DataRow agg={ipTot} bg={ipTotalBg} />
           </tr>
         )
       })
 
-      // ESP grand total
-      rows.push(
-        <tr key={espKey + '-grand-total'}>
-          <td className={`${tdCls} text-left font-bold`} style={{ background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}`, borderBottom: `1px solid ${bdr}`, color: espColor }}>
-            {espName} — Total
-          </td>
-          <td className={tdCls} style={{ background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}`, borderBottom: `1px solid ${bdr}` }}></td>
-          <DataRow agg={espTot} isTotal />
-        </tr>
-      )
     })
 
     return rows
@@ -557,23 +536,23 @@ export default function MatrixView() {
           </div>
         )}
         <div className={`rounded-xl border overflow-auto ${expandedBreadcrumbs.length > 0 ? 'mt-2' : ''}`} style={{ background: surfaceBg, borderColor: bdr, maxHeight: 'calc(100vh - 180px)' }}>
-          <table className="w-full border-collapse" style={{ minWidth: 1100 }}>
+          <table className="w-full border-collapse" style={{ minWidth: 1380, tableLayout: 'fixed' }}>
             <thead>
               <tr style={{ background: headerBg }}>
-                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, minWidth: 180, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>ESP / IP / From Domain</th>
-                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, minWidth: 160, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Email Provider</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Sent</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Delivered</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Total Bounces</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Soft Bounce</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Hard Bounce</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Opens</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Open Rate %</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Clicks</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Click Rate %</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Unsubscribed</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Complaints</th>
-                <th className={thCls} style={{ borderColor: bdr, color: isLight ? '#b45309' : '#ffd166', position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Throttling</th>
+                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 200, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>ESP / IP / From Domain</th>
+                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 140, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Email Provider</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Sent</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Delivered</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 90, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Total Bounces</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Soft Bounce</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Hard Bounce</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Opens</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Open Rate %</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Clicks</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Click Rate %</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 95, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Unsubscribed</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 85, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Complaints</th>
+                <th className={thCls} style={{ borderColor: bdr, color: isLight ? '#b45309' : '#ffd166', width: 110, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Throttling</th>
               </tr>
             </thead>
             <tbody>{buildRows()}</tbody>
