@@ -198,7 +198,6 @@ export default function MatrixView() {
 
   const thCls = `px-3 py-2.5 text-[11px] font-mono tracking-widest uppercase text-left border-b whitespace-nowrap overflow-hidden`
   const tdCls = `px-3 py-2.5 text-right text-[11px] font-mono border-b`
-  const stickyL: React.CSSProperties = { position: 'sticky', left: 0, zIndex: 2 }
 
   function rateColor(cls: string) {
     if (cls === 'mx-good') return isLight ? '#047857' : '#00e5c3'
@@ -308,7 +307,7 @@ export default function MatrixView() {
       // ESP header row
       rows.push(
         <tr key={espKey} className="cursor-pointer" style={{ borderBottom: `1px solid ${bdr}` }} onClick={() => toggle(espKey)}>
-          <td className={`${tdCls} text-left`} style={{ ...stickyL, borderBottom: `1px solid ${bdr}`, color: txt, background: surfaceBg }}>
+          <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, color: txt }}>
             <ToggleBtn expanded={espEx} label={<span style={{ color: espColor, fontWeight: 700 }}>{espName}</span>} />
           </td>
           <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}` }}></td>
@@ -342,7 +341,7 @@ export default function MatrixView() {
 
         rows.push(
           <tr key={ipKey} className="cursor-pointer" onClick={() => toggle(ipKey)}>
-            <td className={`${tdCls} text-left`} style={{ ...stickyL, borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt, paddingLeft: 20 }}>
+            <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg, color: txt, paddingLeft: 20 }}>
               <ToggleBtn
                 expanded={ipEx}
                 label={isNotFound
@@ -385,7 +384,7 @@ export default function MatrixView() {
 
           rows.push(
             <tr key={fdKey} className="cursor-pointer" onClick={() => toggle(fdKey)}>
-              <td className={`${tdCls} text-left`} style={{ ...stickyL, borderBottom: `1px solid ${bdr}`, background: fdBg, paddingLeft: 40, color: muted, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+              <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg, paddingLeft: 40, color: muted, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
                 <ToggleBtn expanded={fdEx} label={<span style={{ color: muted, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
               </td>
               <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg }}></td>
@@ -400,7 +399,7 @@ export default function MatrixView() {
             const provBg = isLight ? 'rgba(0,0,0,.035)' : 'rgba(255,255,255,.035)'
             rows.push(
               <tr key={`prov||${espName}||${ip}||${fd}||${provName}`}>
-                <td className={tdCls} style={{ ...stickyL, borderBottom: `1px solid ${bdr}`, background: provBg }}></td>
+                <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: provBg }}></td>
                 <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: provBg, paddingLeft: 60, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted, textAlign: 'left' }}>
                   <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, display: 'inline-block', marginRight: 7, verticalAlign: 'middle' }} />
                   {provName}
@@ -413,7 +412,7 @@ export default function MatrixView() {
             const provBg = isLight ? 'rgba(0,0,0,.035)' : 'rgba(255,255,255,.035)'
             rows.push(
               <tr key={`prov||${espName}||${ip}||${fd}||__others__`}>
-                <td className={tdCls} style={{ ...stickyL, borderBottom: `1px solid ${bdr}`, background: provBg }}></td>
+                <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: provBg }}></td>
                 <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: provBg, paddingLeft: 60, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted, textAlign: 'left' }}>
                   <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, display: 'inline-block', marginRight: 7, verticalAlign: 'middle' }} />
                   Others ({otherFdProviders.length})
@@ -427,7 +426,7 @@ export default function MatrixView() {
           if (fdProviders.length > 0) {
             rows.push(
               <tr key={fdKey + '-total'}>
-                <td className={`${tdCls} text-left font-semibold`} style={{ ...stickyL, borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', paddingLeft: 40, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted, borderTop: `1px solid ${bdr}` }}>
+                <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', paddingLeft: 40, fontFamily: 'var(--font-mono)', fontSize: 11, color: muted, borderTop: `1px solid ${bdr}` }}>
                   {fd} — total
                 </td>
                 <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#dde1e8' : 'rgba(255,255,255,.04)', borderTop: `1px solid ${bdr}` }}></td>
@@ -441,7 +440,7 @@ export default function MatrixView() {
         const ipTotalBg = isLight ? 'rgba(3,105,161,.07)' : 'rgba(125,211,252,.07)'
         rows.push(
           <tr key={ipKey + '-total'}>
-            <td className={`${tdCls} text-left font-semibold`} style={{ ...stickyL, borderBottom: `1px solid ${bdr}`, background: ipTotalBg, paddingLeft: 20, fontFamily: 'var(--font-mono)', fontSize: 11, color: ipColor, borderTop: `1px solid ${bdr}` }}>
+            <td className={`${tdCls} text-left font-semibold`} style={{ borderBottom: `1px solid ${bdr}`, background: ipTotalBg, paddingLeft: 20, fontFamily: 'var(--font-mono)', fontSize: 11, color: ipColor, borderTop: `1px solid ${bdr}` }}>
               {isNotFound ? '\u26A0 IP NOT FOUND' : ip} — total
             </td>
             <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: ipTotalBg, borderTop: `1px solid ${bdr}` }}></td>
@@ -475,10 +474,10 @@ export default function MatrixView() {
   })
 
   return (
-    <div className="p-2 sm:p-6">
-      <div className="flex items-start justify-between mb-3 sm:mb-5 flex-wrap gap-2 sm:gap-3">
+    <div className="p-6">
+      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: txt }}>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: txt }}>
             ESP Deliverability Matrix
           </h1>
           <p className="text-sm mt-1" style={{ color: muted }}>
@@ -536,11 +535,11 @@ export default function MatrixView() {
             </button>
           </div>
         )}
-        <div className={`rounded-xl border overflow-auto ${expandedBreadcrumbs.length > 0 ? 'mt-2' : ''}`} style={{ background: surfaceBg, borderColor: bdr, maxHeight: 'calc(100vh - 180px)', WebkitOverflowScrolling: 'touch' }}>
+        <div className={`rounded-xl border overflow-auto ${expandedBreadcrumbs.length > 0 ? 'mt-2' : ''}`} style={{ background: surfaceBg, borderColor: bdr, maxHeight: 'calc(100vh - 180px)' }}>
           <table className="w-full border-collapse" style={{ minWidth: 1380, tableLayout: 'fixed' }}>
             <thead>
               <tr style={{ background: headerBg }}>
-                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 200, position: 'sticky', top: 0, left: 0, zIndex: 6, background: headerBg }}>ESP / IP / From Domain</th>
+                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 200, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>ESP / IP / From Domain</th>
                 <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 140, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Email Provider</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Sent</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Delivered</th>
