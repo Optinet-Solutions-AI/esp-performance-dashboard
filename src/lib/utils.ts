@@ -379,3 +379,31 @@ export const getGridColor = (isLight: boolean) =>
 
 export const getTextColor = (isLight: boolean) =>
   isLight ? '#64748b' : '#c8cdd6'
+
+// ─── ESP Visibility Helpers ─────────────────────────────────
+// Pure filters used by every view that displays ESPs.
+// "hidden" is the list of ESP names a user has hidden globally.
+
+export function isEspHidden(name: string, hidden: string[]): boolean {
+  return hidden.includes(name)
+}
+
+export function visibleEsps<T extends { name: string }>(esps: T[], hidden: string[]): T[] {
+  if (hidden.length === 0) return esps
+  return esps.filter(e => !hidden.includes(e.name))
+}
+
+export function visibleEspNames(espData: Record<string, unknown>, hidden: string[]): string[] {
+  const names = Object.keys(espData)
+  if (hidden.length === 0) return names
+  return names.filter(n => !hidden.includes(n))
+}
+
+export function visibleEspData<T>(espData: Record<string, T>, hidden: string[]): Record<string, T> {
+  if (hidden.length === 0) return espData
+  const out: Record<string, T> = {}
+  for (const [name, data] of Object.entries(espData)) {
+    if (!hidden.includes(name)) out[name] = data
+  }
+  return out
+}
