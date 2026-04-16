@@ -19,7 +19,7 @@ import type { DmRecord } from '@/lib/types'
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend)
 
 export default function DataMgmtView() {
-  const { isLight, dmData, setDmData, resetAllData } = useDashboardStore()
+  const { isLight, dmData, setDmData, resetAllData, hiddenEsps, espData, toggleEspVisibility, setHiddenEsps } = useDashboardStore()
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
   const teal = isLight ? '#006a5b' : '#00e5c3'
@@ -80,8 +80,110 @@ export default function DataMgmtView() {
 
   const cardClass = `rounded-xl border ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`
 
+  const allEspNames = Object.keys(espData)
+
+  async function hideAll() {
+    const toHide = allEspNames.filter(n => !hiddenEsps.includes(n))
+    setHiddenEsps(allEspNames)
+    const { supabase: sb } = await import('@/lib/supabase')
+    for (const name of toHide) {
+      await sb.from('esp_visibility').upsert({ esp: name, hidden: true, updated_at: new Date().toISOString() })
+    }
+  }
+
+  async function showAll() {
+    const toShow = [...hiddenEsps]
+    setHiddenEsps([])
+    const { supabase: sb } = await import('@/lib/supabase')
+    for (const name of toShow) {
+      await sb.from('esp_visibility').upsert({ esp: name, hidden: false, updated_at: new Date().toISOString() })
+    }
+  }
+
   return (
     <div className="p-6">
+      {/* ESP Visibility */}
+      <div id="esp-visibility-section" className={`rounded-xl border mb-6 overflow-hidden ${isLight ? 'bg-white border-black/[0.10] shadow-sm' : 'bg-[#111418] border-white/7'}`}>
+        <div className={`px-5 py-4 border-b ${isLight ? 'border-black/[0.08]' : 'border-white/7'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className={`text-base font-semibold ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>ESP Visibility</h2>
+              <p className={`text-xs mt-0.5 ${isLight ? 'text-gray-500' : 'text-[#a8b0be]'}`}>
+                Hidden ESPs are removed from all views and totals.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={showAll}
+                disabled={hiddenEsps.length === 0}
+                className={`px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all
+                  ${hiddenEsps.length === 0
+                    ? (isLight ? 'border-black/[0.08] text-gray-300 cursor-not-allowed' : 'border-white/7 text-[#4a5568] cursor-not-allowed')
+                    : (isLight ? 'border-[#0d9488]/40 text-[#0d9488] hover:bg-[#0d9488]/[0.08]' : 'border-[#00e5c3]/40 text-[#00e5c3] hover:bg-[#00e5c3]/10')
+                  }`}
+              >
+                Show All
+              </button>
+              <button
+                onClick={hideAll}
+                disabled={hiddenEsps.length >= allEspNames.length}
+                className={`px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all
+                  ${hiddenEsps.length >= allEspNames.length
+                    ? (isLight ? 'border-black/[0.08] text-gray-300 cursor-not-allowed' : 'border-white/7 text-[#4a5568] cursor-not-allowed')
+                    : (isLight ? 'border-black/[0.15] text-gray-600 hover:border-black/[0.30]' : 'border-white/13 text-[#a8b0be] hover:border-white/25')
+                  }`}
+              >
+                Hide All
+              </button>
+            </div>
+          </div>
+        </div>
+        {allEspNames.length === 0 ? (
+          <div className={`px-5 py-6 text-sm text-center ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>
+            No ESPs uploaded yet.
+          </div>
+        ) : (
+          <div>
+            {allEspNames.map(name => {
+              const isHidden = hiddenEsps.includes(name)
+              return (
+                <div
+                  key={name}
+                  className={`flex items-center justify-between px-5 py-3 border-b last:border-0 ${isLight ? 'border-black/[0.06]' : 'border-white/5'}`}
+                >
+                  <span className={`text-sm ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>{name}</span>
+                  <button
+                    onClick={() => toggleEspVisibility(name)}
+                    className="flex items-center gap-2 cursor-pointer bg-transparent border-0"
+                    title={isHidden ? `Show ${name}` : `Hide ${name}`}
+                  >
+                    <span className={`text-[10px] font-mono uppercase tracking-wider ${isHidden ? (isLight ? 'text-[#b45309]' : 'text-[#ffd166]') : (isLight ? 'text-[#0d9488]' : 'text-[#00e5c3]')}`}>
+                      {isHidden ? 'hidden' : 'shown'}
+                    </span>
+                    <span
+                      style={{
+                        width: 36, height: 20, borderRadius: 99, position: 'relative', display: 'inline-block',
+                        background: isHidden ? (isLight ? '#d1d5db' : '#2d3748') : (isLight ? '#0d9488' : '#00e5c3'),
+                        transition: 'background 0.2s',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 14, height: 14, borderRadius: '50%', position: 'absolute', top: 2,
+                          left: isHidden ? 2 : 19,
+                          background: '#ffffff',
+                          transition: 'left 0.2s',
+                        }}
+                      />
+                    </span>
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="flex items-start justify-between mb-5">
         <div>
           <h1 className={`text-2xl font-bold tracking-tight ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>
