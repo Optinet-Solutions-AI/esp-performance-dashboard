@@ -160,8 +160,13 @@ export const useDashboardStore = create<DashboardState>()(
           if (error) throw error
         } catch (err) {
           console.error('Failed to persist ESP visibility:', err)
-          // Revert on failure
-          set({ hiddenEsps: current })
+          // Only revert if no newer toggle has happened. Otherwise the user's later
+          // action wins — don't clobber it.
+          const stored = get().hiddenEsps
+          const stillOurs = stored.length === next.length && stored.every((n, i) => n === next[i])
+          if (stillOurs) {
+            set({ hiddenEsps: current })
+          }
         }
       },
 
