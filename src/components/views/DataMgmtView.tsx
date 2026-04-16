@@ -85,18 +85,16 @@ export default function DataMgmtView() {
   async function hideAll() {
     const toHide = allEspNames.filter(n => !hiddenEsps.includes(n))
     setHiddenEsps(allEspNames)
-    const { supabase: sb } = await import('@/lib/supabase')
     for (const name of toHide) {
-      await sb.from('esp_visibility').upsert({ esp: name, hidden: true, updated_at: new Date().toISOString() })
+      await supabase.from('esp_visibility').upsert({ esp: name, hidden: true, updated_at: new Date().toISOString() })
     }
   }
 
   async function showAll() {
     const toShow = [...hiddenEsps]
     setHiddenEsps([])
-    const { supabase: sb } = await import('@/lib/supabase')
     for (const name of toShow) {
-      await sb.from('esp_visibility').upsert({ esp: name, hidden: false, updated_at: new Date().toISOString() })
+      await supabase.from('esp_visibility').upsert({ esp: name, hidden: false, updated_at: new Date().toISOString() })
     }
   }
 
