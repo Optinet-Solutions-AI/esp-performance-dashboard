@@ -1,4 +1,5 @@
 'use client'
+import { useMemo } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,7 +14,8 @@ import {
 } from 'chart.js'
 import { Line, Bar } from 'react-chartjs-2'
 import { useDashboardStore } from '@/lib/store'
-import { fmtN, fmtP, getGridColor, getTextColor, chartTooltip, aggDates } from '@/lib/utils'
+import { fmtN, fmtP, getGridColor, getTextColor, chartTooltip, aggDates, visibleEspData } from '@/lib/utils'
+import HiddenEspsBadge from '@/components/ui/HiddenEspsBadge'
 import type { DateMetrics } from '@/lib/types'
 
 ChartJS.register(
@@ -34,7 +36,7 @@ interface DayRow {
 }
 
 export default function DailyView() {
-  const { espData, isLight } = useDashboardStore()
+  const { espData, isLight, hiddenEsps } = useDashboardStore()
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
 
@@ -42,7 +44,7 @@ export default function DailyView() {
   const teal = isLight ? '#006a5b' : '#00e5c3'
 
   // Merge all dates across all ESPs
-  const allEspData = Object.values(espData)
+  const allEspData = useMemo(() => Object.values(visibleEspData(espData, hiddenEsps)), [espData, hiddenEsps])
   const allDatesSet = new Set<string>()
   allEspData.forEach(d => Object.keys(d.overallByDate).forEach(date => allDatesSet.add(date)))
 
@@ -206,6 +208,7 @@ export default function DailyView() {
         <p className={`text-sm mt-1 ${isLight ? 'text-gray-500' : 'text-[#a8b0be]'}`}>
           Last 7 days of combined send volume across all ESPs
         </p>
+        <HiddenEspsBadge />
       </div>
 
       {!hasData ? (
