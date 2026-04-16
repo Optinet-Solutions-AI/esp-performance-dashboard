@@ -61,10 +61,71 @@ export default function MatrixView() {
 
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
+  const [sortCol, setSortCol] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   function handleFrom(iso: string) { setFromDate(iso) }
   function handleTo(iso: string) { setToDate(iso) }
   function handleAll() { setFromDate(''); setToDate('') }
+
+  function handleSort(col: string) {
+    if (sortCol === col) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    } else {
+      setSortCol(col)
+      setSortDir(col === 'name' ? 'asc' : 'desc')
+    }
+  }
+
+  function getEspAgg(espName: string): Agg {
+    const data = store.espData[espName]
+    if (!data) return emptyAgg()
+    const activeDates = (fromDate && toDate)
+      ? (data.datesFull || []).filter(df => df.iso >= fromDate && df.iso <= toDate).map(df => df.label)
+      : data.dates
+    const tot = emptyAgg()
+    Object.values(data.providers || {}).forEach(p => { const a = mxAgg(p.byDate, activeDates); addAgg(tot, a) })
+    return tot
+  }
+
+  function getSortedEspList(): string[] {
+    if (!sortCol) return espList
+    return [...espList].sort((a, b) => {
+      if (sortCol === 'name') {
+        const cmp = a.localeCompare(b)
+        return sortDir === 'asc' ? cmp : -cmp
+      }
+      const aAgg = getEspAgg(a); const bAgg = getEspAgg(b)
+      const aR = rates(aAgg); const bR = rates(bAgg)
+      let aVal = 0, bVal = 0
+      switch (sortCol) {
+        case 'sent': aVal = aAgg.sent; bVal = bAgg.sent; break
+        case 'delivered': aVal = aAgg.delivered; bVal = bAgg.delivered; break
+        case 'bounced': aVal = aAgg.bounced; bVal = bAgg.bounced; break
+        case 'softBounced': aVal = aAgg.softBounced; bVal = bAgg.softBounced; break
+        case 'hardBounced': aVal = aAgg.hardBounced; bVal = bAgg.hardBounced; break
+        case 'opened': aVal = aAgg.opened; bVal = bAgg.opened; break
+        case 'openRate': aVal = aR.or; bVal = bR.or; break
+        case 'clicked': aVal = aAgg.clicked; bVal = bAgg.clicked; break
+        case 'clickRate': aVal = aR.ctr; bVal = bR.ctr; break
+        case 'unsubscribed': aVal = aAgg.unsubscribed; bVal = bAgg.unsubscribed; break
+        case 'complained': aVal = aAgg.complained; bVal = bAgg.complained; break
+        case 'throttling': aVal = aR.thr; bVal = bR.thr; break
+      }
+      return sortDir === 'desc' ? bVal - aVal : aVal - bVal
+    })
+  }
+
+  function SortIcon({ col }: { col: string }) {
+    const active = sortCol === col
+    const activeColor = isLight ? '#0369a1' : '#7dd3fc'
+    return (
+      <span className="ml-1 inline-flex flex-col" style={{ fontSize: 7, lineHeight: '6px', verticalAlign: 'middle' }}>
+        <span style={{ opacity: active && sortDir === 'asc' ? 1 : 0.25, color: active ? activeColor : 'currentColor' }}>▲</span>
+        <span style={{ opacity: active && sortDir === 'desc' ? 1 : 0.25, color: active ? activeColor : 'currentColor' }}>▼</span>
+      </span>
+    )
+  }
 
   function downloadCsv() {
     const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Unsubscribed', 'Complaints', 'Throttling']
@@ -196,13 +257,14 @@ export default function MatrixView() {
   const headerBg = isLight ? '#f1f3f7' : '#181c22'
   const surfaceBg = isLight ? '#ffffff' : '#111418'
 
-  const thCls = `px-3 py-2.5 text-[11px] font-mono tracking-widest uppercase text-left border-b whitespace-nowrap overflow-hidden`
+  const thCls = `px-3 py-2.5 text-[11px] font-mono tracking-widest uppercase text-left border-b whitespace-nowrap overflow-hidden cursor-pointer select-none`
   const tdCls = `px-3 py-2.5 text-left text-[11px] font-mono border-b`
 
   function rateColor(cls: string) {
-    if (cls === 'mx-good') return isLight ? '#047857' : '#00e5c3'
-    if (cls === 'mx-warn') return isLight ? '#92400e' : '#ffd166'
-    if (cls === 'mx-bad') return isLight ? '#991b1b' : '#ff4757'
+    if (isLight) return txt
+    if (cls === 'mx-good') return '#00e5c3'
+    if (cls === 'mx-warn') return '#ffd166'
+    if (cls === 'mx-bad') return '#ff4757'
     return txt
   }
 
@@ -239,7 +301,7 @@ export default function MatrixView() {
           onMouseEnter={e => { if (R.ctr > 0) showTip(e, 'CLICK RATE', R.ctr.toFixed(2) + '%', 'Clicks ÷ Opens × 100', `${fmtMx(agg.clicked)} ÷ ${fmtMx(agg.opened)} × 100 = ${R.ctr.toFixed(2)}%`) }}
           onMouseLeave={() => setTip(null)}>{R.ctr > 0 ? R.ctr.toFixed(1) + '%' : ''}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.unsubscribed || 0)}</td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: (agg.complained || 0) > 0 ? (isLight ? '#991b1b' : '#ff4757') : txt }}>{fmtMx(agg.complained || 0)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: (agg.complained || 0) > 0 && !isLight ? '#ff4757' : txt }}>{fmtMx(agg.complained || 0)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.trr, false, 5, 15)), cursor: R.thr > 0 ? 'help' : undefined }}
           onMouseEnter={e => { if (R.thr > 0) showTip(e, 'THROTTLING', R.trr.toFixed(2) + '%', '(Sent − Delivered − Bounced) ÷ Sent × 100', `(${fmtMx(agg.sent)} − ${fmtMx(agg.delivered)} − ${fmtMx(agg.bounced)}) ÷ ${fmtMx(agg.sent)} × 100 = ${R.trr.toFixed(2)}%`) }}
           onMouseLeave={() => setTip(null)}>{R.thr > 0 ? `${fmtMx(R.thr)} (${R.trr.toFixed(1)}%)` : ''}</td>
@@ -260,10 +322,10 @@ export default function MatrixView() {
   }
 
   // Build all rows
-  function buildRows() {
+  function buildRows(sortedList: string[]) {
     const rows: React.ReactNode[] = []
 
-    espList.forEach(espName => {
+    sortedList.forEach(espName => {
       const espData = store.espData[espName]
       if (!espData || !espData.dates.length) return
       const espColor = ESP_COLORS[espName] || '#7c5cfc'
@@ -515,23 +577,49 @@ export default function MatrixView() {
           <table className="w-full border-collapse" style={{ minWidth: 1380, tableLayout: 'fixed' }}>
             <thead>
               <tr style={{ background: headerBg }}>
-                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 200, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>ESP / IP / From Domain</th>
-                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 140, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Email Provider</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Sent</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Delivered</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 90, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Total BNCS</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Soft BNC</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Hard BNC</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Opens</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Open Rate</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Clicks</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Click Rate</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 60, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Unsub</th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 85, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Complaints</th>
-                <th className={thCls} style={{ borderColor: bdr, color: isLight ? '#b45309' : '#ffd166', width: 110, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>Throttling</th>
+                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 200, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('name')}>
+                  <span className="inline-flex items-center">ESP / IP / From Domain<SortIcon col="name" /></span>
+                </th>
+                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 140, position: 'sticky', top: 0, zIndex: 5, background: headerBg, cursor: 'default' }}>Email Provider</th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('sent')}>
+                  <span className="inline-flex items-center">Sent<SortIcon col="sent" /></span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('delivered')}>
+                  <span className="inline-flex items-center">Delivered<SortIcon col="delivered" /></span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 90, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('bounced')}>
+                  <span className="inline-flex items-center">Total BNCS<SortIcon col="bounced" /></span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('softBounced')}>
+                  <span className="inline-flex items-center">Soft BNC<SortIcon col="softBounced" /></span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('hardBounced')}>
+                  <span className="inline-flex items-center">Hard BNC<SortIcon col="hardBounced" /></span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('opened')}>
+                  <span className="inline-flex items-center">Opens<SortIcon col="opened" /></span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('openRate')}>
+                  <span className="inline-flex items-center">Open Rate<SortIcon col="openRate" /></span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('clicked')}>
+                  <span className="inline-flex items-center">Clicks<SortIcon col="clicked" /></span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('clickRate')}>
+                  <span className="inline-flex items-center">Click Rate<SortIcon col="clickRate" /></span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 60, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('unsubscribed')}>
+                  <span className="inline-flex items-center">Unsub<SortIcon col="unsubscribed" /></span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 85, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('complained')}>
+                  <span className="inline-flex items-center">Complaints<SortIcon col="complained" /></span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: isLight ? '#b45309' : '#ffd166', width: 110, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('throttling')}>
+                  <span className="inline-flex items-center">Throttling<SortIcon col="throttling" /></span>
+                </th>
               </tr>
             </thead>
-            <tbody>{buildRows()}</tbody>
+            <tbody>{buildRows(getSortedEspList())}</tbody>
           </table>
         </div>
         </>
