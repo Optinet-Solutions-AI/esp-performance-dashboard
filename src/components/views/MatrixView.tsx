@@ -111,7 +111,6 @@ export default function MatrixView() {
         case 'clickRate': aVal = aR.ctr; bVal = bR.ctr; break
         case 'unsubscribed': aVal = aAgg.unsubscribed; bVal = bAgg.unsubscribed; break
         case 'complained': aVal = aAgg.complained; bVal = bAgg.complained; break
-        case 'throttling': aVal = aR.thr; bVal = bR.thr; break
       }
       return sortDir === 'desc' ? bVal - aVal : aVal - bVal
     })
@@ -129,7 +128,7 @@ export default function MatrixView() {
   }
 
   function downloadCsv() {
-    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Unsubscribed', 'Complaints', 'Throttling']
+    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Unsubscribed', 'Complaints']
     const csvRows: string[][] = [headers]
 
     function aggToRow(level: string, esp: string, ip: string, fd: string, prov: string, agg: Agg): string[] {
@@ -142,7 +141,6 @@ export default function MatrixView() {
         String(agg.clicked),
         agg.opened > 0 ? R.ctr.toFixed(2) + '%' : '',
         String(agg.unsubscribed || 0), String(agg.complained || 0),
-        R.thr > 0 ? `${R.thr} (${R.trr.toFixed(2)}%)` : '0'
       ]
     }
 
@@ -299,9 +297,6 @@ export default function MatrixView() {
           onMouseLeave={() => setTip(null)}>{R.ctr > 0 ? R.ctr.toFixed(1) + '%' : ''}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.unsubscribed || 0)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.complained || 0)}</td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.trr, false, 5, 15)), cursor: R.thr > 0 ? 'help' : undefined }}
-          onMouseEnter={e => { if (R.thr > 0) showTip(e, 'THROTTLING', R.trr.toFixed(2) + '%', '(Sent − Delivered − Bounced) ÷ Sent × 100', `(${fmtMx(agg.sent)} − ${fmtMx(agg.delivered)} − ${fmtMx(agg.bounced)}) ÷ ${fmtMx(agg.sent)} × 100 = ${R.trr.toFixed(2)}%`) }}
-          onMouseLeave={() => setTip(null)}>{R.thr > 0 ? `${fmtMx(R.thr)} (${R.trr.toFixed(1)}%)` : ''}</td>
       </>
     )
   }
@@ -613,9 +608,6 @@ export default function MatrixView() {
                 </th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, width: 85, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('complained')}>
                   <span className="inline-flex items-center">Complaints<SortIcon col="complained" /></span>
-                </th>
-                <th className={thCls} style={{ borderColor: bdr, color: isLight ? '#b45309' : '#ffd166', width: 110, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('throttling')}>
-                  <span className="inline-flex items-center">Throttling<SortIcon col="throttling" /></span>
                 </th>
               </tr>
             </thead>
