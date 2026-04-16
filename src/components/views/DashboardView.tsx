@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Chart } from 'chart.js/auto'
 import { useDashboardStore } from '@/lib/store'
-import { fmtN, fmtP, exportCSV, getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
+import { fmtN, fmtP, exportCSV, getGridColor, getTextColor, chartTooltip, visibleEsps } from '@/lib/utils'
+import EspVisibilityIcon from '@/components/ui/EspVisibilityIcon'
 import KpiCard from '@/components/ui/KpiCard'
 import ChartCard, { LegendItem } from '@/components/ui/ChartCard'
 import StatusPill from '@/components/ui/StatusPill'
@@ -12,7 +13,7 @@ const ESP_COLORS = ['#00e5c3','#7c5cfc','#ffd166','#ff6b35','#ff4757','#60d4f0',
 
 export default function DashboardView() {
   const {
-    isLight, esps, daily7, activeFilter, activeEsp, sortKey, sortDir, searchQ,
+    isLight, esps, daily7, activeFilter, activeEsp, sortKey, sortDir, searchQ, hiddenEsps,
     setFilter, setActiveEsp, setSort, setSearch,
   } = useDashboardStore()
 
@@ -28,7 +29,7 @@ export default function DashboardView() {
   const charts = useRef<Record<string, Chart>>({})
 
   function getFiltered(): EspRecord[] {
-    let data = [...esps]
+    let data = visibleEsps([...esps], hiddenEsps)
     if (activeEsp) data = data.filter(e => e.name === activeEsp)
     else if (activeFilter !== 'all') data = data.filter(e => e.status === activeFilter)
     if (searchQ) data = data.filter(e => e.name.toLowerCase().includes(searchQ.toLowerCase()))
@@ -240,6 +241,9 @@ export default function DashboardView() {
                 <th className={`px-4 py-3 text-left text-[11px] font-mono tracking-wider uppercase border-b ${isLight ? 'border-black/[0.10] text-[#475569]' : 'border-white/7 text-[#d4dae6]'}`}>
                   Status
                 </th>
+                <th className={`px-4 py-3 text-center text-[11px] font-mono tracking-wider uppercase border-b w-12 ${isLight ? 'border-black/[0.10] text-[#475569]' : 'border-white/7 text-[#d4dae6]'}`}>
+                  Hide
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -283,11 +287,14 @@ export default function DashboardView() {
                     <td className="px-4 py-3">
                       <StatusPill status={e.status} />
                     </td>
+                    <td className="px-4 py-3 text-center">
+                      <EspVisibilityIcon espName={e.name} />
+                    </td>
                   </tr>
                 )
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} className={`px-4 py-8 text-center text-sm ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>No ESPs match current filter</td></tr>
+                <tr><td colSpan={8} className={`px-4 py-8 text-center text-sm ${isLight ? 'text-gray-400' : 'text-[#a8b0be]'}`}>No ESPs match current filter</td></tr>
               )}
             </tbody>
           </table>
