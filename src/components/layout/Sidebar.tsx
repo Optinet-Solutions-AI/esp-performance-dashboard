@@ -185,7 +185,8 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
 
         {/* Active ESP list — hidden when collapsed */}
         {!collapsed && (() => {
-          const activeEsps = esps.filter(e => e.sent > 0)
+          const STATUS_ORDER: Record<string, number> = { healthy: 0, warn: 1, critical: 2 }
+          const activeEsps = esps.filter(e => e.sent > 0).sort((a, b) => (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0))
           if (activeEsps.length === 0) return null
           return (
             <div style={{ marginTop: 8 }}>
