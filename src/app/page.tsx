@@ -30,7 +30,7 @@ const VIEW_LABELS: Record<string, string> = {
 }
 
 export default function Page() {
-  const { activeView, isLight, setEspData, setEsps, esps, setIpmData, setDmData } = useDashboardStore()
+  const { activeView, isLight, setEspData, setEsps, esps, setIpmData, setDmData, setHiddenEsps } = useDashboardStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const sidebarWidth = sidebarCollapsed ? 60 : 240
@@ -97,6 +97,15 @@ export default function Page() {
           .order('created_at', { ascending: true })
         if (dmRows?.length) {
           setDmData(dmRows.map(r => r.raw_data))
+        }
+
+        // Load ESP visibility
+        const { data: visRows } = await supabase
+          .from('esp_visibility')
+          .select('esp')
+          .eq('hidden', true)
+        if (visRows) {
+          setHiddenEsps(visRows.map(r => r.esp))
         }
       } catch (err) {
         console.error('Failed to load from Supabase:', err)
