@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef } from 'react'
+import { useMemo } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,12 +11,13 @@ import {
 } from 'chart.js'
 import { Bar } from 'react-chartjs-2'
 import { useDashboardStore } from '@/lib/store'
-import { fmtN, fmtP, getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
+import { fmtN, fmtP, getGridColor, getTextColor, chartTooltip, visibleEsps } from '@/lib/utils'
+import HiddenEspsBadge from '@/components/ui/HiddenEspsBadge'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 export default function PerformanceView() {
-  const { esps, isLight } = useDashboardStore()
+  const { esps, isLight, hiddenEsps } = useDashboardStore()
   const gc = getGridColor(isLight)
   const tc = getTextColor(isLight)
   const teal = isLight ? '#006a5b' : '#00e5c3'
@@ -24,7 +25,7 @@ export default function PerformanceView() {
   const cardClass = `rounded-xl border ${isLight ? 'bg-white border-black/10' : 'bg-[#111418] border-white/7'}`
 
   // Only ESPs with real data
-  const activeEsps = esps.filter(e => e.sent > 0)
+  const activeEsps = useMemo(() => visibleEsps(esps.filter(e => e.sent > 0), hiddenEsps), [esps, hiddenEsps])
   const hasData = activeEsps.length > 0
 
   // Aggregate KPIs across all active ESPs
@@ -132,6 +133,7 @@ export default function PerformanceView() {
         <h1 className={`text-2xl font-bold tracking-tight ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>
           Performance
         </h1>
+        <HiddenEspsBadge />
         <p className={`text-sm mt-1 ${isLight ? 'text-gray-500' : 'text-[#a8b0be]'}`}>
           ESP performance benchmarking across all providers
         </p>
