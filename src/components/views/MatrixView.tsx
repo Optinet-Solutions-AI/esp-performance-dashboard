@@ -4,6 +4,7 @@ import { useDashboardStore } from '@/lib/store'
 import { fmtN, fmtP, aggDates, fmtDateLabel, visibleEspNames } from '@/lib/utils'
 import { ESP_COLORS } from '@/lib/data'
 import CalendarPicker from '@/components/ui/CalendarPicker'
+import EspVisibilityIcon from '@/components/ui/EspVisibilityIcon'
 import type { MmData, DateMetrics, IpmRecord } from '@/lib/types'
 
 const EMPTY_DATA: MmData = { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
@@ -366,7 +367,10 @@ export default function MatrixView() {
       rows.push(
         <tr key={espKey} className="cursor-pointer" style={{ borderBottom: `1px solid ${bdr}` }} onClick={() => toggle(espKey)}>
           <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, color: txt }}>
-            <ToggleBtn expanded={espEx} label={<span style={{ color: espColor, fontWeight: 700 }}>{espName}</span>} />
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <ToggleBtn expanded={espEx} label={<span style={{ color: espColor, fontWeight: 700 }}>{espName}</span>} />
+              <EspVisibilityIcon espName={espName} size={12} />
+            </span>
           </td>
           <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}` }}></td>
           <DataRow agg={espTot} />
