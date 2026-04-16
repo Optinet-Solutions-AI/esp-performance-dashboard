@@ -1,8 +1,9 @@
 'use client'
 import { useState, useMemo, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
-import { aggDates, fmtN, fmtP, getEspStatus } from '@/lib/utils'
+import { aggDates, fmtN, fmtP, getEspStatus, visibleEspNames } from '@/lib/utils'
 import CalendarPicker from '@/components/ui/CalendarPicker'
+import HiddenEspsBadge from '@/components/ui/HiddenEspsBadge'
 import CustomSelect from '@/components/ui/CustomSelect'
 import type { ProviderData } from '@/lib/types'
 
@@ -151,9 +152,9 @@ function isIPv4(str: string): boolean {
 
 // ── Main view ────────────────────────────────────────────────────
 export default function AnalyticsView() {
-  const { espData, ipmData, isLight } = useDashboardStore()
+  const { espData, ipmData, isLight, hiddenEsps } = useDashboardStore()
 
-  const espNames = Object.keys(espData)
+  const espNames = useMemo(() => visibleEspNames(espData, hiddenEsps), [espData, hiddenEsps])
   const [selectedEsp, setSelectedEsp] = useState<string>(espNames[0] ?? '')
   const [activeTab, setActiveTab]     = useState<AnalyticsTab>('isp')
   const [sortCol, setSortCol]         = useState<SortCol>('sent')
@@ -161,12 +162,14 @@ export default function AnalyticsView() {
   const [searchQ, setSearchQ]         = useState('')
   const [topN, setTopN]               = useState<TopN>(25)
 
-  // Re-sync selectedEsp when espData loads (Supabase loads async on mount)
+  // Re-sync selectedEsp when espData loads or the selected ESP becomes hidden
   useEffect(() => {
     if (!selectedEsp && espNames.length > 0) {
       setSelectedEsp(espNames[0])
+    } else if (selectedEsp && hiddenEsps.includes(selectedEsp)) {
+      setSelectedEsp(espNames[0] ?? '')
     }
-  }, [espNames, selectedEsp])
+  }, [espNames, selectedEsp, hiddenEsps])
 
   const mmData    = espData[selectedEsp]
   const allDates  = mmData?.dates ?? []
@@ -338,6 +341,7 @@ export default function AnalyticsView() {
           isLight={isLight}
           minWidth={130}
         />
+        <HiddenEspsBadge />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <CalendarPicker
