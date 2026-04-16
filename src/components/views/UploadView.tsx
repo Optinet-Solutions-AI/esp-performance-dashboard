@@ -21,7 +21,7 @@ interface UploadRecord {
 }
 
 export default function UploadView() {
-  const { isLight, espData, setEspData, addUploadHistory, esps, setEsps, ipmData } = useDashboardStore()
+  const { isLight, espData, setEspData, addUploadHistory, esps, setEsps, ipmData, hiddenEsps, toggleEspVisibility } = useDashboardStore()
 
   const [esp, setEsp] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -137,6 +137,11 @@ export default function UploadView() {
         dates: parsed.dates, time: new Date().toLocaleTimeString(),
         newDates: parsed.dates.length,
       })
+
+      if (hiddenEsps.includes(esp)) {
+        await toggleEspVisibility(esp)
+        console.log(`${esp} was hidden — now visible.`)
+      }
 
       setResult({ rows: parsed.totalRows, dates: parsed.dates, newDates: parsed.dates.length })
       addLog('✨ Done! Dashboard updated.')
