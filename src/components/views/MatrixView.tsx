@@ -63,6 +63,7 @@ export default function MatrixView() {
   const [toDate, setToDate] = useState('')
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [filterEsp, setFilterEsp] = useState('')
 
   function handleFrom(iso: string) { setFromDate(iso) }
   function handleTo(iso: string) { setToDate(iso) }
@@ -89,8 +90,10 @@ export default function MatrixView() {
   }
 
   function getSortedEspList(): string[] {
-    if (!sortCol) return espList
-    return [...espList].sort((a, b) => {
+    const q = filterEsp.trim().toLowerCase()
+    const base = q ? espList.filter(e => e.toLowerCase().includes(q)) : espList
+    if (!sortCol) return base
+    return [...base].sort((a, b) => {
       if (sortCol === 'name') {
         const cmp = a.localeCompare(b)
         return sortDir === 'asc' ? cmp : -cmp
@@ -577,8 +580,30 @@ export default function MatrixView() {
           <table className="w-full border-collapse" style={{ minWidth: 1380, tableLayout: 'fixed' }}>
             <thead>
               <tr style={{ background: headerBg }}>
-                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 200, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('name')}>
-                  <span className="inline-flex items-center">ESP / IP / From Domain<SortIcon col="name" /></span>
+                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 200, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>
+                  <span className="inline-flex items-center cursor-pointer select-none" onClick={() => handleSort('name')}>ESP / IP / From Domain<SortIcon col="name" /></span>
+                  <div className="mt-1.5 flex items-center relative" onClick={e => e.stopPropagation()}>
+                    <input
+                      type="text"
+                      value={filterEsp}
+                      onChange={e => setFilterEsp(e.target.value)}
+                      placeholder="Filter ESP…"
+                      className="w-full font-mono text-[10px] px-2 py-0.5 pr-5 rounded border outline-none"
+                      style={{
+                        background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
+                        borderColor: isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.12)',
+                        color: txt,
+                        cursor: 'text',
+                      }}
+                    />
+                    {filterEsp && (
+                      <button
+                        onClick={() => setFilterEsp('')}
+                        className="absolute right-1 text-[10px] leading-none"
+                        style={{ color: muted }}
+                      >✕</button>
+                    )}
+                  </div>
                 </th>
                 <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 140, position: 'sticky', top: 0, zIndex: 5, background: headerBg, cursor: 'default' }}>Email Provider</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('sent')}>
