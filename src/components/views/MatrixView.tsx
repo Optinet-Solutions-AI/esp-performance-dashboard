@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
-import { fmtN, fmtP, aggDates, fmtDateLabel } from '@/lib/utils'
+import { fmtN, fmtP, aggDates, fmtDateLabel, visibleEspNames } from '@/lib/utils'
 import { ESP_COLORS } from '@/lib/data'
 import CalendarPicker from '@/components/ui/CalendarPicker'
 import type { MmData, DateMetrics, IpmRecord } from '@/lib/types'
@@ -53,8 +53,8 @@ function fmtMx(n: number) { return n > 0 ? n.toLocaleString() : '' }
 
 export default function MatrixView() {
   const store = useDashboardStore()
-  const { isLight, ipmData } = store
-  const espList = Object.keys(store.espData)
+  const { isLight, ipmData, hiddenEsps } = store
+  const espList = visibleEspNames(store.espData, hiddenEsps)
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [tip, setTip] = useState<{ title: string; exact: string; formula: string; calc: string; x: number; y: number } | null>(null)
