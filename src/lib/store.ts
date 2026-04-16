@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { EspRecord, DailyRecord, MmData, IpmRecord, DmRecord, UploadHistoryEntry, ViewName, MmTabType, EspStatus } from './types'
 import { INITIAL_ESPS, INITIAL_DAILY7, INITIAL_IPM_DATA } from './data'
+import { supabase } from './supabase'
 
 interface DashboardState {
   // Theme
@@ -60,13 +61,18 @@ interface DashboardState {
   dmData: DmRecord[]
   setDmData: (data: DmRecord[]) => void
 
+  // ESP Visibility (synced from Supabase esp_visibility table)
+  hiddenEsps: string[]
+  setHiddenEsps: (names: string[]) => void
+  toggleEspVisibility: (name: string) => Promise<void>
+
   // Reset
   resetAllData: () => void
 }
 
 export const useDashboardStore = create<DashboardState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Theme
       isLight: false,
       toggleTheme: () => set(s => ({ isLight: !s.isLight })),
@@ -138,11 +144,33 @@ export const useDashboardStore = create<DashboardState>()(
       dmData: [],
       setDmData: (data) => set({ dmData: data }),
 
+      // ESP Visibility
+      hiddenEsps: [],
+      setHiddenEsps: (names) => set({ hiddenEsps: names }),
+      toggleEspVisibility: async (name) => {
+        const current = get().hiddenEsps
+        const isHidden = current.includes(name)
+        const next = isHidden ? current.filter(n => n !== name) : [...current, name]
+        // Optimistic UI update
+        set({ hiddenEsps: next })
+        try {
+          const { error } = await supabase
+            .from('esp_visibility')
+            .upsert({ esp: name, hidden: !isHidden, updated_at: new Date().toISOString() })
+          if (error) throw error
+        } catch (err) {
+          console.error('Failed to persist ESP visibility:', err)
+          // Revert on failure
+          set({ hiddenEsps: current })
+        }
+      },
+
       // Reset
       resetAllData: () => set({
         esps: [], daily7: [], uploadHistory: [], ipmData: [],
         espData: {}, espRanges: {}, reviewEsp: '',
         mmTab: 'ip', mmSelectedRow: null,
+        hiddenEsps: [],
       }),
     }),
     {
