@@ -1,27 +1,28 @@
 'use client'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import { Chart } from 'chart.js/auto'
 import { useDashboardStore } from '@/lib/store'
-import { fmtN, getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
+import { fmtN, getGridColor, getTextColor, chartTooltip, visibleEspNames, visibleEspData } from '@/lib/utils'
 import { ESP_COLORS } from '@/lib/data'
 import type { ViewName } from '@/lib/types'
 import KpiCard from '@/components/ui/KpiCard'
 import ChartCard, { LegendItem } from '@/components/ui/ChartCard'
+import HiddenEspsBadge from '@/components/ui/HiddenEspsBadge'
 
 export default function HomeView() {
-  const { isLight, espData, uploadHistory, setView, setReviewEsp } = useDashboardStore()
+  const { isLight, espData, uploadHistory, setView, setReviewEsp, hiddenEsps } = useDashboardStore()
   const volumeRef = useRef<HTMLCanvasElement>(null)
   const catRef = useRef<HTMLCanvasElement>(null)
   const volumeChart = useRef<Chart | null>(null)
   const catChart = useRef<Chart | null>(null)
 
-  const espList = Object.keys(espData)
+  const espList = useMemo(() => visibleEspNames(espData, hiddenEsps), [espData, hiddenEsps])
 
   const ESP_VIEW_MAP: Record<string, ViewName> = {
     Ongage: 'ongage', Netcore: 'netcore', MMS: 'mms',
     Hotsol: 'hotsol', '171 MailsApp': '171mailsapp', Moosend: 'moosend',
   }
-  const allEspData = Object.values(espData)
+  const allEspData = useMemo(() => Object.values(visibleEspData(espData, hiddenEsps)), [espData, hiddenEsps])
 
   // Aggregate monthly totals across all ESPs
   const monthTotals: Record<string, number> = {}
@@ -121,6 +122,9 @@ export default function HomeView() {
         <h1>Overview</h1>
       </div>
       <p className="section-title-sub">ESP performance summary across all providers</p>
+      <div style={{ marginTop: 8 }}>
+        <HiddenEspsBadge />
+      </div>
 
       {/* KPI row */}
       <div className="grid-kpi">
