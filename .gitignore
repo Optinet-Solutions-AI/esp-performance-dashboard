@@ -5,3 +5,16 @@ node_modules/
 out/
 csv/
 .gitnexus
+
+# Auto-generated
+tsconfig.tsbuildinfo
+next-env.d.ts
+package-lock.json
+
+# Local tooling
+.agent/
+.claude/
+
+# Planning/docs
+docs/
+esp-dashboard/
