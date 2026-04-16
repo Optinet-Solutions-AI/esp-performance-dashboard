@@ -19,7 +19,7 @@ const STATUS_COLORS_LIGHT = {
 interface SidebarProps { onClose?: () => void; collapsed?: boolean; onToggleCollapse?: () => void }
 
 export default function Sidebar({ onClose, collapsed, onToggleCollapse }: SidebarProps) {
-  const { activeView, setView, isLight, toggleTheme, esps, activeEsp, setActiveEsp } = useDashboardStore()
+  const { activeView, setView, isLight, toggleTheme, esps, activeEsp, setActiveEsp, hiddenEsps } = useDashboardStore()
   const [providersOpen, setProvidersOpen] = useState(true)
   const [espListOpen, setEspListOpen] = useState(false)
 
@@ -149,7 +149,15 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
                   { id: '171mailsapp' as ViewName, label: '171 MailsApp Review', color: '#ff6b9d' },
                   { id: 'moosend' as ViewName, label: 'Moosend Review', color: '#ff6b35' },
                   { id: 'kenscio' as ViewName, label: 'Kenscio Review', color: '#e63946' },
-                ].map(item => {
+                ].filter(item => {
+                  // Hide review link if the ESP this view represents is hidden
+                  const espNameForView: Record<string, string> = {
+                    mailmodo: 'Mailmodo', ongage: 'Ongage', netcore: 'Netcore',
+                    mms: 'MMS', hotsol: 'Hotsol', '171mailsapp': '171 MailsApp',
+                    moosend: 'Moosend', kenscio: 'Kenscio',
+                  }
+                  return !hiddenEsps.includes(espNameForView[item.id] ?? item.id)
+                }).map(item => {
                   const active = activeView === item.id
                   return (
                     <button key={item.id} onClick={() => navTo(item.id)}
@@ -186,7 +194,7 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
         {/* Active ESP list — hidden when collapsed */}
         {!collapsed && (() => {
           const STATUS_ORDER: Record<string, number> = { healthy: 0, warn: 1, critical: 2 }
-          const activeEsps = esps.filter(e => e.sent > 0).sort((a, b) => (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0))
+          const activeEsps = esps.filter(e => e.sent > 0 && !hiddenEsps.includes(e.name)).sort((a, b) => (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0))
           if (activeEsps.length === 0) return null
           return (
             <div style={{ marginTop: 8 }}>
