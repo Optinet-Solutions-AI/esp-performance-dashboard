@@ -63,7 +63,6 @@ export default function MatrixView() {
   const [toDate, setToDate] = useState('')
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [filterEsp, setFilterEsp] = useState('')
 
   function handleFrom(iso: string) { setFromDate(iso) }
   function handleTo(iso: string) { setToDate(iso) }
@@ -90,10 +89,8 @@ export default function MatrixView() {
   }
 
   function getSortedEspList(): string[] {
-    const q = filterEsp.trim().toLowerCase()
-    const base = q ? espList.filter(e => e.toLowerCase().includes(q)) : espList
-    if (!sortCol) return base
-    return [...base].sort((a, b) => {
+    if (!sortCol) return espList
+    return [...espList].sort((a, b) => {
       if (sortCol === 'name') {
         const cmp = a.localeCompare(b)
         return sortDir === 'asc' ? cmp : -cmp
@@ -263,11 +260,7 @@ export default function MatrixView() {
   const thCls = `px-3 py-2.5 text-[11px] font-mono tracking-widest uppercase text-left border-b whitespace-nowrap overflow-hidden cursor-pointer select-none`
   const tdCls = `px-3 py-2.5 text-left text-[11px] font-mono border-b`
 
-  function rateColor(cls: string) {
-    if (isLight) return txt
-    if (cls === 'mx-good') return '#00e5c3'
-    if (cls === 'mx-warn') return '#ffd166'
-    if (cls === 'mx-bad') return '#ff4757'
+  function rateColor(_cls: string) {
     return txt
   }
 
@@ -304,7 +297,7 @@ export default function MatrixView() {
           onMouseEnter={e => { if (R.ctr > 0) showTip(e, 'CLICK RATE', R.ctr.toFixed(2) + '%', 'Clicks ÷ Opens × 100', `${fmtMx(agg.clicked)} ÷ ${fmtMx(agg.opened)} × 100 = ${R.ctr.toFixed(2)}%`) }}
           onMouseLeave={() => setTip(null)}>{R.ctr > 0 ? R.ctr.toFixed(1) + '%' : ''}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.unsubscribed || 0)}</td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: (agg.complained || 0) > 0 && !isLight ? '#ff4757' : txt }}>{fmtMx(agg.complained || 0)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.complained || 0)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(rateCls(R.trr, false, 5, 15)), cursor: R.thr > 0 ? 'help' : undefined }}
           onMouseEnter={e => { if (R.thr > 0) showTip(e, 'THROTTLING', R.trr.toFixed(2) + '%', '(Sent − Delivered − Bounced) ÷ Sent × 100', `(${fmtMx(agg.sent)} − ${fmtMx(agg.delivered)} − ${fmtMx(agg.bounced)}) ÷ ${fmtMx(agg.sent)} × 100 = ${R.trr.toFixed(2)}%`) }}
           onMouseLeave={() => setTip(null)}>{R.thr > 0 ? `${fmtMx(R.thr)} (${R.trr.toFixed(1)}%)` : ''}</td>
@@ -580,30 +573,8 @@ export default function MatrixView() {
           <table className="w-full border-collapse" style={{ minWidth: 1380, tableLayout: 'fixed' }}>
             <thead>
               <tr style={{ background: headerBg }}>
-                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 200, position: 'sticky', top: 0, zIndex: 5, background: headerBg }}>
-                  <span className="inline-flex items-center cursor-pointer select-none" onClick={() => handleSort('name')}>ESP / IP / From Domain<SortIcon col="name" /></span>
-                  <div className="mt-1.5 flex items-center relative" onClick={e => e.stopPropagation()}>
-                    <input
-                      type="text"
-                      value={filterEsp}
-                      onChange={e => setFilterEsp(e.target.value)}
-                      placeholder="Filter ESP…"
-                      className="w-full font-mono text-[10px] px-2 py-0.5 pr-5 rounded border outline-none"
-                      style={{
-                        background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
-                        borderColor: isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.12)',
-                        color: txt,
-                        cursor: 'text',
-                      }}
-                    />
-                    {filterEsp && (
-                      <button
-                        onClick={() => setFilterEsp('')}
-                        className="absolute right-1 text-[10px] leading-none"
-                        style={{ color: muted }}
-                      >✕</button>
-                    )}
-                  </div>
+                <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 200, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('name')}>
+                  <span className="inline-flex items-center">ESP / IP / From Domain<SortIcon col="name" /></span>
                 </th>
                 <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 140, position: 'sticky', top: 0, zIndex: 5, background: headerBg, cursor: 'default' }}>Email Provider</th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('sent')}>
