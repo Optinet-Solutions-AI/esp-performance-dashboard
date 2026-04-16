@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Chart } from 'chart.js/auto'
 import { useDashboardStore } from '@/lib/store'
-import { aggDates, fmtN, fmtP, fmtDateLabel, getGridColor, getTextColor, chartTooltip } from '@/lib/utils'
+import { aggDates, fmtN, fmtP, fmtDateLabel, getGridColor, getTextColor, chartTooltip, visibleEspNames } from '@/lib/utils'
 import { DOMAIN_COLORS, IP_COLOR_PALETTE, IP_COLOR_PALETTE_LIGHT, ESP_COLORS } from '@/lib/data'
 import type { MmData, MmTabType, DateMetrics } from '@/lib/types'
 import CalendarPicker from '@/components/ui/CalendarPicker'
@@ -201,7 +201,7 @@ export default function OngageView() {
   const store     = useDashboardStore()
   const isLight   = store.isLight
   const ipmData   = store.ipmData
-  const allEsps   = Object.keys(store.espData)
+  const allEsps   = visibleEspNames(store.espData, store.hiddenEsps)
   const espList: string[] = allEsps.filter(e => e === 'Ongage')
 
   const [selectedEsp, setSelectedEsp] = useState('')
@@ -638,6 +638,25 @@ export default function OngageView() {
   /* ──────────────────────────────────────────────────────────────
      RENDER
   ─────────────────────────────────────────────────────────────── */
+  if (selectedEsp && store.hiddenEsps.includes(selectedEsp)) {
+    return (
+      <div className="p-6">
+        <div className={`rounded-xl border p-8 text-center ${isLight ? 'bg-white border-black/[0.10]' : 'bg-[#111418] border-white/7'}`}>
+          <div className={`text-sm mb-3 ${isLight ? 'text-gray-600' : 'text-[#a8b0be]'}`}>
+            <strong>{selectedEsp}</strong> is currently hidden from all views.
+          </div>
+          <button
+            onClick={() => store.toggleEspVisibility(selectedEsp)}
+            className={`px-4 py-2 rounded-lg border text-xs font-mono uppercase tracking-wider transition-all
+              ${isLight ? 'border-[#0d9488]/40 text-[#0d9488] hover:bg-[#0d9488]/[0.08]' : 'border-[#00e5c3]/40 text-[#00e5c3] hover:bg-[#00e5c3]/10'}`}
+          >
+            Unhide {selectedEsp}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 space-y-5">
 
