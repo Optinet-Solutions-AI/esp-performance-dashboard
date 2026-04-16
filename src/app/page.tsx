@@ -104,9 +104,7 @@ export default function Page() {
           .from('esp_visibility')
           .select('esp')
           .eq('hidden', true)
-        if (visRows) {
-          setHiddenEsps(visRows.map(r => r.esp))
-        }
+        setHiddenEsps(visRows?.map(r => r.esp) ?? [])
       } catch (err) {
         console.error('Failed to load from Supabase:', err)
       } finally {
