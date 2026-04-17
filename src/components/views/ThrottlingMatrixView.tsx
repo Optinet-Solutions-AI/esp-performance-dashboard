@@ -29,6 +29,7 @@ export default function ThrottlingMatrixView() {
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null)
   const [filterEsp, setFilterEsp] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const txt      = isLight ? '#111827' : '#f0f2f5'
   const muted    = isLight ? '#374151' : '#c8cdd6'
@@ -73,7 +74,6 @@ export default function ThrottlingMatrixView() {
   }
 
   async function handleDelete() {
-    if (!confirm('Delete all throttle data? This cannot be undone.')) return
     setDeleting(true)
     try {
       await supabase.from('throttle_matrix').delete().not('id', 'is', null)
@@ -84,6 +84,7 @@ export default function ThrottlingMatrixView() {
       setMsg({ text: String(err), ok: false })
     } finally {
       setDeleting(false)
+      setConfirmDelete(false)
     }
   }
 
@@ -158,14 +159,13 @@ export default function ThrottlingMatrixView() {
                 CSV
               </button>
               <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all disabled:opacity-40 disabled:cursor-not-allowed ${isLight ? 'border-red-300 text-red-500 hover:border-red-500 hover:bg-red-50' : 'border-[#ff4757]/40 text-[#ff4757] hover:border-[#ff4757] hover:bg-[#ff4757]/10'}`}
+                onClick={() => setConfirmDelete(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-red-300 text-red-500 hover:border-red-500 hover:bg-red-50' : 'border-[#ff4757]/40 text-[#ff4757] hover:border-[#ff4757] hover:bg-[#ff4757]/10'}`}
               >
                 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M2 3h8M5 3V1.5h2V3M3 3l.5 7.5h5L9 3"/>
                 </svg>
-                {deleting ? 'Deleting…' : 'Delete Data'}
+                Delete Data
               </button>
             </>
           )}
@@ -251,6 +251,47 @@ export default function ThrottlingMatrixView() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/60" onClick={() => !deleting && setConfirmDelete(false)} />
+          <div className="relative z-10 rounded-2xl border p-7 w-[360px]" style={{ background: surfBg, borderColor: bdr }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full" style={{ background: 'rgba(255,71,87,0.12)' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff4757" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                </svg>
+              </div>
+              <div>
+                <div className="text-sm font-semibold" style={{ color: txt }}>Delete all throttle data?</div>
+                <div className="text-[12px] mt-0.5" style={{ color: muted }}>This will remove all {throttleData.length} rows from the database.</div>
+              </div>
+            </div>
+            <p className="text-[12px] font-mono mb-5 px-1" style={{ color: muted }}>
+              This action cannot be undone. You will need to re-upload the CSV to restore the data.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl text-[12px] font-mono font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: '#ff4757', color: '#fff' }}
+              >
+                {deleting ? 'Deleting…' : 'Yes, Delete'}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl border text-[12px] font-mono uppercase tracking-wider transition-all"
+                style={{ borderColor: bdr, color: muted }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

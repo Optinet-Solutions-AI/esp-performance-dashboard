@@ -40,47 +40,47 @@ export default function Page() {
   useEffect(() => {
     async function loadFromDB() {
       try {
-        const { data: rows, error } = await supabase
+        const { data: rows } = await supabase
           .from('uploads')
           .select('esp, solo_data')
           .order('uploaded_at', { ascending: true })
 
-        if (error || !rows?.length) return
+        if (rows?.length) {
+          // Group uploads by ESP name and merge per-ESP
+          const byEsp: Record<string, MmData[]> = {}
+          for (const row of rows) {
+            if (!row.esp || !row.solo_data) continue
+            if (!byEsp[row.esp]) byEsp[row.esp] = []
+            byEsp[row.esp].push(row.solo_data as MmData)
+          }
 
-        // Group uploads by ESP name and merge per-ESP
-        const byEsp: Record<string, MmData[]> = {}
-        for (const row of rows) {
-          if (!row.esp || !row.solo_data) continue
-          if (!byEsp[row.esp]) byEsp[row.esp] = []
-          byEsp[row.esp].push(row.solo_data as MmData)
+          const newEsps = [...esps]
+          for (const [espName, uploads] of Object.entries(byEsp)) {
+            let merged = INITIAL_MM_DATA as MmData
+            for (const data of uploads) {
+              merged = overwriteMmData(merged, data)
+            }
+            // providerDomains already merged by overwriteMmData from solo_data
+            setEspData(espName, merged)
+
+            const existing = newEsps.find(e => e.name === espName)
+            const base = existing ?? {
+              name: espName,
+              color: ESP_COLORS[espName] ?? '#a8b0be',
+              sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0,
+              deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubRate: 0,
+              status: 'healthy' as const,
+            }
+            const updated = syncEspFromData(base, merged)
+            if (existing) {
+              newEsps[newEsps.findIndex(e => e.name === espName)] = updated
+            } else {
+              newEsps.push(updated)
+            }
+          }
+
+          if (newEsps.length) setEsps(newEsps)
         }
-
-        const newEsps = [...esps]
-        for (const [espName, uploads] of Object.entries(byEsp)) {
-          let merged = INITIAL_MM_DATA as MmData
-          for (const data of uploads) {
-            merged = overwriteMmData(merged, data)
-          }
-          // providerDomains already merged by overwriteMmData from solo_data
-          setEspData(espName, merged)
-
-          const existing = newEsps.find(e => e.name === espName)
-          const base = existing ?? {
-            name: espName,
-            color: ESP_COLORS[espName] ?? '#a8b0be',
-            sent: 0, delivered: 0, opens: 0, clicks: 0, bounced: 0, unsub: 0,
-            deliveryRate: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubRate: 0,
-            status: 'healthy' as const,
-          }
-          const updated = syncEspFromData(base, merged)
-          if (existing) {
-            newEsps[newEsps.findIndex(e => e.name === espName)] = updated
-          } else {
-            newEsps.push(updated)
-          }
-        }
-
-        if (newEsps.length) setEsps(newEsps)
 
         // Load IP Matrix data
         const { data: ipmRows } = await supabase
