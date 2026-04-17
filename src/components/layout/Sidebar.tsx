@@ -196,10 +196,10 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
         <SectionLabel text="Tools" />
         <NavItem id="analytics" label="Analytics" icon={iconAnalytics} />
         <NavItem id="upload" label="Upload Report" icon={iconUp} />
-        <NavItem id="throttling" label="Throttling Matrix" icon={iconThrottle} />
         <NavItem id="matrix" label="ESP Deliverability" icon={iconGrid} />
         <NavItem id="datamgmt" label="Data Management" icon={iconDb} />
         <NavItem id="ipmatrix" label="IPs Matrix" icon={iconIP} />
+        <NavItem id="throttling" label="Throttling Matrix" icon={iconThrottle} />
         <NavItem id="logs" label="Logs" icon={iconChart} />
 
         {/* Active ESP list — hidden when collapsed */}
