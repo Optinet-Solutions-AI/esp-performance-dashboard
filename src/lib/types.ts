@@ -121,6 +121,7 @@ export type ViewName =
   | 'hotsol'
   | '171mailsapp'
   | 'upload'
+  | 'throttling'
   | 'matrix'
   | 'datamgmt'
   | 'ipmatrix'
@@ -130,3 +131,22 @@ export type ViewName =
   | 'kenscio'
 
 export type MmTabType = 'ip' | 'provider' | 'domain'
+
+// --- Throttle Matrix ---
+export type ThrottleValue = number | 'TBC'
+
+export interface ThrottleRecord {
+  esp:        string
+  ip:         string
+  fromDomain: string
+  gmail:      ThrottleValue
+  hotmail:    ThrottleValue
+  outlook:    ThrottleValue
+  yahoo:      ThrottleValue
+  icloud:     ThrottleValue
+  aol:        ThrottleValue
+  live:       ThrottleValue
+  gmx:        ThrottleValue
+  web:        ThrottleValue
+  others:     ThrottleValue
+}
