@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { visibleEspNames, getThrottleCategory, findThrottleRecord, throttleSumOrTbc } from '@/lib/utils'
 import { ESP_COLORS } from '@/lib/data'
@@ -59,6 +59,14 @@ export default function MatrixView() {
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [tip, setTip] = useState<{ title: string; exact: string; formula: string; calc: string; x: number; y: number } | null>(null)
+  const hasMoved = useRef(false)
+
+  useEffect(() => {
+    hasMoved.current = false
+    const onMove = () => { hasMoved.current = true }
+    window.addEventListener('mousemove', onMove, { once: true })
+    return () => window.removeEventListener('mousemove', onMove)
+  }, [])
 
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -299,6 +307,7 @@ export default function MatrixView() {
   }
 
   function showTip(e: React.MouseEvent, title: string, exact: string, formula: string, calc: string) {
+    if (!hasMoved.current) return
     const tipW = 260, tipH = 130
     const x = e.clientX + 14 + tipW > window.innerWidth ? e.clientX - tipW - 8 : e.clientX + 14
     const y = e.clientY + 14 + tipH > window.innerHeight ? e.clientY - tipH - 8 : e.clientY + 14
@@ -416,7 +425,7 @@ export default function MatrixView() {
             </span>
           </td>
           <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}` }}></td>
-          <DataRow agg={espTot} throttle={espThrottle} />
+          {DataRow({ agg: espTot, throttle: espThrottle })}
         </tr>
       )
 
@@ -466,7 +475,7 @@ export default function MatrixView() {
               />
             </td>
             <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg }}></td>
-            <DataRow agg={ipTot} bg={ipBg} throttle={ipThrottle} />
+            {DataRow({ agg: ipTot, bg: ipBg, throttle: ipThrottle })}
           </tr>
         )
 
@@ -505,7 +514,7 @@ export default function MatrixView() {
                 <ToggleBtn expanded={fdEx} label={<span style={{ color: muted, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
               </td>
               <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg }}></td>
-              <DataRow agg={fdAgg} bg={fdBg} throttle={fdThrottle} />
+              {DataRow({ agg: fdAgg, bg: fdBg, throttle: fdThrottle })}
             </tr>
           )
 
@@ -523,7 +532,7 @@ export default function MatrixView() {
                   <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, display: 'inline-block', marginRight: 7, verticalAlign: 'middle' }} />
                   {provName}
                 </td>
-                <DataRow agg={provAgg} bg={provBg} throttle={provThrottle} />
+                {DataRow({ agg: provAgg, bg: provBg, throttle: provThrottle })}
               </tr>
             )
           })
@@ -536,7 +545,7 @@ export default function MatrixView() {
                   <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, display: 'inline-block', marginRight: 7, verticalAlign: 'middle' }} />
                   Others ({otherFdProviders.length})
                 </td>
-                <DataRow agg={othersFdAgg} bg={provBg} throttle={null} />
+                {DataRow({ agg: othersFdAgg, bg: provBg, throttle: null })}
               </tr>
             )
           }
