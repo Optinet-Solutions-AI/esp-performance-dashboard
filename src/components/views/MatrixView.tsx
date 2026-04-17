@@ -1,11 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
-import { fmtN, fmtP, aggDates, fmtDateLabel, visibleEspNames } from '@/lib/utils'
+import { fmtN, fmtP, aggDates, fmtDateLabel, visibleEspNames, getThrottleCategory, findThrottleRecord, throttleSumOrTbc } from '@/lib/utils'
 import { ESP_COLORS } from '@/lib/data'
 import CalendarPicker from '@/components/ui/CalendarPicker'
 import EspVisibilityIcon from '@/components/ui/EspVisibilityIcon'
-import type { MmData, DateMetrics, IpmRecord } from '@/lib/types'
+import type { MmData, DateMetrics, IpmRecord, ThrottleRecord, ThrottleValue } from '@/lib/types'
 
 const EMPTY_DATA: MmData = { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
 
@@ -54,7 +54,7 @@ function fmtMx(n: number) { return n > 0 ? n.toLocaleString() : '' }
 
 export default function MatrixView() {
   const store = useDashboardStore()
-  const { isLight, ipmData, hiddenEsps } = store
+  const { isLight, ipmData, hiddenEsps, throttleData } = store
   const espList = visibleEspNames(store.espData, hiddenEsps)
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
@@ -111,6 +111,13 @@ export default function MatrixView() {
         case 'clickRate': aVal = aR.ctr; bVal = bR.ctr; break
         case 'unsubscribed': aVal = aAgg.unsubscribed; bVal = bAgg.unsubscribed; break
         case 'complained': aVal = aAgg.complained; bVal = bAgg.complained; break
+        case 'throttling': {
+          const aFds = Object.keys(store.espData[a]?.domains || {}).filter(d => d !== 'unknown' && d !== '')
+          const bFds = Object.keys(store.espData[b]?.domains || {}).filter(d => d !== 'unknown' && d !== '')
+          aVal = getEspThrottleTotal(a, aFds) ?? 0
+          bVal = getEspThrottleTotal(b, bFds) ?? 0
+          break
+        }
       }
       return sortDir === 'desc' ? bVal - aVal : aVal - bVal
     })
@@ -128,11 +135,14 @@ export default function MatrixView() {
   }
 
   function downloadCsv() {
-    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Unsubscribed', 'Complaints']
+    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Unsubscribed', 'Complaints', 'Throttling']
     const csvRows: string[][] = [headers]
 
-    function aggToRow(level: string, esp: string, ip: string, fd: string, prov: string, agg: Agg): string[] {
+    function aggToRow(level: string, esp: string, ip: string, fd: string, prov: string, agg: Agg, throttle?: number | 'TBC' | null): string[] {
       const R = rates(agg)
+      const thrStr = throttle === null || throttle === undefined ? ''
+        : throttle === 'TBC' ? 'TBC'
+        : String(throttle)
       return [
         level, esp, ip, fd, prov,
         String(agg.sent), String(agg.delivered), String(agg.bounced), String(agg.softBounced), String(agg.hardBounced),
@@ -141,6 +151,7 @@ export default function MatrixView() {
         String(agg.clicked),
         agg.opened > 0 ? R.ctr.toFixed(2) + '%' : '',
         String(agg.unsubscribed || 0), String(agg.complained || 0),
+        thrStr,
       ]
     }
 
@@ -174,7 +185,7 @@ export default function MatrixView() {
       Object.values(espData.providers || {}).forEach(p => { const a = mxAgg(p.byDate, espActiveDates); addAgg(espTot, a) })
       if (espTot.sent === 0) return
 
-      csvRows.push(aggToRow('ESP', espName, '', '', '', espTot))
+      csvRows.push(aggToRow('ESP', espName, '', '', '', espTot, getEspThrottleTotal(espName, allFromDomains)))
 
       sortedIps.forEach(ip => {
         const fromDomains = ipGroups[ip] || []
@@ -185,14 +196,25 @@ export default function MatrixView() {
         })
         if (ipTot.sent === 0) return
 
-        csvRows.push(aggToRow('IP', espName, ip, '', '', ipTot))
+        let ipThrottleCsv: number | null = null
+        for (const fd of fromDomains) {
+          const rec = findThrottleRecord(throttleData, espName, fd)
+          if (!rec) continue
+          const sum = throttleSumOrTbc(rec)
+          if (typeof sum === 'number') { ipThrottleCsv = (ipThrottleCsv ?? 0) + sum }
+        }
+
+        csvRows.push(aggToRow('IP', espName, ip, '', '', ipTot, ipThrottleCsv))
 
         fromDomains.forEach(fd => {
           const fdData = espData.domains[fd]
           const fdAgg = fdData ? mxAgg(fdData.byDate, espActiveDates) : emptyAgg()
           if (fdAgg.sent === 0) return
 
-          csvRows.push(aggToRow('From Domain', espName, ip, fd, '', fdAgg))
+          const fdThrottleRec = findThrottleRecord(throttleData, espName, fd)
+          const fdThrottleCsv: number | 'TBC' | null = fdThrottleRec ? throttleSumOrTbc(fdThrottleRec) : null
+
+          csvRows.push(aggToRow('From Domain', espName, ip, fd, '', fdAgg, fdThrottleCsv))
 
           const fdProviders = Object.entries(espData.providerDomains || {})
             .filter(([, domMap]) => domMap[fd] && domMap[fd].sent > 0)
@@ -208,10 +230,11 @@ export default function MatrixView() {
           otherProviders.forEach(({ agg }) => addAgg(othersAgg, agg))
 
           top10Providers.forEach(({ name: provName, agg: provAgg }) => {
-            csvRows.push(aggToRow('Email Provider', espName, ip, fd, provName, provAgg))
+            const provThrottleCsv: ThrottleValue | null = fdThrottleRec ? (fdThrottleRec[getThrottleCategory(provName)] as ThrottleValue) : null
+            csvRows.push(aggToRow('Email Provider', espName, ip, fd, provName, provAgg, provThrottleCsv))
           })
           if (otherProviders.length > 0) {
-            csvRows.push(aggToRow('Email Provider', espName, ip, fd, `Others (${otherProviders.length})`, othersAgg))
+            csvRows.push(aggToRow('Email Provider', espName, ip, fd, `Others (${otherProviders.length})`, othersAgg, null))
           }
         })
       })
@@ -250,6 +273,18 @@ export default function MatrixView() {
     return map
   }
 
+  function getEspThrottleTotal(espName: string, fromDomains: string[]): number | null {
+    let total = 0
+    let found = false
+    for (const fd of fromDomains) {
+      const rec = findThrottleRecord(throttleData, espName, fd)
+      if (!rec) continue
+      const sum = throttleSumOrTbc(rec)
+      if (typeof sum === 'number') { total += sum; found = true }
+    }
+    return found ? total : null
+  }
+
   const txt = isLight ? '#111827' : '#f0f2f5'
   const muted = isLight ? '#374151' : '#c8cdd6'
   const bdr = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'
@@ -270,13 +305,21 @@ export default function MatrixView() {
     setTip({ title, exact, formula, calc, x, y })
   }
 
-  function DataRow({ agg, isTotal, isFdTotal, bg }: { agg: Agg; isTotal?: boolean; isFdTotal?: boolean; bg?: string }) {
+  function DataRow({ agg, isTotal, isFdTotal, bg, throttle }: {
+    agg: Agg; isTotal?: boolean; isFdTotal?: boolean; bg?: string
+    throttle?: number | 'TBC' | null
+  }) {
     const R = rates(agg)
     const fw = isTotal || isFdTotal ? 'font-bold' : ''
     const style: React.CSSProperties = { borderBottom: `1px solid ${bdr}` }
     if (bg) style.background = bg
-    if (isTotal) { style.background = isLight ? '#e8eaef' : '#1a1e26'; style.borderTop = `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}` }
+    if (isTotal)   { style.background = isLight ? '#e8eaef' : '#1a1e26'; style.borderTop = `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}` }
     if (isFdTotal) { style.background = isLight ? '#e0e3ea' : 'rgba(255,255,255,.04)'; style.borderTop = `1px solid ${bdr}` }
+
+    const thrDisplay = throttle === null || throttle === undefined ? ''
+      : throttle === 'TBC' ? 'TBC'
+      : (throttle as number).toLocaleString()
+    const thrColor = throttle === 'TBC' ? (isLight ? '#b45309' : '#ffd166') : txt
 
     return (
       <>
@@ -297,6 +340,9 @@ export default function MatrixView() {
           onMouseLeave={() => setTip(null)}>{R.ctr > 0 ? R.ctr.toFixed(1) + '%' : ''}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.unsubscribed || 0)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.complained || 0)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: thrColor, fontStyle: throttle === 'TBC' ? 'italic' : 'normal' }}>
+          {thrDisplay}
+        </td>
       </>
     )
   }
@@ -355,6 +401,8 @@ export default function MatrixView() {
 
       if (espTot.sent === 0) return
 
+      const espThrottle = getEspThrottleTotal(espName, allFromDomains)
+
       const espKey = `esp||${espName}`
       const espEx = !!expanded[espKey]
 
@@ -368,7 +416,7 @@ export default function MatrixView() {
             </span>
           </td>
           <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}` }}></td>
-          <DataRow agg={espTot} />
+          <DataRow agg={espTot} throttle={espThrottle} />
         </tr>
       )
 
@@ -385,6 +433,15 @@ export default function MatrixView() {
           if (d) { const a = mxAgg(d.byDate, espActiveDates); addAgg(ipTot, a) }
         })
         if (ipTot.sent === 0) return
+
+        // IP throttle: sum from-domain totals under this IP
+        let ipThrottle: number | null = null
+        for (const fd of fromDomains) {
+          const rec = findThrottleRecord(throttleData, espName, fd)
+          if (!rec) continue
+          const sum = throttleSumOrTbc(rec)
+          if (typeof sum === 'number') { ipThrottle = (ipThrottle ?? 0) + sum }
+        }
 
         const ipKey = `ip||${espName}||${ip}`
         const ipEx = !!expanded[ipKey]
@@ -409,7 +466,7 @@ export default function MatrixView() {
               />
             </td>
             <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg }}></td>
-            <DataRow agg={ipTot} bg={ipBg} />
+            <DataRow agg={ipTot} bg={ipBg} throttle={ipThrottle} />
           </tr>
         )
 
@@ -420,6 +477,9 @@ export default function MatrixView() {
           const fdData = espData.domains[fd]
           const fdAgg = fdData ? mxAgg(fdData.byDate, espActiveDates) : emptyAgg()
           if (fdAgg.sent === 0) return
+
+          const thrRec = findThrottleRecord(throttleData, espName, fd)
+          const fdThrottle: number | 'TBC' | null = thrRec ? throttleSumOrTbc(thrRec) : null
 
           const fdKey = `fd||${espName}||${ip}||${fd}`
           const fdEx = !!expanded[fdKey]
@@ -445,7 +505,7 @@ export default function MatrixView() {
                 <ToggleBtn expanded={fdEx} label={<span style={{ color: muted, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
               </td>
               <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg }}></td>
-              <DataRow agg={fdAgg} bg={fdBg} />
+              <DataRow agg={fdAgg} bg={fdBg} throttle={fdThrottle} />
             </tr>
           )
 
@@ -453,6 +513,8 @@ export default function MatrixView() {
 
           // Level 4: Email Providers (top 10 + Others)
           top10FdProviders.forEach(({ name: provName, agg: provAgg }) => {
+            const cat = getThrottleCategory(provName)
+            const provThrottle: ThrottleValue | null = thrRec ? (thrRec[cat] as ThrottleValue) : null
             const provBg = isLight ? 'rgba(0,0,0,.035)' : 'rgba(255,255,255,.035)'
             rows.push(
               <tr key={`prov||${espName}||${ip}||${fd}||${provName}`}>
@@ -461,7 +523,7 @@ export default function MatrixView() {
                   <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, display: 'inline-block', marginRight: 7, verticalAlign: 'middle' }} />
                   {provName}
                 </td>
-                <DataRow agg={provAgg} bg={provBg} />
+                <DataRow agg={provAgg} bg={provBg} throttle={provThrottle} />
               </tr>
             )
           })
@@ -474,7 +536,7 @@ export default function MatrixView() {
                   <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted, display: 'inline-block', marginRight: 7, verticalAlign: 'middle' }} />
                   Others ({otherFdProviders.length})
                 </td>
-                <DataRow agg={othersFdAgg} bg={provBg} />
+                <DataRow agg={othersFdAgg} bg={provBg} throttle={null} />
               </tr>
             )
           }
@@ -569,7 +631,7 @@ export default function MatrixView() {
           </div>
         )}
         <div className={`rounded-xl border overflow-auto ${expandedBreadcrumbs.length > 0 ? 'mt-2' : ''}`} style={{ background: surfaceBg, borderColor: bdr, maxHeight: 'calc(100vh - 180px)' }}>
-          <table className="w-full border-collapse" style={{ minWidth: 1380, tableLayout: 'fixed' }}>
+          <table className="w-full border-collapse" style={{ minWidth: 1470, tableLayout: 'fixed' }}>
             <thead>
               <tr style={{ background: headerBg }}>
                 <th className={`${thCls} text-left`} style={{ borderColor: bdr, color: txt, width: 200, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('name')}>
@@ -608,6 +670,9 @@ export default function MatrixView() {
                 </th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, width: 85, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('complained')}>
                   <span className="inline-flex items-center">Complaints<SortIcon col="complained" /></span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 90, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('throttling')}>
+                  <span className="inline-flex items-center">Throttling<SortIcon col="throttling" /></span>
                 </th>
               </tr>
             </thead>
