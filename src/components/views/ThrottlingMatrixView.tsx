@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useState } from 'react'
 import { useDashboardStore } from '@/lib/store'
+import { supabase } from '@/lib/supabase'
 import { parseThrottleCsv } from '@/lib/parsers'
 import type { ThrottleRecord, ThrottleValue } from '@/lib/types'
 import CustomSelect from '@/components/ui/CustomSelect'
@@ -27,6 +28,7 @@ export default function ThrottlingMatrixView() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null)
   const [filterEsp, setFilterEsp] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   const txt      = isLight ? '#111827' : '#f0f2f5'
   const muted    = isLight ? '#374151' : '#c8cdd6'
@@ -51,11 +53,38 @@ export default function ThrottlingMatrixView() {
       const parsed = parseThrottleCsv(text)
       if (parsed.length === 0) throw new Error('No rows parsed — check the file format.')
       setThrottleData(parsed)
+
+      // Persist to Supabase so data is available across all environments/sessions
+      await supabase.from('throttle_matrix').delete().not('id', 'is', null)
+      await supabase.from('throttle_matrix').insert(
+        parsed.map(r => ({
+          esp: r.esp, ip: r.ip, from_domain: r.fromDomain,
+          gmail: String(r.gmail), hotmail: String(r.hotmail), outlook: String(r.outlook),
+          yahoo: String(r.yahoo), icloud: String(r.icloud), aol: String(r.aol),
+          live: String(r.live), gmx: String(r.gmx), web: String(r.web), others: String(r.others),
+        }))
+      )
+
       setMsg({ text: `Loaded ${parsed.length} rows from "${file.name}"`, ok: true })
     } catch (err) {
       setMsg({ text: String(err), ok: false })
     }
     e.target.value = ''
+  }
+
+  async function handleDelete() {
+    if (!confirm('Delete all throttle data? This cannot be undone.')) return
+    setDeleting(true)
+    try {
+      await supabase.from('throttle_matrix').delete().not('id', 'is', null)
+      setThrottleData([])
+      setFilterEsp('')
+      setMsg({ text: 'All throttle data deleted.', ok: true })
+    } catch (err) {
+      setMsg({ text: String(err), ok: false })
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function downloadCsv() {
@@ -118,15 +147,27 @@ export default function ThrottlingMatrixView() {
             Upload CSV
           </button>
           {throttleData.length > 0 && (
-            <button
-              onClick={downloadCsv}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/20 text-gray-600 hover:border-[#0d9488] hover:text-[#0d9488]' : 'border-white/[0.13] text-[#a8b0be] hover:border-[#0d9488] hover:text-[#0d9488]'}`}
-            >
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 1v7M3.5 6l2.5 2.5L8.5 6"/><path d="M1 10h10"/>
-              </svg>
-              CSV
-            </button>
+            <>
+              <button
+                onClick={downloadCsv}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/20 text-gray-600 hover:border-[#0d9488] hover:text-[#0d9488]' : 'border-white/[0.13] text-[#a8b0be] hover:border-[#0d9488] hover:text-[#0d9488]'}`}
+              >
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 1v7M3.5 6l2.5 2.5L8.5 6"/><path d="M1 10h10"/>
+                </svg>
+                CSV
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all disabled:opacity-40 disabled:cursor-not-allowed ${isLight ? 'border-red-300 text-red-500 hover:border-red-500 hover:bg-red-50' : 'border-[#ff4757]/40 text-[#ff4757] hover:border-[#ff4757] hover:bg-[#ff4757]/10'}`}
+              >
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 3h8M5 3V1.5h2V3M3 3l.5 7.5h5L9 3"/>
+                </svg>
+                {deleting ? 'Deleting…' : 'Delete Data'}
+              </button>
+            </>
           )}
         </div>
       </div>

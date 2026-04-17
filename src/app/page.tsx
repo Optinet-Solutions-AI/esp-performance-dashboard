@@ -31,7 +31,7 @@ const VIEW_LABELS: Record<string, string> = {
 }
 
 export default function Page() {
-  const { activeView, isLight, setEspData, setEsps, esps, setIpmData, setDmData, setHiddenEsps } = useDashboardStore()
+  const { activeView, isLight, setEspData, setEsps, esps, setIpmData, setDmData, setHiddenEsps, setThrottleData } = useDashboardStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const sidebarWidth = sidebarCollapsed ? 60 : 240
@@ -99,6 +99,32 @@ export default function Page() {
         if (dmRows?.length) {
           setDmData(dmRows.map(r => r.raw_data))
         }
+
+        // Load Throttle Matrix data (source of truth is Supabase, not localStorage)
+        const { data: throttleRows } = await supabase
+          .from('throttle_matrix')
+          .select('esp, ip, from_domain, gmail, hotmail, outlook, yahoo, icloud, aol, live, gmx, web, others')
+          .order('created_at', { ascending: true })
+        function parseThrottleVal(v: string | null): number | 'TBC' {
+          if (!v || v.toUpperCase() === 'TBC') return 'TBC'
+          const n = Number(v)
+          return isNaN(n) ? 0 : n
+        }
+        setThrottleData((throttleRows ?? []).map(r => ({
+          esp: r.esp ?? '',
+          ip: r.ip ?? '',
+          fromDomain: r.from_domain ?? '',
+          gmail:   parseThrottleVal(r.gmail),
+          hotmail: parseThrottleVal(r.hotmail),
+          outlook: parseThrottleVal(r.outlook),
+          yahoo:   parseThrottleVal(r.yahoo),
+          icloud:  parseThrottleVal(r.icloud),
+          aol:     parseThrottleVal(r.aol),
+          live:    parseThrottleVal(r.live),
+          gmx:     parseThrottleVal(r.gmx),
+          web:     parseThrottleVal(r.web),
+          others:  parseThrottleVal(r.others),
+        })))
 
         // Load ESP visibility
         const { data: visRows } = await supabase

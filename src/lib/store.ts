@@ -188,9 +188,15 @@ export const useDashboardStore = create<DashboardState>()(
     }),
     {
       name: 'esp-dashboard-storage',
+      version: 1,
+      migrate: (stored: unknown) => {
+        // v0 → v1: throttleData moved to Supabase, remove from localStorage
+        const s = stored as Record<string, unknown>
+        delete s.throttleData
+        return s
+      },
       partialize: (s) => ({
-        isLight:      s.isLight,
-        throttleData: s.throttleData,
+        isLight: s.isLight,
       }),
     }
   )
