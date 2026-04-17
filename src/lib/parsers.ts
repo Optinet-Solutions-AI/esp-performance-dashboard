@@ -1,5 +1,5 @@
 'use client'
-import type { MmData, DateMetrics } from './types'
+import type { MmData, DateMetrics, ThrottleRecord, ThrottleValue } from './types'
 
 // Dynamically import xlsx to avoid SSR issues
 type XLSXType = typeof import('xlsx')
@@ -51,7 +51,7 @@ function splitCsvLine(line: string): string[] {
 
 // Splits the full CSV text into rows, correctly handling quoted fields
 // that contain embedded newlines (e.g. BounceReason with \r\n in them)
-function splitCsvRows(text: string): string[][] {
+export function splitCsvRows(text: string): string[][] {
   const rows: string[][] = []
   const fields: string[] = []
   let cur = ''
@@ -875,4 +875,45 @@ export function mergeIntoMmData(current: MmData, result: ReturnType<typeof parse
   })
 
   return { data, newDates }
+}
+
+/**
+ * Parse a Throttling Matrix CSV into ThrottleRecord[].
+ *
+ * Expected CSV format (first column header is blank):
+ *   ,IP,From Domain,Gmail,Hotmail,Outlook,Yahoo,Icloud,AOL,Live,Gmx,Web,Others
+ *   Kenscio,103.162.246.126,dailypromote.com,3000,30,30,...
+ *
+ * Values: integer | "TBC" | "" (treated as 0)
+ */
+export function parseThrottleCsv(text: string): ThrottleRecord[] {
+  const rows = splitCsvRows(text)
+  if (rows.length < 2) return []
+
+  function parseVal(raw: string): ThrottleValue {
+    const t = raw.trim()
+    if (t.toUpperCase() === 'TBC') return 'TBC'
+    const n = Number(t)
+    return isNaN(n) ? 0 : n
+  }
+
+  return rows
+    .slice(1) // skip header row
+    .filter(cols => cols.some(v => v.trim() !== ''))
+    .map(cols => ({
+      esp:        cols[0]?.trim() ?? '',
+      ip:         cols[1]?.trim() ?? '',
+      fromDomain: cols[2]?.trim() ?? '',
+      gmail:      parseVal(cols[3]  ?? ''),
+      hotmail:    parseVal(cols[4]  ?? ''),
+      outlook:    parseVal(cols[5]  ?? ''),
+      yahoo:      parseVal(cols[6]  ?? ''),
+      icloud:     parseVal(cols[7]  ?? ''),
+      aol:        parseVal(cols[8]  ?? ''),
+      live:       parseVal(cols[9]  ?? ''),
+      gmx:        parseVal(cols[10] ?? ''),
+      web:        parseVal(cols[11] ?? ''),
+      others:     parseVal(cols[12] ?? ''),
+    }))
+    .filter(r => r.esp || r.ip || r.fromDomain)
 }
