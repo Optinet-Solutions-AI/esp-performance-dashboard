@@ -25,6 +25,7 @@ export default function ThrottlingMatrixView() {
   const { isLight, throttleData, setThrottleData } = useDashboardStore()
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null)
+  const [filterEsp, setFilterEsp] = useState('')
 
   const txt      = isLight ? '#111827' : '#f0f2f5'
   const muted    = isLight ? '#374151' : '#c8cdd6'
@@ -38,6 +39,8 @@ export default function ThrottlingMatrixView() {
     if (!byEsp[r.esp]) byEsp[r.esp] = []
     byEsp[r.esp].push(r)
   })
+  const espNames = Object.keys(byEsp).sort()
+  const visibleEsps = filterEsp ? [[filterEsp, byEsp[filterEsp] ?? []]] as [string, ThrottleRecord[]][] : Object.entries(byEsp)
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -89,6 +92,25 @@ export default function ThrottlingMatrixView() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* ESP filter */}
+          {espNames.length > 0 && (
+            <select
+              value={filterEsp}
+              onChange={e => setFilterEsp(e.target.value)}
+              style={{
+                background: surfBg, color: filterEsp ? (isLight ? '#0f766e' : '#00e5c3') : muted,
+                border: `1px solid ${filterEsp ? (isLight ? '#0d9488' : '#00e5c3') : bdr}`,
+                borderRadius: 8, padding: '5px 10px', fontSize: 11,
+                fontFamily: 'Space Mono, monospace', letterSpacing: '0.08em',
+                textTransform: 'uppercase', cursor: 'pointer', outline: 'none',
+              }}
+            >
+              <option value="">All ESPs</option>
+              {espNames.map(esp => (
+                <option key={esp} value={esp}>{esp}</option>
+              ))}
+            </select>
+          )}
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleFile} />
           <button
             onClick={() => fileRef.current?.click()}
@@ -153,7 +175,7 @@ export default function ThrottlingMatrixView() {
               </tr>
             </thead>
             <tbody>
-              {Object.entries(byEsp).map(([esp, rows]) => {
+              {visibleEsps.map(([esp, rows]) => {
                 const espColor = ESP_BADGE_COLORS[esp] ?? '#a8b0be'
                 return rows.map((r, i) => (
                   <tr key={`${esp}-${r.ip}-${r.fromDomain}`} style={{ borderBottom: `1px solid ${bdr}` }}>
