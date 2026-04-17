@@ -278,7 +278,7 @@ export default function ThrottlingMatrixView() {
                 onClick={handleDelete}
                 disabled={deleting}
                 className="flex-1 py-2.5 rounded-xl text-[12px] font-mono font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: '#ff4757', color: '#fff' }}
+                style={{ background: '#dc2626', color: '#fff' }}
               >
                 {deleting ? 'Deleting…' : 'Yes, Delete'}
               </button>
