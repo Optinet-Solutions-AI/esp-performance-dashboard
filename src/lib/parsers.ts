@@ -422,7 +422,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
         delivered:    statusVal === 'sent' ? 1 : 0,  // Netcore: delivered = sent rows only
         opened:       statusVal === 'opened' ? 1 : 0,
         clicked:      statusVal === 'clicked' ? 1 : 0,
-        bounced:      isSoft,  // Netcore: only soft bounces count
+        bounced:      isSoft || isHard ? 1 : 0,  // Netcore: soft + hard bounces
         hardBounced:  isHard,
         softBounced:  isSoft,
         unsubscribed: (row['unsub-reason'] || '').trim() !== '' ? 1 : 0,
