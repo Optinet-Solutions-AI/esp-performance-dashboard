@@ -19,11 +19,12 @@ import DailyView from '@/components/views/DailyView'
 import LogsView from '@/components/views/LogsView'
 import AnalyticsView from '@/components/views/AnalyticsView'
 import KenscioView from '@/components/views/KenscioView'
+import ThrottlingMatrixView from '@/components/views/ThrottlingMatrixView'
 
 const VIEW_LABELS: Record<string, string> = {
   home: 'Overview', dashboard: 'Dashboard', mailmodo: 'Mailmodo Review',
   ongage: 'Ongage Review', netcore: 'Netcore Review', mms: 'MMS Review', hotsol: 'Hotsol Review', '171mailsapp': '171 MailsApp Review', upload: 'Upload Report',
-  matrix: 'ESP Deliverability Matrix', datamgmt: 'Data Management',
+  throttling: 'Throttling Matrix', matrix: 'ESP Deliverability Matrix', datamgmt: 'Data Management',
   ipmatrix: 'IPs Matrix', performance: 'Performance',
   logs: 'Activity Logs', daily: 'Daily Report',
   analytics: 'Analytics', moosend: 'Moosend Review', kenscio: 'Kenscio Review',
@@ -223,6 +224,7 @@ export default function Page() {
           {activeView === 'moosend' && <MailmodoView filter="moosend" />}
           {activeView === 'kenscio' && <KenscioView />}
           {activeView === 'upload' && <UploadView />}
+          {activeView === 'throttling' && <ThrottlingMatrixView />}
           {activeView === 'matrix' && <MatrixView />}
           {activeView === 'datamgmt' && <DataMgmtView />}
           {activeView === 'ipmatrix' && <IPMatrixView />}

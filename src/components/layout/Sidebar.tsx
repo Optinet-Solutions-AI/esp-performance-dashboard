@@ -84,6 +84,16 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
   const iconIP   = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><rect x="1.5" y="3.5" width="15" height="11" rx="2.5" /><path d="M5.5 8h7M5.5 11h5" strokeLinecap="round" /></svg>
   const iconEmail= <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><rect x="1.5" y="3.5" width="15" height="11" rx="2" /><path d="M1.5 7l7.5 5 7.5-5" strokeLinecap="round" /></svg>
   const iconAnalytics = <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}><rect x="1.5" y="9.5" width="3" height="7" rx="1" /><rect x="7" y="5.5" width="3" height="11" rx="1" /><rect x="12.5" y="2" width="3" height="14.5" rx="1" /></svg>
+  const iconThrottle = (
+    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ width: 18, height: 18 }}>
+      <path d="M2 9h14" strokeLinecap="round"/>
+      <path d="M2 5h8"  strokeLinecap="round"/>
+      <path d="M2 13h10" strokeLinecap="round"/>
+      <circle cx="13" cy="5" r="1.5" fill="currentColor" stroke="none"/>
+      <circle cx="15" cy="9" r="1.5" fill="currentColor" stroke="none"/>
+      <circle cx="14" cy="13" r="1.5" fill="currentColor" stroke="none"/>
+    </svg>
+  )
 
   return (
     <aside style={{
@@ -186,6 +196,7 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
         <SectionLabel text="Tools" />
         <NavItem id="analytics" label="Analytics" icon={iconAnalytics} />
         <NavItem id="upload" label="Upload Report" icon={iconUp} />
+        <NavItem id="throttling" label="Throttling Matrix" icon={iconThrottle} />
         <NavItem id="matrix" label="ESP Deliverability" icon={iconGrid} />
         <NavItem id="datamgmt" label="Data Management" icon={iconDb} />
         <NavItem id="ipmatrix" label="IPs Matrix" icon={iconIP} />
