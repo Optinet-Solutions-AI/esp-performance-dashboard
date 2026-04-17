@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
-import { fmtN, fmtP, aggDates, fmtDateLabel, visibleEspNames, getThrottleCategory, findThrottleRecord, throttleSumOrTbc } from '@/lib/utils'
+import { visibleEspNames, getThrottleCategory, findThrottleRecord, throttleSumOrTbc } from '@/lib/utils'
 import { ESP_COLORS } from '@/lib/data'
 import CalendarPicker from '@/components/ui/CalendarPicker'
 import EspVisibilityIcon from '@/components/ui/EspVisibilityIcon'
