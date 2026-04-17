@@ -1,7 +1,7 @@
 'use client'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { EspRecord, DailyRecord, MmData, IpmRecord, DmRecord, UploadHistoryEntry, ViewName, MmTabType, EspStatus } from './types'
+import type { EspRecord, DailyRecord, MmData, IpmRecord, DmRecord, UploadHistoryEntry, ViewName, MmTabType, EspStatus, ThrottleRecord } from './types'
 import { INITIAL_ESPS, INITIAL_DAILY7, INITIAL_IPM_DATA } from './data'
 import { supabase } from './supabase'
 
@@ -60,6 +60,10 @@ interface DashboardState {
   // Data Management
   dmData: DmRecord[]
   setDmData: (data: DmRecord[]) => void
+
+  // Throttle Matrix
+  throttleData:    ThrottleRecord[]
+  setThrottleData: (data: ThrottleRecord[]) => void
 
   // ESP Visibility (synced from Supabase esp_visibility table)
   hiddenEsps: string[]
@@ -144,6 +148,10 @@ export const useDashboardStore = create<DashboardState>()(
       dmData: [],
       setDmData: (data) => set({ dmData: data }),
 
+      // Throttle Matrix
+      throttleData: [],
+      setThrottleData: (data) => set({ throttleData: data }),
+
       // ESP Visibility
       hiddenEsps: [],
       setHiddenEsps: (names) => set({ hiddenEsps: names }),
@@ -181,7 +189,8 @@ export const useDashboardStore = create<DashboardState>()(
     {
       name: 'esp-dashboard-storage',
       partialize: (s) => ({
-        isLight: s.isLight,
+        isLight:      s.isLight,
+        throttleData: s.throttleData,
       }),
     }
   )
