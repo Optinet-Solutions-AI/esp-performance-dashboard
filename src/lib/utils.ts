@@ -1,4 +1,4 @@
-import type { MmData, DateMetrics, ProviderData, EspRecord, EspStatus } from './types'
+import type { MmData, DateMetrics, ProviderData, EspRecord, EspStatus, ThrottleRecord, ThrottleValue } from './types'
 
 export const fmtN = (n: number): string => {
   return Math.round(n).toLocaleString()
@@ -406,4 +406,56 @@ export function visibleEspData<T>(espData: Record<string, T>, hidden: string[]):
     if (!hidden.includes(name)) out[name] = data
   }
   return out
+}
+
+// ── Throttle Matrix helpers ──────────────────────────────────────────────────
+
+type ThrottleCategory = 'gmail' | 'hotmail' | 'outlook' | 'yahoo' | 'icloud' | 'aol' | 'live' | 'gmx' | 'web' | 'others'
+
+/**
+ * Map a recipient email domain to one of the 10 throttle provider categories.
+ * Used to look up per-provider throttle limits in the Throttling Matrix.
+ */
+export function getThrottleCategory(emailDomain: string): ThrottleCategory {
+  const d = emailDomain.toLowerCase().trim()
+  if (d === 'gmail.com' || d === 'googlemail.com') return 'gmail'
+  if (d === 'hotmail.com' || d.startsWith('hotmail.')) return 'hotmail'
+  if (d === 'outlook.com' || d.startsWith('outlook.')) return 'outlook'
+  if (d === 'yahoo.com' || d === 'ymail.com' || d.startsWith('yahoo.')) return 'yahoo'
+  if (d === 'icloud.com' || d === 'me.com' || d === 'mac.com') return 'icloud'
+  if (d === 'aol.com' || d.startsWith('aol.')) return 'aol'
+  if (d === 'live.com' || d === 'msn.com' || d.startsWith('live.')) return 'live'
+  if (d === 'gmx.com' || d === 'gmx.net' || d.startsWith('gmx.')) return 'gmx'
+  if (d === 'web.de' || d === 'freenet.de' || d === 't-online.de' || d === 'mail.de') return 'web'
+  return 'others'
+}
+
+/**
+ * Find the throttle record for a given ESP + from-domain pair.
+ * Matching is case-insensitive and trims whitespace.
+ */
+export function findThrottleRecord(
+  throttleData: ThrottleRecord[],
+  espName: string,
+  fromDomain: string
+): ThrottleRecord | undefined {
+  const esp = espName.toLowerCase()
+  const fd  = fromDomain.toLowerCase().trim()
+  return throttleData.find(
+    r => r.esp.toLowerCase() === esp && r.fromDomain.toLowerCase().trim() === fd
+  )
+}
+
+/**
+ * Sum all numeric provider limits in a ThrottleRecord.
+ * TBC values are excluded from the sum.
+ * Returns 'TBC' if every provider value is 'TBC' (no numeric limits found).
+ */
+export function throttleSumOrTbc(rec: ThrottleRecord): number | 'TBC' {
+  const vals: ThrottleValue[] = [
+    rec.gmail, rec.hotmail, rec.outlook, rec.yahoo, rec.icloud,
+    rec.aol, rec.live, rec.gmx, rec.web, rec.others,
+  ]
+  const nums = vals.filter((v): v is number => typeof v === 'number')
+  return nums.length === 0 ? 'TBC' : nums.reduce((a, b) => a + b, 0)
 }
