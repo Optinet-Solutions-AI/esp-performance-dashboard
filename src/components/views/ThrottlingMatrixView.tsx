@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { parseThrottleCsv } from '@/lib/parsers'
 import type { ThrottleRecord, ThrottleValue } from '@/lib/types'
+import CustomSelect from '@/components/ui/CustomSelect'
 
 const PROVIDERS = ['Gmail','Hotmail','Outlook','Yahoo','Icloud','AOL','Live','Gmx','Web','Others'] as const
 const PROVIDER_KEYS: (keyof Omit<ThrottleRecord,'esp'|'ip'|'fromDomain'>)[] = [
@@ -94,22 +95,17 @@ export default function ThrottlingMatrixView() {
         <div className="flex items-center gap-2">
           {/* ESP filter */}
           {espNames.length > 0 && (
-            <select
+            <CustomSelect
               value={filterEsp}
-              onChange={e => setFilterEsp(e.target.value)}
-              style={{
-                background: surfBg, color: filterEsp ? (isLight ? '#0f766e' : '#00e5c3') : muted,
-                border: `1px solid ${filterEsp ? (isLight ? '#0d9488' : '#00e5c3') : bdr}`,
-                borderRadius: 8, padding: '5px 10px', fontSize: 11,
-                fontFamily: 'Space Mono, monospace', letterSpacing: '0.08em',
-                textTransform: 'uppercase', cursor: 'pointer', outline: 'none',
-              }}
-            >
-              <option value="">All ESPs</option>
-              {espNames.map(esp => (
-                <option key={esp} value={esp}>{esp}</option>
-              ))}
-            </select>
+              onChange={setFilterEsp}
+              isLight={isLight}
+              minWidth={130}
+              maxHeight={220}
+              options={[
+                { value: '', label: 'All ESPs' },
+                ...espNames.map(esp => ({ value: esp, label: esp, color: ESP_BADGE_COLORS[esp] })),
+              ]}
+            />
           )}
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleFile} />
           <button
