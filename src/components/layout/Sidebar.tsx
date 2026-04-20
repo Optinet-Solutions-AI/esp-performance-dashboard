@@ -154,10 +154,10 @@ export default function Sidebar({ onClose, collapsed, onToggleCollapse }: Sideba
                   { id: 'mailmodo' as ViewName, label: 'Mailmodo Review', color: '#7c5cfc' },
                   { id: 'ongage' as ViewName, label: 'Ongage Review', color: '#ffd166' },
                   { id: 'netcore' as ViewName, label: 'Netcore Review', color: '#f97316' },
-                  { id: 'mms' as ViewName, label: 'MMS Review', color: '#ffd166' },
+                  { id: 'mms' as ViewName, label: 'MMS Review', color: '#3b82f6' },
                   { id: 'hotsol' as ViewName, label: 'Hotsol Review', color: '#00e5c3' },
                   { id: '171mailsapp' as ViewName, label: '171 MailsApp Review', color: '#ff6b9d' },
-                  { id: 'moosend' as ViewName, label: 'Moosend Review', color: '#ff6b35' },
+                  { id: 'moosend' as ViewName, label: 'Moosend Review', color: '#22c55e' },
                   { id: 'kenscio' as ViewName, label: 'Kenscio Review', color: '#e63946' },
                 ].filter(item => {
                   // Hide review link if the ESP this view represents is hidden

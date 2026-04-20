@@ -8,24 +8,24 @@ import CustomSelect from '@/components/ui/CustomSelect'
 
 /* ── Colors ─────────────────────────────────────────────────────── */
 const ESP_PALETTE: Record<string, { bg: string; text: string }> = {
-  Mailmodo:     { bg: '#7c5cfc', text: '#fff' },
-  Ongage:       { bg: '#ffd166', text: '#1a1a2e' },
-  Netcore:      { bg: '#f97316', text: '#fff' },
-  Hotsol:       { bg: '#00e5c3', text: '#1a1a2e' },
-  MMS:          { bg: '#ffd166', text: '#1a1a2e' },
+  Mailmodo:       { bg: '#7c5cfc', text: '#fff' },
+  Ongage:         { bg: '#ffd166', text: '#1a1a2e' },
+  Netcore:        { bg: '#f97316', text: '#fff' },
+  Hotsol:         { bg: '#00e5c3', text: '#1a1a2e' },
+  MMS:            { bg: '#3b82f6', text: '#fff' },
   '171 MailsApp': { bg: '#ff6b9d', text: '#fff' },
-  '171':        { bg: '#ff6b9d', text: '#fff' },
-  Moosend:      { bg: '#ff6b35', text: '#fff' },
-  Omnisend:     { bg: '#ff4757', text: '#fff' },
-  Klaviyo:      { bg: '#60d4f0', text: '#1a1a2e' },
-  Brevo:        { bg: '#c5f27a', text: '#1a1a2e' },
-  Kenscio:      { bg: '#e63946', text: '#fff' },
+  '171':          { bg: '#ff6b9d', text: '#fff' },
+  Moosend:        { bg: '#22c55e', text: '#fff' },
+  Omnisend:       { bg: '#d946ef', text: '#fff' },
+  Klaviyo:        { bg: '#06b6d4', text: '#fff' },
+  Brevo:          { bg: '#84cc16', text: '#1a1a2e' },
+  Kenscio:        { bg: '#e63946', text: '#fff' },
 }
 const FALLBACK_PALETTE = [
   { bg: '#7c5cfc', text: '#fff' }, { bg: '#00e5c3', text: '#1a1a2e' },
   { bg: '#ffd166', text: '#1a1a2e' }, { bg: '#f97316', text: '#fff' },
-  { bg: '#ff6b35', text: '#fff' }, { bg: '#ff4757', text: '#fff' },
-  { bg: '#60d4f0', text: '#1a1a2e' }, { bg: '#c5f27a', text: '#1a1a2e' },
+  { bg: '#3b82f6', text: '#fff' }, { bg: '#22c55e', text: '#fff' },
+  { bg: '#d946ef', text: '#fff' }, { bg: '#06b6d4', text: '#fff' },
 ]
 
 function espColor(esp: string, allEsps: string[]): { bg: string; text: string } {

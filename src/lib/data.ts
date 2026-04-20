@@ -3,17 +3,17 @@ import type { EspRecord, DailyRecord, MmData, IpmRecord } from './types'
 export const INITIAL_ESPS: EspRecord[] = []
 
 export const ESP_COLORS: Record<string, string> = {
-  Mailmodo: '#7c5cfc',
-  Ongage: '#c67cff',
-  Netcore: '#f97316',
-  Hotsol: '#00e5c3',
-  MMS: '#ffd166',
+  Mailmodo:       '#7c5cfc',
+  Ongage:         '#ffd166',
+  Netcore:        '#f97316',
+  Hotsol:         '#00e5c3',
+  MMS:            '#3b82f6',
   '171 MailsApp': '#ff6b9d',
-  Moosend: '#ff6b35',
-  Omnisend: '#ff4757',
-  Klaviyo: '#60d4f0',
-  Brevo: '#c5f27a',
-  Kenscio: '#e63946',
+  Moosend:        '#22c55e',
+  Omnisend:       '#d946ef',
+  Klaviyo:        '#06b6d4',
+  Brevo:          '#84cc16',
+  Kenscio:        '#e63946',
 }
 
 export const INITIAL_DAILY7: DailyRecord[] = []

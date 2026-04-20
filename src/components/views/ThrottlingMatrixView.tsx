@@ -13,8 +13,8 @@ const PROVIDER_KEYS: (keyof Omit<ThrottleRecord,'esp'|'ip'|'fromDomain'>)[] = [
 
 const ESP_BADGE_COLORS: Record<string, string> = {
   Mailmodo: '#7c5cfc', Ongage: '#ffd166', Netcore: '#f97316',
-  MMS: '#ffd166', Hotsol: '#00e5c3', '171 MailsApp': '#ff6b9d',
-  Moosend: '#ff6b35', Kenscio: '#e63946',
+  MMS: '#3b82f6', Hotsol: '#00e5c3', '171 MailsApp': '#ff6b9d',
+  Moosend: '#22c55e', Kenscio: '#e63946',
 }
 
 function fmtVal(v: ThrottleValue): string {
