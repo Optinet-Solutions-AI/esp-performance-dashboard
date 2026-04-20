@@ -215,12 +215,13 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
                 ? allEsps.filter(e => e !== 'Ongage' && e !== 'Netcore' && e !== 'MMS' && e !== 'Hotsol' && e !== '171 MailsApp' && e !== 'Moosend')
                 : allEsps
 
-  const brandColor = filter === 'netcore' ? '#f97316'
-    : filter === 'mms'        ? '#ffd166'
+  const brandColor = filter === 'netcore'     ? '#f97316'
+    : filter === 'mms'        ? '#3b82f6'
     : filter === 'hotsol'     ? '#00e5c3'
     : filter === '171mailsapp'? '#ff6b9d'
-    : filter === 'moosend'    ? '#ff6b35'
+    : filter === 'moosend'    ? '#22c55e'
     : filter === 'ongage'     ? '#ffd166'
+    : filter === 'kenscio'    ? '#e63946'
     : '#7c5cfc' // mailmodo default
 
   const [selectedEsp, setSelectedEsp] = useState('')
