@@ -194,7 +194,7 @@ export default function DataMgmtView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-2 rounded-lg bg-[#4a2fa0] hover:bg-[#6040c8] text-white text-xs font-mono font-bold tracking-wider uppercase transition-all"
+            className="px-3 py-2 rounded-lg bg-[rgb(0,229,195)] hover:bg-[rgb(0,200,170)] text-[#0a1628] text-xs font-mono font-bold tracking-wider uppercase transition-all"
           >
             ↑ Import CSV
           </button>
