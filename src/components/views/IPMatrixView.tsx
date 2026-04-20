@@ -289,7 +289,7 @@ export default function IPMatrixView() {
             onChange={e => { const f = e.target.files?.[0]; if (f) { handleFile(f); e.target.value = '' } }} />
           <button
             onClick={() => openModal(null)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#4a2fa0] hover:bg-[#6040c8] text-white text-xs font-mono font-bold uppercase tracking-wider transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[rgb(0,229,195)] hover:bg-[rgb(0,200,170)] text-[#0a1628] text-xs font-mono font-bold uppercase tracking-wider transition-all"
           >
             <IconPlus /> Add Record
           </button>
