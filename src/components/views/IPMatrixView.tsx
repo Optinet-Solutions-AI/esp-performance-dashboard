@@ -381,27 +381,9 @@ export default function IPMatrixView() {
                         </>
                       )
                     })}
-                    {/* ESP subtotal */}
-                    {expanded && (
-                      <tr style={{ background: color.bg + '18', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.1)' : 'rgba(255,255,255,.08)'}` }}>
-                        <td />
-                        <td className="px-3 py-2 pl-5 text-[11px] font-mono font-bold" style={{ color: color.bg }}>{esp} — Total</td>
-                        <td className="px-3 py-2 text-right text-[11px] font-bold" style={{ color: color.bg }}>{ips.length}</td>
-                        <td className="px-3 py-2 text-right text-[11px] font-bold" style={{ color: color.bg }}>{domains.length}</td>
-                      </tr>
-                    )}
                   </>
                 )
               })}
-              {/* Grand total */}
-              {espGroups.length > 0 && (
-                <tr style={{ background: isLight ? 'rgba(0,0,0,.04)' : 'rgba(255,255,255,.04)', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.1)' : 'rgba(255,255,255,.08)'}` }}>
-                  <td />
-                  <td className={`px-3 py-2.5 text-[11px] font-mono font-bold tracking-widest uppercase ${txt}`}>Grand Total</td>
-                  <td className="px-3 py-2.5 text-right text-sm font-bold text-[#00e5c3]">{grandIps}</td>
-                  <td className="px-3 py-2.5 text-right text-sm font-bold text-[#00e5c3]">{grandDomains}</td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
