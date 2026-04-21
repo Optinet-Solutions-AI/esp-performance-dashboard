@@ -193,7 +193,7 @@ export default function MatrixView() {
       Object.values(espData.providers || {}).forEach(p => { const a = mxAgg(p.byDate, espActiveDates); addAgg(espTot, a) })
       if (espTot.sent === 0) return
 
-      csvRows.push(aggToRow('ESP', espName, '', '', '', espTot, getEspThrottleTotal(espName, allFromDomains)))
+      csvRows.push(aggToRow('ESP', espName, '', '', '', espTot, null))
 
       sortedIps.forEach(ip => {
         const fromDomains = ipGroups[ip] || []
@@ -204,15 +204,7 @@ export default function MatrixView() {
         })
         if (ipTot.sent === 0) return
 
-        let ipThrottleCsv: number | null = null
-        for (const fd of fromDomains) {
-          const rec = findThrottleRecord(throttleData, espName, fd)
-          if (!rec) continue
-          const sum = throttleSumOrTbc(rec)
-          if (typeof sum === 'number') { ipThrottleCsv = (ipThrottleCsv ?? 0) + sum }
-        }
-
-        csvRows.push(aggToRow('IP', espName, ip, '', '', ipTot, ipThrottleCsv))
+        csvRows.push(aggToRow('IP', espName, ip, '', '', ipTot, null))
 
         fromDomains.forEach(fd => {
           const fdData = espData.domains[fd]
@@ -410,8 +402,6 @@ export default function MatrixView() {
 
       if (espTot.sent === 0) return
 
-      const espThrottle = getEspThrottleTotal(espName, allFromDomains)
-
       const espKey = `esp||${espName}`
       const espEx = !!expanded[espKey]
 
@@ -425,7 +415,7 @@ export default function MatrixView() {
             </span>
           </td>
           <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}` }}></td>
-          {DataRow({ agg: espTot, throttle: espThrottle })}
+          {DataRow({ agg: espTot, throttle: null })}
         </tr>
       )
 
@@ -442,15 +432,6 @@ export default function MatrixView() {
           if (d) { const a = mxAgg(d.byDate, espActiveDates); addAgg(ipTot, a) }
         })
         if (ipTot.sent === 0) return
-
-        // IP throttle: sum from-domain totals under this IP
-        let ipThrottle: number | null = null
-        for (const fd of fromDomains) {
-          const rec = findThrottleRecord(throttleData, espName, fd)
-          if (!rec) continue
-          const sum = throttleSumOrTbc(rec)
-          if (typeof sum === 'number') { ipThrottle = (ipThrottle ?? 0) + sum }
-        }
 
         const ipKey = `ip||${espName}||${ip}`
         const ipEx = !!expanded[ipKey]
@@ -475,7 +456,7 @@ export default function MatrixView() {
               />
             </td>
             <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: ipBg }}></td>
-            {DataRow({ agg: ipTot, bg: ipBg, throttle: ipThrottle })}
+            {DataRow({ agg: ipTot, bg: ipBg, throttle: null })}
           </tr>
         )
 
