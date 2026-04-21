@@ -354,7 +354,6 @@ export default function ThrottlingMatrixView() {
                 return rows.map((r, i) => (
                   <tr
                     key={`${esp}-${r.ip}-${r.fromDomain}`}
-                    className="group"
                     style={{ borderBottom: `1px solid ${bdr}` }}
                   >
                     {i === 0 ? (
@@ -395,7 +394,7 @@ export default function ThrottlingMatrixView() {
                       <button
                         onClick={() => openEdit(r)}
                         title="Edit row"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity rounded p-1 hover:bg-white/10"
+                        className="rounded p-1 hover:bg-white/10 transition-colors"
                         style={{ color: '#00e5c3' }}
                       >
                         <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
