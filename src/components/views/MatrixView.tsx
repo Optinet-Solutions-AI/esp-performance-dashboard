@@ -212,9 +212,7 @@ export default function MatrixView() {
           if (fdAgg.sent === 0) return
 
           const fdThrottleRec = findThrottleRecord(throttleData, espName, fd)
-          const fdThrottleCsv: number | 'TBC' | null = fdThrottleRec ? throttleSumOrTbc(fdThrottleRec) : null
-
-          csvRows.push(aggToRow('From Domain', espName, ip, fd, '', fdAgg, fdThrottleCsv))
+          csvRows.push(aggToRow('From Domain', espName, ip, fd, '', fdAgg, null))
 
           const fdProviders = Object.entries(espData.providerDomains || {})
             .filter(([, domMap]) => domMap[fd] && domMap[fd].sent > 0)
@@ -495,7 +493,7 @@ export default function MatrixView() {
                 <ToggleBtn expanded={fdEx} label={<span style={{ color: muted, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
               </td>
               <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg }}></td>
-              {DataRow({ agg: fdAgg, bg: fdBg, throttle: fdThrottle })}
+              {DataRow({ agg: fdAgg, bg: fdBg, throttle: null })}
             </tr>
           )
 
