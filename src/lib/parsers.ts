@@ -815,21 +815,29 @@ export function mergeIntoMmData(current: MmData, result: ReturnType<typeof parse
       recalcRates(data.domains[dom].byDate[date])
     })
 
-    // Merge providerDomains (actual per-provider per-domain data)
+    // Merge providerDomains — store per-date so MatrixView can filter by date range
     if (bucket.providerDomains) {
       if (!data.providerDomains) data.providerDomains = {}
       Object.entries(bucket.providerDomains).forEach(([prov, domMap]) => {
         if (!data.providerDomains[prov]) data.providerDomains[prov] = {}
         Object.entries(domMap).forEach(([dom, cell]) => {
-          if (!data.providerDomains[prov][dom]) {
-            data.providerDomains[prov][dom] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, hardBounced: 0, softBounced: 0, unsubscribed: 0 }
+          if (!data.providerDomains[prov][dom]) data.providerDomains[prov][dom] = {}
+          const existing = data.providerDomains[prov][dom][date]
+          if (!existing) {
+            data.providerDomains[prov][dom][date] = {
+              sent: cell.sent || 0, delivered: cell.delivered || 0,
+              opened: cell.opened || 0, clicked: cell.clicked || 0,
+              bounced: cell.bounced || 0, hardBounced: cell.hardBounced || 0,
+              softBounced: cell.softBounced || 0, unsubscribed: cell.unsubscribed || 0,
+            }
+          } else {
+            existing.sent += cell.sent || 0; existing.delivered += cell.delivered || 0
+            existing.opened += cell.opened || 0; existing.clicked += cell.clicked || 0
+            existing.bounced += cell.bounced || 0
+            existing.hardBounced = (existing.hardBounced || 0) + (cell.hardBounced || 0)
+            existing.softBounced = (existing.softBounced || 0) + (cell.softBounced || 0)
+            existing.unsubscribed += cell.unsubscribed || 0
           }
-          const t = data.providerDomains[prov][dom]
-          t.sent += cell.sent || 0; t.delivered += cell.delivered || 0
-          t.opened += cell.opened || 0; t.clicked += cell.clicked || 0
-          t.bounced += cell.bounced || 0; t.hardBounced = (t.hardBounced || 0) + (cell.hardBounced || 0)
-          t.softBounced = (t.softBounced || 0) + (cell.softBounced || 0)
-          t.unsubscribed += cell.unsubscribed || 0
         })
       })
     }

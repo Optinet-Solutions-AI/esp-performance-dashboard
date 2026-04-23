@@ -215,11 +215,22 @@ export default function MatrixView() {
           csvRows.push(aggToRow('From Domain', espName, ip, fd, '', fdAgg, null))
 
           const fdProviders = Object.entries(espData.providerDomains || {})
-            .filter(([, domMap]) => domMap[fd] && domMap[fd].sent > 0)
             .map(([prov, domMap]) => {
-              const c = domMap[fd]
-              return { name: prov, agg: { sent: c.sent, delivered: c.delivered, opened: c.opened, clicked: c.clicked, bounced: c.bounced, hardBounced: c.hardBounced || 0, softBounced: c.softBounced || 0, unsubscribed: c.unsubscribed, complained: 0 } as Agg }
+              const dateMap = domMap[fd]
+              if (!dateMap) return null
+              const agg = emptyAgg()
+              espActiveDates.forEach(date => {
+                const cell = dateMap[date]
+                if (!cell || typeof cell.sent !== 'number') return
+                agg.sent += cell.sent || 0; agg.delivered += cell.delivered || 0
+                agg.opened += cell.opened || 0; agg.clicked += cell.clicked || 0
+                agg.bounced += cell.bounced || 0; agg.hardBounced += cell.hardBounced || 0
+                agg.softBounced += cell.softBounced || 0; agg.unsubscribed += cell.unsubscribed || 0
+              })
+              if (agg.sent === 0) return null
+              return { name: prov, agg }
             })
+            .filter((x): x is { name: string; agg: Agg } => x !== null)
             .sort((a, b) => b.agg.sent - a.agg.sent)
 
           const top10Providers = fdProviders.slice(0, 10)
@@ -473,11 +484,22 @@ export default function MatrixView() {
           const fdEx = !!expanded[fdKey]
 
           const fdProviders = Object.entries(espData.providerDomains || {})
-            .filter(([, domMap]) => domMap[fd] && domMap[fd].sent > 0)
             .map(([prov, domMap]) => {
-              const c = domMap[fd]
-              return { name: prov, agg: { sent: c.sent, delivered: c.delivered, opened: c.opened, clicked: c.clicked, bounced: c.bounced, hardBounced: c.hardBounced || 0, softBounced: c.softBounced || 0, unsubscribed: c.unsubscribed, complained: 0 } as Agg }
+              const dateMap = domMap[fd]
+              if (!dateMap) return null
+              const agg = emptyAgg()
+              espActiveDates.forEach(date => {
+                const cell = dateMap[date]
+                if (!cell || typeof cell.sent !== 'number') return
+                agg.sent += cell.sent || 0; agg.delivered += cell.delivered || 0
+                agg.opened += cell.opened || 0; agg.clicked += cell.clicked || 0
+                agg.bounced += cell.bounced || 0; agg.hardBounced += cell.hardBounced || 0
+                agg.softBounced += cell.softBounced || 0; agg.unsubscribed += cell.unsubscribed || 0
+              })
+              if (agg.sent === 0) return null
+              return { name: prov, agg }
             })
+            .filter((x): x is { name: string; agg: Agg } => x !== null)
             .sort((a, b) => b.agg.sent - a.agg.sent)
 
           const top10FdProviders = fdProviders.slice(0, 10)

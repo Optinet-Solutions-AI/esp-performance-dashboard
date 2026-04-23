@@ -1,4 +1,4 @@
-import type { MmData, DateMetrics, ProviderData, EspRecord, EspStatus, ThrottleRecord, ThrottleValue } from './types'
+import type { MmData, DateMetrics, ProviderData, ProviderDomainCell, EspRecord, EspStatus, ThrottleRecord, ThrottleValue } from './types'
 
 export const fmtN = (n: number): string => {
   return Math.round(n).toLocaleString()
@@ -87,8 +87,9 @@ export function buildProviderDomains(data: MmData): MmData['providerDomains'] {
         if (!domSent) return
 
         if (!pd[prov]) pd[prov] = {}
-        if (!pd[prov][dom]) pd[prov][dom] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, unsubscribed: 0 }
-        const x = pd[prov][dom]
+        if (!pd[prov][dom]) pd[prov][dom] = {}
+        if (!pd[prov][dom][date]) pd[prov][dom][date] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, unsubscribed: 0 }
+        const x = pd[prov][dom][date]
         x.sent += Math.round(dr.sent * pFrac)
         x.delivered += Math.round(dr.delivered * pFrac)
         x.opened += Math.round(dr.opened * pFrac)
@@ -249,22 +250,49 @@ export function mergeMmData(a: MmData, b: MmData): MmData {
     overallByDate[d] = am && bm ? mergeMetrics(am, bm) : (am || bm)
   })
 
-  // Merge providerDomains from both sources
+  // Merge providerDomains from both sources (date-indexed format; handles old flat format)
   const pdMerged: MmData['providerDomains'] = {}
-  const addPd = (src: MmData['providerDomains']) => {
+  function addPdFrom(src: MmData['providerDomains'], srcData: MmData) {
     Object.entries(src || {}).forEach(([prov, domMap]) => {
       if (!pdMerged[prov]) pdMerged[prov] = {}
-      Object.entries(domMap).forEach(([dom, cell]) => {
-        if (!pdMerged[prov][dom]) pdMerged[prov][dom] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, hardBounced: 0, softBounced: 0, unsubscribed: 0 }
-        const t = pdMerged[prov][dom]; t.sent += cell.sent; t.delivered += cell.delivered
-        t.opened += cell.opened; t.clicked += cell.clicked; t.bounced += cell.bounced
-        t.hardBounced = (t.hardBounced || 0) + (cell.hardBounced || 0)
-        t.softBounced = (t.softBounced || 0) + (cell.softBounced || 0)
-        t.unsubscribed += cell.unsubscribed
+      Object.entries(domMap).forEach(([dom, dateOrCell]) => {
+        if (!pdMerged[prov][dom]) pdMerged[prov][dom] = {}
+        let entries: [string, ProviderDomainCell][]
+        if (typeof (dateOrCell as unknown as ProviderDomainCell).sent === 'number') {
+          // Old flat format — spread proportionally across src dates
+          const domData = srcData.domains[dom]
+          const activeDates = srcData.dates.filter(dt => (domData?.byDate?.[dt]?.sent || 0) > 0)
+          const totalSent = activeDates.reduce((s, dt) => s + (domData!.byDate![dt].sent || 0), 0)
+          const flat = dateOrCell as unknown as ProviderDomainCell
+          if (activeDates.length === 0 || totalSent === 0) {
+            const fallback = srcData.dates[srcData.dates.length - 1]
+            entries = fallback ? [[fallback, { ...flat }]] : []
+          } else {
+            entries = activeDates.map(dt => {
+              const w = (domData!.byDate![dt].sent || 0) / totalSent
+              return [dt, {
+                sent: Math.round((flat.sent || 0) * w), delivered: Math.round((flat.delivered || 0) * w),
+                opened: Math.round((flat.opened || 0) * w), clicked: Math.round((flat.clicked || 0) * w),
+                bounced: Math.round((flat.bounced || 0) * w), hardBounced: Math.round((flat.hardBounced || 0) * w),
+                softBounced: Math.round((flat.softBounced || 0) * w), unsubscribed: Math.round((flat.unsubscribed || 0) * w),
+              }] as [string, ProviderDomainCell]
+            })
+          }
+        } else {
+          entries = Object.entries(dateOrCell as Record<string, ProviderDomainCell>)
+        }
+        entries.forEach(([dt, cell]) => {
+          if (!pdMerged[prov][dom][dt]) pdMerged[prov][dom][dt] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, hardBounced: 0, softBounced: 0, unsubscribed: 0 }
+          const t = pdMerged[prov][dom][dt]; t.sent += cell.sent; t.delivered += cell.delivered
+          t.opened += cell.opened; t.clicked += cell.clicked; t.bounced += cell.bounced
+          t.hardBounced = (t.hardBounced || 0) + (cell.hardBounced || 0)
+          t.softBounced = (t.softBounced || 0) + (cell.softBounced || 0)
+          t.unsubscribed += cell.unsubscribed
+        })
       })
     })
   }
-  addPd(a.providerDomains); addPd(b.providerDomains)
+  addPdFrom(a.providerDomains, a); addPdFrom(b.providerDomains, b)
   return { dates, datesFull, providers, domains, overallByDate, providerDomains: pdMerged }
 }
 
@@ -332,14 +360,69 @@ export function overwriteMmData(base: MmData, override: MmData): MmData {
     d.overall = vals.length ? vals.reduce((acc, m) => mergeMetrics(acc, m)) : d.overall
   })
 
-  // Merge providerDomains: use override's actual data, keep base for non-overridden providers
-  const basePd = JSON.parse(JSON.stringify(base.providerDomains || {}))
-  const overPd = override.providerDomains || {}
-  // Override replaces per-provider per-domain cells entirely
-  Object.entries(overPd).forEach(([prov, domMap]) => {
+  // Merge providerDomains: last-write-wins per date (date-indexed format)
+  const basePd: MmData['providerDomains'] = {}
+
+  // Helper: spread a flat legacy cell across dates proportionally using domain's byDate sent counts
+  function spreadFlatCell(flat: ProviderDomainCell, dom: string, dates: string[], domainsByDate: MmData['domains']): Record<string, ProviderDomainCell> {
+    const domData = domainsByDate[dom]
+    const activeDates = dates.filter(dt => (domData?.byDate?.[dt]?.sent || 0) > 0)
+    const totalSent = activeDates.reduce((s, dt) => s + (domData!.byDate![dt].sent || 0), 0)
+    if (activeDates.length === 0 || totalSent === 0) {
+      // No domain info — assign entire flat total to last date as fallback
+      const fallback = dates[dates.length - 1]
+      return fallback ? { [fallback]: { ...flat } } : {}
+    }
+    const out: Record<string, ProviderDomainCell> = {}
+    activeDates.forEach(dt => {
+      const w = (domData!.byDate![dt].sent || 0) / totalSent
+      out[dt] = {
+        sent: Math.round((flat.sent || 0) * w),
+        delivered: Math.round((flat.delivered || 0) * w),
+        opened: Math.round((flat.opened || 0) * w),
+        clicked: Math.round((flat.clicked || 0) * w),
+        bounced: Math.round((flat.bounced || 0) * w),
+        hardBounced: Math.round((flat.hardBounced || 0) * w),
+        softBounced: Math.round((flat.softBounced || 0) * w),
+        unsubscribed: Math.round((flat.unsubscribed || 0) * w),
+      }
+    })
+    return out
+  }
+
+  // Copy base providerDomains (already date-indexed from a prior overwriteMmData call)
+  Object.entries(base.providerDomains || {}).forEach(([prov, domMap]) => {
+    basePd[prov] = {}
+    Object.entries(domMap).forEach(([dom, dateOrCell]) => {
+      if (typeof (dateOrCell as unknown as ProviderDomainCell).sent === 'number') {
+        // Old flat format in base — spread across base dates using base.domains
+        const spread = spreadFlatCell(dateOrCell as unknown as ProviderDomainCell, dom, base.dates, base.domains)
+        basePd[prov][dom] = spread
+      } else {
+        basePd[prov][dom] = { ...(dateOrCell as Record<string, ProviderDomainCell>) }
+      }
+    })
+  })
+  // Remove overridden dates from base
+  override.dates.forEach(date => {
+    Object.values(basePd).forEach(domMap => {
+      Object.values(domMap).forEach(dateMap => { delete (dateMap as Record<string, ProviderDomainCell>)[date] })
+    })
+  })
+  // Apply override's providerDomains (handle both new date-indexed and old flat format)
+  Object.entries(override.providerDomains || {}).forEach(([prov, domMap]) => {
     if (!basePd[prov]) basePd[prov] = {}
-    Object.entries(domMap as Record<string, unknown>).forEach(([dom, cell]) => {
-      basePd[prov][dom] = cell
+    Object.entries(domMap).forEach(([dom, dateOrCell]) => {
+      if (!basePd[prov][dom]) basePd[prov][dom] = {}
+      if (typeof (dateOrCell as unknown as ProviderDomainCell).sent === 'number') {
+        // Old flat format — spread proportionally across override.dates using override.domains
+        const spread = spreadFlatCell(dateOrCell as unknown as ProviderDomainCell, dom, override.dates, override.domains)
+        Object.entries(spread).forEach(([dt, cell]) => { basePd[prov][dom][dt] = cell })
+      } else {
+        Object.entries(dateOrCell as Record<string, ProviderDomainCell>).forEach(([dt, cell]) => {
+          basePd[prov][dom][dt] = cell
+        })
+      }
     })
   })
   result.providerDomains = basePd

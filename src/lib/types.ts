@@ -67,7 +67,7 @@ export interface MmData {
   providers: Record<string, ProviderData>
   domains: Record<string, ProviderData>
   overallByDate: Record<string, DateMetrics>
-  providerDomains: Record<string, Record<string, ProviderDomainCell>>
+  providerDomains: Record<string, Record<string, Record<string, ProviderDomainCell>>>
 }
 
 export interface IpmRecord {
