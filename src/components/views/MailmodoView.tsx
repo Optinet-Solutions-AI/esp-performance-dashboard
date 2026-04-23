@@ -686,17 +686,6 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* ESP selector */}
-          {espList.length > 1 && (
-            <CustomSelect
-              value={selectedEsp}
-              onChange={setSelectedEsp}
-              options={espList.map(e => ({ value: e, label: e }))}
-              isLight={isLight}
-              minWidth={110}
-            />
-          )}
-
           {/* Calendar pickers */}
           <CalendarPicker value={fromDate} onChange={iso => handleFrom(iso)} isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} />
           <span className={`text-xs ${muted}`}>→</span>
