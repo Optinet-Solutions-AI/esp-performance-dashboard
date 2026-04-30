@@ -462,7 +462,7 @@ export default function MatrixView() {
                 expanded={ipEx}
                 label={isNotFound
                   ? <span style={{ color: isLight ? '#b45309' : '#f59e0b', fontFamily: 'var(--font-mono)', fontSize: 11 }}>&#9888; IP NOT FOUND</span>
-                  : <span style={{ color: ipColor, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{ip}</span>
+                  : <span style={{ color: txt, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{ip}</span>
                 }
                 count={`${activeFds.length} from-domains`}
               />
@@ -515,7 +515,7 @@ export default function MatrixView() {
           rows.push(
             <tr key={fdKey} className="cursor-pointer" onClick={() => toggle(fdKey)}>
               <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg, paddingLeft: 40, color: muted, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                <ToggleBtn expanded={fdEx} label={<span style={{ color: muted, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
+                <ToggleBtn expanded={fdEx} label={<span style={{ color: txt, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fd}</span>} count={fdProviders.length > 0 ? `${fdProviders.length} providers` : ''} />
               </td>
               <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: fdBg }}></td>
               {DataRow({ agg: fdAgg, bg: fdBg, throttle: null })}
