@@ -70,12 +70,15 @@ export default function MatrixView() {
 
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
+  const [appliedFrom, setAppliedFrom] = useState('')
+  const [appliedTo, setAppliedTo] = useState('')
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   function handleFrom(iso: string) { setFromDate(iso) }
   function handleTo(iso: string) { setToDate(iso) }
-  function handleAll() { setFromDate(''); setToDate('') }
+  function handleAll() { setFromDate(''); setToDate(''); setAppliedFrom(''); setAppliedTo('') }
+  function handleFilter() { setAppliedFrom(fromDate); setAppliedTo(toDate) }
 
   function handleSort(col: string) {
     if (sortCol === col) {
@@ -89,8 +92,8 @@ export default function MatrixView() {
   function getEspAgg(espName: string): Agg {
     const data = store.espData[espName]
     if (!data) return emptyAgg()
-    const activeDates = (fromDate && toDate)
-      ? (data.datesFull || []).filter(df => df.iso >= fromDate && df.iso <= toDate).map(df => df.label)
+    const activeDates = (appliedFrom && appliedTo)
+      ? (data.datesFull || []).filter(df => df.iso >= appliedFrom && df.iso <= appliedTo).map(df => df.label)
       : data.dates
     const tot = emptyAgg()
     Object.values(data.providers || {}).forEach(p => { const a = mxAgg(p.byDate, activeDates); addAgg(tot, a) })
@@ -168,8 +171,8 @@ export default function MatrixView() {
       if (!espData || !espData.dates.length) return
       const ipMap = getIpMap(espName)
       const allFromDomains = Object.keys(espData.domains || {}).filter(d => d !== 'unknown' && d !== '')
-      const espActiveDates = (fromDate && toDate)
-        ? (espData.datesFull || []).filter(df => df.iso >= fromDate && df.iso <= toDate).map(df => df.label)
+      const espActiveDates = (appliedFrom && appliedTo)
+        ? (espData.datesFull || []).filter(df => df.iso >= appliedFrom && df.iso <= appliedTo).map(df => df.label)
         : espData.dates
 
       const domainToIp: Record<string, string> = {}
@@ -253,7 +256,7 @@ export default function MatrixView() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    const dateRange = (fromDate && toDate) ? `_${fromDate}_to_${toDate}` : ''
+    const dateRange = (appliedFrom && appliedTo) ? `_${appliedFrom}_to_${appliedTo}` : ''
     a.href = url
     a.download = `esp-deliverability-matrix${dateRange}.csv`
     a.click()
@@ -381,8 +384,8 @@ export default function MatrixView() {
       const allFromDomains = Object.keys(espData.domains || {}).filter(d => d !== 'unknown' && d !== '')
 
       // Use this ESP's own dates for aggregation, filtered by the selected ISO range
-      const espActiveDates = (fromDate && toDate)
-        ? (espData.datesFull || []).filter(df => df.iso >= fromDate && df.iso <= toDate).map(df => df.label)
+      const espActiveDates = (appliedFrom && appliedTo)
+        ? (espData.datesFull || []).filter(df => df.iso >= appliedFrom && df.iso <= appliedTo).map(df => df.label)
         : espData.dates
 
       // Map from-domains to IPs (normalized lowercase keys)
@@ -587,7 +590,7 @@ export default function MatrixView() {
           </h1>
           <p className="text-sm mt-1" style={{ color: muted }}>
             ESP → IP → From Domain → Email Provider
-            {(fromDate || toDate) && ` · ${fromDate || '…'} – ${toDate || '…'}`}
+            {(appliedFrom || appliedTo) && ` · ${appliedFrom || '…'} – ${appliedTo || '…'}`}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -597,6 +600,26 @@ export default function MatrixView() {
           <CalendarPicker value={toDate} onChange={handleTo} isLight={isLight} rangeStart={fromDate} rangeEnd={toDate} align="right" />
           <button onClick={handleAll} className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-mono uppercase transition-all ${isLight ? 'border-black/20 text-gray-500 hover:border-[#0d9488]' : 'border-white/13 text-[#a8b0be] hover:border-[#0d9488]'}`}>
             All
+          </button>
+          <button
+            onClick={handleFilter}
+            className={`px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider font-semibold transition-all ${
+              isLight
+                ? 'border-[#0d9488] text-[#0d9488] bg-[#0d9488]/8 hover:bg-[#0d9488]/15'
+                : 'border-[#0d9488] text-[#0d9488] bg-[#0d9488]/10 hover:bg-[#0d9488]/20'
+            }`}
+          >
+            Filter
+          </button>
+          <button
+            onClick={handleFilter}
+            title="Refresh"
+            className={`flex items-center justify-center w-[30px] h-[30px] rounded-lg border text-[11px] transition-all ${isLight ? 'border-black/20 text-gray-500 hover:border-[#0d9488] hover:text-[#0d9488]' : 'border-white/13 text-[#a8b0be] hover:border-[#0d9488] hover:text-[#0d9488]'}`}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.5 2A5 5 0 1 0 11 6.5"/>
+              <path d="M10.5 2v3h-3"/>
+            </svg>
           </button>
           {hasData && (
             <button onClick={downloadCsv} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/20 text-gray-600 hover:border-[#0d9488] hover:text-[#0d9488]' : 'border-white/13 text-[#a8b0be] hover:border-[#0d9488] hover:text-[#0d9488]'}`}>
