@@ -422,7 +422,7 @@ export default function MatrixView() {
         <tr key={espKey} className="cursor-pointer" style={{ borderBottom: `1px solid ${bdr}` }} onClick={() => toggle(espKey)}>
           <td className={`${tdCls} text-left`} style={{ borderBottom: `1px solid ${bdr}`, color: txt }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <ToggleBtn expanded={espEx} label={<span style={{ color: espColor, fontWeight: 700 }}>{espName}</span>} />
+              <ToggleBtn expanded={espEx} label={<span style={{ color: txt, fontWeight: 700 }}>{espName}</span>} />
               <EspVisibilityIcon espName={espName} size={12} />
             </span>
           </td>
