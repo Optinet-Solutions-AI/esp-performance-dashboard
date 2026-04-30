@@ -299,13 +299,12 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
     for (let i = r; i >= 0; i--) { if (data.datesFull[i].iso <= iso) { r = i; break } }
     return r
   }
-  function handleFrom(iso: string) {
-    setFromDate(iso)
-    if (iso) setRange(findFrom(iso), toIdx)
-  }
-  function handleTo(iso: string) {
-    setToDate(iso)
-    if (iso) setRange(fromIdx, findTo(iso))
+  function handleFrom(iso: string) { setFromDate(iso) }
+  function handleTo(iso: string)   { setToDate(iso) }
+  function handleFilter() {
+    const newFrom = fromDate ? findFrom(fromDate) : 0
+    const newTo   = toDate   ? findTo(toDate)     : data.dates.length - 1
+    setRange(newFrom, newTo)
   }
   function handleAll() {
     setRange(0, data.dates.length - 1)
@@ -695,6 +694,23 @@ export default function MailmodoView({ filter }: { filter?: 'ongage' | 'mailmodo
             className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-mono uppercase transition-all
               ${isLight ? 'border-black/20 text-gray-500 hover:border-[#0d9488]' : 'border-white/13 text-[#a8b0be] hover:border-[#0d9488]'}`}
           >All</button>
+          <button
+            onClick={handleFilter}
+            className={`px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider font-semibold transition-all ${
+              isLight
+                ? 'border-[#0d9488] text-[#0d9488] bg-[#0d9488]/8 hover:bg-[#0d9488]/15'
+                : 'border-[#0d9488] text-[#0d9488] bg-[#0d9488]/10 hover:bg-[#0d9488]/20'
+            }`}
+          >Filter</button>
+          <button
+            onClick={handleFilter}
+            title="Refresh"
+            className={`flex items-center justify-center w-[30px] h-[30px] rounded-lg border transition-all ${isLight ? 'border-black/20 text-gray-500 hover:border-[#0d9488] hover:text-[#0d9488]' : 'border-white/13 text-[#a8b0be] hover:border-[#0d9488] hover:text-[#0d9488]'}`}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.5 2A5 5 0 1 0 11 6.5"/><path d="M10.5 2v3h-3"/>
+            </svg>
+          </button>
 
           {/* Granularity dropdown */}
           <CustomSelect

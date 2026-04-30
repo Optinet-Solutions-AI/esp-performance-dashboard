@@ -175,28 +175,35 @@ export default function AnalyticsView() {
   const allDates  = mmData?.dates ?? []
   const datesFull = mmData?.datesFull ?? []
 
-  const [fromIso, setFromIso] = useState<string>('')
-  const [toIso,   setToIso]   = useState<string>('')
+  const [fromIso,      setFromIso]      = useState<string>('')
+  const [toIso,        setToIso]        = useState<string>('')
+  const [appliedFromIso, setAppliedFromIso] = useState<string>('')
+  const [appliedToIso,   setAppliedToIso]   = useState<string>('')
 
   function handleEspChange(name: string) {
     setSelectedEsp(name)
-    setFromIso('')
-    setToIso('')
+    setFromIso(''); setToIso('')
+    setAppliedFromIso(''); setAppliedToIso('')
     setSortCol('sent')
     setSortDir(-1)
     setSearchQ('')
   }
 
+  function handleFilter() {
+    setAppliedFromIso(fromIso)
+    setAppliedToIso(toIso)
+  }
+
   const selectedDates = useMemo(() => {
-    if (!fromIso && !toIso) return allDates
-    const lo = fromIso && toIso ? (fromIso < toIso ? fromIso : toIso) : fromIso || toIso
-    const hi = fromIso && toIso ? (fromIso < toIso ? toIso : fromIso) : fromIso || toIso
+    if (!appliedFromIso && !appliedToIso) return allDates
+    const lo = appliedFromIso && appliedToIso ? (appliedFromIso < appliedToIso ? appliedFromIso : appliedToIso) : appliedFromIso || appliedToIso
+    const hi = appliedFromIso && appliedToIso ? (appliedFromIso < appliedToIso ? appliedToIso : appliedFromIso) : appliedFromIso || appliedToIso
     return allDates.filter(label => {
       const df = datesFull.find(d => d.label === label)
       if (!df?.iso) return true
       return df.iso >= lo && df.iso <= hi
     })
-  }, [allDates, datesFull, fromIso, toIso])
+  }, [allDates, datesFull, appliedFromIso, appliedToIso])
 
   // ── Data pipeline — fully inline, zero memoization.
   //    Memos were causing stale IP-tab data to persist when switching tabs.
@@ -361,6 +368,32 @@ export default function AnalyticsView() {
             align="right"
           />
         </div>
+
+        <button
+          onClick={handleFilter}
+          style={{
+            padding: '7px 14px', borderRadius: 8, fontSize: 11, fontFamily: 'Space Mono, monospace',
+            fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
+            border: `1px solid ${activeAccent}`, color: activeAccent,
+            background: isLight ? 'rgba(13,148,128,0.08)' : 'rgba(0,229,195,0.10)',
+            transition: 'all 0.12s',
+          }}
+        >Filter</button>
+        <button
+          onClick={handleFilter}
+          title="Refresh"
+          style={{
+            width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: `1px solid ${inputBorder}`, background: 'transparent', cursor: 'pointer',
+            color: mutedColor, transition: 'all 0.12s',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = activeAccent; (e.currentTarget as HTMLButtonElement).style.color = activeAccent }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = inputBorder; (e.currentTarget as HTMLButtonElement).style.color = mutedColor }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.5 2A5 5 0 1 0 11 6.5"/><path d="M10.5 2v3h-3"/>
+          </svg>
+        </button>
 
         <span style={{ fontSize: 11, color: mutedColor, fontFamily: 'Space Mono, monospace' }}>
           {selectedDates.length} day{selectedDates.length !== 1 ? 's' : ''}
