@@ -28,7 +28,7 @@ const KPI_DEFS = [
 const GRID_KPIS = [
   { key: 'deliveryRate' as keyof DateMetrics, label: 'Success%', color: '#b39dff', lightColor: '#7c5cfc', tipTitle: 'SUCCESS RATE',  formula: 'Delivered ÷ Sent × 100',           rawFn: (r: DateMetrics) => ({ a: r.delivered, b: r.sent        }), getValue: (r: DateMetrics) => r.deliveryRate,                                              dec: 1 },
   { key: 'openRate'     as keyof DateMetrics, label: 'Open%',    color: '#00ffd5', lightColor: '#006a5b', tipTitle: 'OPEN RATE',     formula: 'Opens ÷ Delivered × 100',          rawFn: (r: DateMetrics) => ({ a: r.opened,    b: r.delivered   }), getValue: (r: DateMetrics) => r.openRate,                                                  dec: 1 },
-  { key: 'clickRate'    as keyof DateMetrics, label: 'CTR%',     color: '#ffe066', lightColor: '#D58B05', tipTitle: 'CTR',           formula: 'Clicks ÷ Delivered × 100',         rawFn: (r: DateMetrics) => ({ a: r.clicked,   b: r.delivered   }), getValue: (r: DateMetrics) => r.delivered > 0 ? (r.clicked / r.delivered) * 100 : 0,    dec: 1 },
+  { key: 'clickRate'    as keyof DateMetrics, label: 'CTR%',     color: '#ffe066', lightColor: '#D58B05', tipTitle: 'CTR',           formula: 'Clicks ÷ Opens × 100',             rawFn: (r: DateMetrics) => ({ a: r.clicked,   b: r.opened      }), getValue: (r: DateMetrics) => r.opened > 0 ? (r.clicked / r.opened) * 100 : 0,          dec: 1 },
   { key: 'bounceRate'   as keyof DateMetrics, label: 'Bounce%',  color: '#ff6b77', lightColor: '#BD0B19', tipTitle: 'BOUNCE RATE',   formula: 'Bounced ÷ Sent × 100',             rawFn: (r: DateMetrics) => ({ a: r.bounced,   b: r.sent        }), getValue: (r: DateMetrics) => r.bounceRate,                                                dec: 1 },
   { key: 'unsubRate'    as keyof DateMetrics, label: 'Unsub%',   color: '#ff9a5c', lightColor: '#AF4302', tipTitle: 'UNSUB RATE',    formula: 'Unsubscribed ÷ Delivered × 100',   rawFn: (r: DateMetrics) => ({ a: r.unsubscribed ?? 0, b: r.delivered }), getValue: (r: DateMetrics) => r.delivered > 0 ? ((r.unsubscribed ?? 0) / r.delivered) * 100 : 0, dec: 3 },
 ]
@@ -174,8 +174,8 @@ function buildIpAggByDate(
       sent, delivered, opened, clicked, bounced, unsubscribed, complained,
       deliveryRate: (delivered / sent) * 100, successRate: (delivered / sent) * 100,
       openRate: delivered > 0 ? (opened / delivered) * 100 : 0,
-      // Mailgun: CTR = clicks / delivered
-      clickRate: delivered > 0 ? (clicked / delivered) * 100 : 0,
+      // Mailgun: CTR = clicks / opens
+      clickRate: opened > 0 ? (clicked / opened) * 100 : 0,
       bounceRate: (bounced / sent) * 100,
       // Mailgun: unsub rate = unsubs / delivered
       unsubRate: delivered > 0 ? (unsubscribed / delivered) * 100 : 0,
@@ -432,8 +432,8 @@ export default function MailgunView() {
 
     const rateMetrics = dateGroups.map(g => aggDates(src, g.dates))
 
-    // Mailgun: CTR = clicks / delivered
-    const ogCtr = (r: DateMetrics | null) => r && r.delivered > 0 ? (r.clicked / r.delivered) * 100 : null
+    // Mailgun: CTR = clicks / opens
+    const ogCtr = (r: DateMetrics | null) => r && r.opened > 0 ? (r.clicked / r.opened) * 100 : null
 
     rateInst.current = new Chart(rateRef.current, {
       type: 'line',
@@ -463,7 +463,7 @@ export default function MailgunView() {
                 const lbl = ctx.dataset.label
                 if (lbl === 'Success Rate') return `${lbl}: ${pct}% (${fmtN(r.delivered)} / ${fmtN(r.sent)})`
                 if (lbl === 'Open Rate')    return `${lbl}: ${pct}% (${fmtN(r.opened)} / ${fmtN(r.delivered)})`
-                if (lbl === 'CTR')          return `${lbl}: ${pct}% (${fmtN(r.clicked)} / ${fmtN(r.delivered)})`
+                if (lbl === 'CTR')          return `${lbl}: ${pct}% (${fmtN(r.clicked)} / ${fmtN(r.opened)})`
                 if (lbl === 'Bounce Rate')  return `${lbl}: ${pct}% (${fmtN(r.bounced)} / ${fmtN(r.sent)})`
                 return `${lbl}: ${pct}%`
               },
@@ -738,8 +738,8 @@ export default function MailgunView() {
           {/* ── KPI Cards ─────────────────────────────────────────── */}
           {aggOverall && (() => {
             const bounceAccent = aggOverall.bounceRate > 10 ? '#ff4757' : aggOverall.bounceRate > 2 ? '#ffd166' : teal
-            // Mailgun: CTR = clicks / delivered
-            const ogCtr       = aggOverall.delivered > 0 ? (aggOverall.clicked / aggOverall.delivered) * 100 : 0
+            // Mailgun: CTR = clicks / opens
+            const ogCtr       = aggOverall.opened > 0 ? (aggOverall.clicked / aggOverall.opened) * 100 : 0
             const kpiCards = [
               {
                 label: 'Total Sent', val: fmtN(aggOverall.sent),
@@ -760,7 +760,7 @@ export default function MailgunView() {
               {
                 label: 'CTR', val: fmtP(ogCtr),
                 sub: `${fmtN(aggOverall.clicked)} clicks`, accent: '#ffd166',
-                tip: { title: 'CTR', exact: ogCtr.toFixed(2) + '%', formula: 'Clicks ÷ Delivered × 100', calc: `${aggOverall.clicked.toLocaleString()} ÷ ${aggOverall.delivered.toLocaleString()} × 100 = ${ogCtr.toFixed(2)}%`, color: '#ffd166' },
+                tip: { title: 'CTR', exact: ogCtr.toFixed(2) + '%', formula: 'Clicks ÷ Opens × 100', calc: `${aggOverall.clicked.toLocaleString()} ÷ ${aggOverall.opened.toLocaleString()} × 100 = ${ogCtr.toFixed(2)}%`, color: '#ffd166' },
               },
               {
                 label: 'Bounce Rate', val: fmtP(aggOverall.bounceRate),
@@ -983,7 +983,7 @@ export default function MailgunView() {
                     const s = d?.sent ?? 0, del = d?.delivered ?? 0, op = d?.opened ?? 0
                     const cl = d?.clicked ?? 0, bo = d?.bounced ?? 0, un = d?.unsubscribed ?? 0
                     // Mailgun formulas
-                    const ctr      = del > 0 ? (cl / del) * 100 : 0
+                    const ctr      = op > 0 ? (cl / op) * 100 : 0
                     const unsubPct = del > 0 ? (un / del) * 100 : 0
                     const tip = (title: string, exact: string, formula: string, calc: string, color: string) =>
                       ({ title, exact, formula, calc, color })
@@ -991,12 +991,12 @@ export default function MailgunView() {
                       { tip: tip('TOTAL SENT',    fmtN(s),   'Raw count of emails dispatched',              `= ${fmtN(s)}`,                                                                              '#a8b0be'), cls: muted },
                       { tip: tip('DELIVERED',      fmtN(del), 'Emails accepted by recipient server',         `${fmtN(del)} of ${fmtN(s)} sent`,                                                          '#c8cdd6'), cls: txt },
                       { tip: tip('OPENS',          fmtN(op),  'Unique opens recorded',                       `Open Rate = ${del > 0 ? (op/del*100).toFixed(2) : '0.00'}% (opens ÷ delivered)`,           teal), cls: 'text-[#00e5c3]' },
-                      { tip: tip('CLICKS',         fmtN(cl),  'Unique clicks recorded',                      `CTR = ${del > 0 ? (cl/del*100).toFixed(2) : '0.00'}% (clicks ÷ delivered)`,                '#ffd166'), cls: 'text-[#ffd166]' },
+                      { tip: tip('CLICKS',         fmtN(cl),  'Unique clicks recorded',                      `CTR = ${op > 0 ? (cl/op*100).toFixed(2) : '0.00'}% (clicks ÷ opens)`,                      '#ffd166'), cls: 'text-[#ffd166]' },
                       { tip: tip('BOUNCED',        fmtN(bo),  'Emails not delivered',                        `Bounce Rate = ${s > 0 ? (bo/s*100).toFixed(2) : '0.00'}% (bounced ÷ sent)`,               '#ff4757'), cls: bo > 0 ? 'text-[#ff4757]' : muted },
                       { tip: tip('UNSUBSCRIBES',   fmtN(un),  'Recipients who unsubscribed',                 `Unsub Rate = ${del > 0 ? (un/del*100).toFixed(3) : '0.000'}% (unsubs ÷ delivered)`,        '#ff9a5c'), cls: un > 0 ? 'text-[#ff9a5c]' : muted },
                       { tip: tip('SUCCESS RATE',   `${(d?.deliveryRate??0).toFixed(2)}%`, 'Delivered ÷ Sent × 100',              `${fmtN(del)} ÷ ${fmtN(s)} × 100 = ${(d?.deliveryRate??0).toFixed(2)}%`,              '#b39dff'), cls: (d?.deliveryRate??0) < 80 ? 'text-[#ffd166]' : txt },
                       { tip: tip('OPEN RATE',      `${(d?.openRate??0).toFixed(2)}%`,     'Opens ÷ Delivered × 100',             `${fmtN(op)} ÷ ${fmtN(del)} × 100 = ${(d?.openRate??0).toFixed(2)}%`,               teal), cls: 'text-[#00e5c3]' },
-                      { tip: tip('CTR',            `${ctr.toFixed(2)}%`,                  'Clicks ÷ Delivered × 100',            `${fmtN(cl)} ÷ ${fmtN(del)} × 100 = ${ctr.toFixed(2)}%`,                             '#ffd166'), cls: 'text-[#ffd166]' },
+                      { tip: tip('CTR',            `${ctr.toFixed(2)}%`,                  'Clicks ÷ Opens × 100',                `${fmtN(cl)} ÷ ${fmtN(op)} × 100 = ${ctr.toFixed(2)}%`,                              '#ffd166'), cls: 'text-[#ffd166]' },
                       { tip: tip('BOUNCE RATE',    `${(d?.bounceRate??0).toFixed(2)}%`,   'Bounced ÷ Sent × 100',                `${fmtN(bo)} ÷ ${fmtN(s)} × 100 = ${(d?.bounceRate??0).toFixed(2)}%`,                '#ff6b77'), cls: (d?.bounceRate??0) > 10 ? 'text-[#ff4757]' : (d?.bounceRate??0) > 2 ? 'text-[#ffd166]' : muted },
                       { tip: tip('UNSUB RATE',     `${unsubPct.toFixed(3)}%`,             'Unsubscribed ÷ Delivered × 100',      `${fmtN(un)} ÷ ${fmtN(del)} × 100 = ${unsubPct.toFixed(3)}%`,                        '#ff9a5c'), cls: unsubPct > 0 ? 'text-[#ff9a5c]' : muted },
                     ]
@@ -1032,7 +1032,7 @@ export default function MailgunView() {
                   {aggOverall && (() => {
                     const s = aggOverall.sent, del = aggOverall.delivered, op = aggOverall.opened
                     const cl = aggOverall.clicked, bo = aggOverall.bounced, un = aggOverall.unsubscribed ?? 0
-                    const ctr      = del > 0 ? (cl / del) * 100 : 0
+                    const ctr      = op > 0 ? (cl / op) * 100 : 0
                     const unsubPct = del > 0 ? (un / del) * 100 : 0
                     const tip = (title: string, exact: string, formula: string, calc: string, color: string) =>
                       ({ title, exact, formula, calc, color })
@@ -1040,12 +1040,12 @@ export default function MailgunView() {
                       { tip: tip('TOTAL SENT',    fmtN(s),   'Raw count of emails dispatched',              `= ${fmtN(s)}`,                                                                              '#a8b0be'), cls: txt },
                       { tip: tip('DELIVERED',      fmtN(del), 'Emails accepted by recipient server',         `${fmtN(del)} of ${fmtN(s)} sent`,                                                          '#c8cdd6'), cls: txt },
                       { tip: tip('OPENS',          fmtN(op),  'Unique opens recorded',                       `Open Rate = ${del > 0 ? (op/del*100).toFixed(2) : '0.00'}% (opens ÷ delivered)`,           teal), cls: 'text-[#00e5c3]' },
-                      { tip: tip('CLICKS',         fmtN(cl),  'Unique clicks recorded',                      `CTR = ${del > 0 ? (cl/del*100).toFixed(2) : '0.00'}% (clicks ÷ delivered)`,                '#ffd166'), cls: 'text-[#ffd166]' },
+                      { tip: tip('CLICKS',         fmtN(cl),  'Unique clicks recorded',                      `CTR = ${op > 0 ? (cl/op*100).toFixed(2) : '0.00'}% (clicks ÷ opens)`,                      '#ffd166'), cls: 'text-[#ffd166]' },
                       { tip: tip('BOUNCED',        fmtN(bo),  'Emails not delivered',                        `Bounce Rate = ${s > 0 ? (bo/s*100).toFixed(2) : '0.00'}% (bounced ÷ sent)`,               '#ff4757'), cls: bo > 0 ? 'text-[#ff4757]' : txt },
                       { tip: tip('UNSUBSCRIBES',   fmtN(un),  'Recipients who unsubscribed',                 `Unsub Rate = ${del > 0 ? (un/del*100).toFixed(3) : '0.000'}% (unsubs ÷ delivered)`,        '#ff9a5c'), cls: un > 0 ? 'text-[#ff9a5c]' : txt },
                       { tip: tip('SUCCESS RATE',   `${aggOverall.deliveryRate.toFixed(2)}%`, 'Delivered ÷ Sent × 100',   `${fmtN(del)} ÷ ${fmtN(s)} × 100 = ${aggOverall.deliveryRate.toFixed(2)}%`,     '#b39dff'), cls: txt },
                       { tip: tip('OPEN RATE',      `${aggOverall.openRate.toFixed(2)}%`,     'Opens ÷ Delivered × 100',  `${fmtN(op)} ÷ ${fmtN(del)} × 100 = ${aggOverall.openRate.toFixed(2)}%`,        teal), cls: 'text-[#00e5c3]' },
-                      { tip: tip('CTR',            `${ctr.toFixed(2)}%`,                     'Clicks ÷ Delivered × 100', `${fmtN(cl)} ÷ ${fmtN(del)} × 100 = ${ctr.toFixed(2)}%`,                       '#ffd166'), cls: 'text-[#ffd166]' },
+                      { tip: tip('CTR',            `${ctr.toFixed(2)}%`,                     'Clicks ÷ Opens × 100',     `${fmtN(cl)} ÷ ${fmtN(op)} × 100 = ${ctr.toFixed(2)}%`,                        '#ffd166'), cls: 'text-[#ffd166]' },
                       { tip: tip('BOUNCE RATE',    `${aggOverall.bounceRate.toFixed(2)}%`,   'Bounced ÷ Sent × 100',     `${fmtN(bo)} ÷ ${fmtN(s)} × 100 = ${aggOverall.bounceRate.toFixed(2)}%`,        '#ff6b77'), cls: aggOverall.bounceRate > 10 ? 'text-[#ff4757]' : aggOverall.bounceRate > 2 ? 'text-[#ffd166]' : txt },
                       { tip: tip('UNSUB RATE',     `${unsubPct.toFixed(3)}%`,               'Unsubscribed ÷ Delivered × 100', `${fmtN(un)} ÷ ${fmtN(del)} × 100 = ${unsubPct.toFixed(3)}%`,            '#ff9a5c'), cls: unsubPct > 0 ? 'text-[#ff9a5c]' : txt },
                     ]
@@ -1102,7 +1102,7 @@ export default function MailgunView() {
                   <tbody>
                     {activeDates.filter(d => selectedBD[d]).map(d => {
                       const r = selectedBD[d]
-                      const ogCtrVal = r.delivered > 0 ? (r.clicked / r.delivered) * 100 : 0
+                      const ogCtrVal = r.opened > 0 ? (r.clicked / r.opened) * 100 : 0
                       return (
                         <tr key={d} className={`border-b last:border-0 ${isLight ? 'border-black/8' : 'border-white/7'}`}>
                           <td className={`px-3 py-2 text-[11px] font-mono ${txt}`}>{d}</td>
