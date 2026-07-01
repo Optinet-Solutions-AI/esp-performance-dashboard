@@ -21,7 +21,7 @@ const RATE_COLORS = { successRate: '#e63946', openRate: '#00e5c3', clickRate: '#
 // Kenscio-specific: CTR = Clicks ÷ Delivered, Unsub = Unsubs ÷ Delivered
 const KPI_DEFS = [
   { key: 'openRate'   as keyof DateMetrics, label: 'Open Rate %',   color: '#00e5c3', lightColor: '#006a5b', formula: 'Opens ÷ Delivered × 100',        getValue: (r: DateMetrics) => r.openRate },
-  { key: 'clickRate'  as keyof DateMetrics, label: 'CTR %',         color: '#ffd166', lightColor: '#D58B05', formula: 'Clicks ÷ Delivered × 100',       getValue: (r: DateMetrics) => r.delivered > 0 ? (r.clicked / r.delivered) * 100 : 0 },
+  { key: 'clickRate'  as keyof DateMetrics, label: 'CTR %',         color: '#ffd166', lightColor: '#D58B05', formula: 'Clicks ÷ Opens × 100',           getValue: (r: DateMetrics) => r.opened > 0 ? (r.clicked / r.opened) * 100 : 0 },
   { key: 'bounceRate' as keyof DateMetrics, label: 'Bounce Rate %', color: '#ff4757', lightColor: '#BD0B19', formula: 'Bounced ÷ Sent × 100',           getValue: (r: DateMetrics) => r.bounceRate },
   { key: 'unsubRate'  as keyof DateMetrics, label: 'Unsub Rate %',  color: '#ff9a5c', lightColor: '#AF4302', formula: 'Unsubscribed ÷ Delivered × 100', getValue: (r: DateMetrics) => r.delivered > 0 ? ((r.unsubscribed ?? 0) / r.delivered) * 100 : 0 },
 ]
@@ -488,7 +488,7 @@ export default function KenscioView() {
     const kpiCalcLabel = (kpiKey: string, r: DateMetrics | null, pct: string) => {
       if (!r) return pct + '%'
       if (kpiKey === 'openRate')   return `${pct}% (${fmtN(r.opened)} / ${fmtN(r.delivered)})`
-      if (kpiKey === 'clickRate')  return `${pct}% (${fmtN(r.clicked)} / ${fmtN(r.delivered)})`
+      if (kpiKey === 'clickRate')  return `${pct}% (${fmtN(r.clicked)} / ${fmtN(r.opened)})`
       if (kpiKey === 'bounceRate') return `${pct}% (${fmtN(r.bounced)} / ${fmtN(r.sent)})`
       if (kpiKey === 'unsubRate')  return `${pct}% (${fmtN(r.unsubscribed ?? 0)} / ${fmtN(r.delivered)})`
       return pct + '%'
