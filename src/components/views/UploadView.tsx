@@ -29,6 +29,9 @@ export default function UploadView() {
   const [log, setLog] = useState<string[]>([])
   const [result, setResult] = useState<{ rows: number; dates: string[]; newDates: number } | null>(null)
   const [rejection, setRejection] = useState<ValidationResult | null>(null)
+  // Hard failures that must NOT look like success (domain gate, DB save error).
+  // Surfaced as a loud banner + stops the flow, instead of a line buried in the log.
+  const [uploadError, setUploadError] = useState<{ title: string; lines: string[] } | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [history, setHistory] = useState<UploadRecord[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -61,6 +64,7 @@ export default function UploadView() {
     setLog([])
     setResult(null)
     setRejection(null)
+    setUploadError(null)
   }
 
   async function handleProcess(mapOrderOverride?: MapDateOrder) {
@@ -69,6 +73,7 @@ export default function UploadView() {
     setLog([])
     setResult(null)
     setRejection(null)
+    setUploadError(null)
     setMapPick(null)
 
     try {
@@ -139,6 +144,14 @@ export default function UploadView() {
           unregistered.slice(0, 5).forEach(d => addLog(`   • ${d}`))
           if (unregistered.length > 5) addLog(`   …and ${unregistered.length - 5} more`)
           addLog('Register these domains in the IP Matrix before uploading. Nothing was uploaded.')
+          setUploadError({
+            title: `Upload rejected — ${unregistered.length} sending domain${unregistered.length === 1 ? '' : 's'} not registered in the IP Matrix for ${esp}`,
+            lines: [
+              ...unregistered.slice(0, 8),
+              ...(unregistered.length > 8 ? [`…and ${unregistered.length - 8} more`] : []),
+              'Register these domains in the IP Matrix, then re-upload. Nothing was saved.',
+            ],
+          })
           return
         }
       }
@@ -157,10 +170,17 @@ export default function UploadView() {
         solo_data: soloData,
       })
       if (insertError) {
-        addLog(`⚠️ Save failed: ${insertError.message}`)
-      } else {
-        addLog('☁️ Saved to database.')
+        addLog(`❌ Save failed: ${insertError.message}`)
+        setUploadError({
+          title: 'Upload failed — nothing was saved',
+          lines: [
+            `The database rejected this upload: ${insertError.message}`,
+            'The dashboard was NOT updated. Please try again; if it keeps failing, send us this message.',
+          ],
+        })
+        return
       }
+      addLog('☁️ Saved to database.')
 
       // Rebuild this ESP's data from all uploads in order — later uploads override earlier ones for same dates
       const { data: allUploads } = await supabase
@@ -464,6 +484,17 @@ export default function UploadView() {
                     .join(', ') || `at least ${UPLOAD_SCHEMAS[esp].minColumns} columns`}.
                 </div>
               )}
+            </div>
+          )}
+
+          {uploadError && (
+            <div className="rounded-xl border p-4 mb-3 mt-4" style={{ borderColor: '#ff4757', background: isLight ? 'rgba(255,71,87,0.12)' : 'rgba(255,71,87,0.08)' }}>
+              <div className="text-sm font-bold mb-2" style={{ color: isLight ? '#c81e2c' : '#ff4757' }}>
+                {uploadError.title}
+              </div>
+              <ul className="list-disc pl-5 text-xs space-y-1" style={{ color: isLight ? '#c81e2c' : '#ff4757' }}>
+                {uploadError.lines.map((l, i) => <li key={i}>{l}</li>)}
+              </ul>
             </div>
           )}
 
