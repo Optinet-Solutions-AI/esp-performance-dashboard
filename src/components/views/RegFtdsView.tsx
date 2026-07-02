@@ -178,7 +178,11 @@ export default function RegFtdsView() {
       let fileRows: string[][]
       if (isExcel) {
         const buf = await file.arrayBuffer()
-        const wb  = XLSX.read(buf, { type: 'array', cellDates: true })
+        // cellDates:false → date cells arrive as raw Excel serials, which
+        // parseRegFtdsDate converts in UTC (timezone-independent). Reading with
+        // cellDates:true yields a Date whose local parts shift by a day in
+        // timezones west of the file's, splitting one day across two dates.
+        const wb  = XLSX.read(buf, { type: 'array', cellDates: false })
         const ws  = wb.Sheets[wb.SheetNames[0]]
         fileRows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '' }) as string[][]
         fileRows = fileRows.filter(r => r.some(c => String(c).trim() !== ''))
