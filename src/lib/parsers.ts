@@ -1382,3 +1382,22 @@ export function unknownDomainSends(parsed: ParseResult): number {
   return Object.values(parsed.byDate)
     .reduce((sum, b) => sum + (b.domains['unknown']?.sent ?? 0), 0)
 }
+
+export type UploadDataIssue =
+  | { kind: 'all-skipped'; totalRows: number }   // rows present but none parsed into a date
+  | { kind: 'zero-sent'; dates: number }         // dates parsed but 0 sends counted (column mismatch)
+
+/**
+ * Detect an upload that parsed but would be invisible — either every row was
+ * skipped, or metrics all came out zero (usually a column-header mismatch).
+ * Returns null when the upload has usable, visible data.
+ */
+export function checkUploadHasData(parsed: ParseResult): UploadDataIssue | null {
+  if (parsed.dates.length === 0) return { kind: 'all-skipped', totalRows: parsed.totalRows }
+  let sent = 0
+  for (const b of Object.values(parsed.byDate)) {
+    for (const m of Object.values(b.providers)) sent += m.sent || 0
+  }
+  if (sent === 0) return { kind: 'zero-sent', dates: parsed.dates.length }
+  return null
+}
