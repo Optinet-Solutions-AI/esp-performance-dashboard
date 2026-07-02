@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import CustomSelect from '@/components/ui/CustomSelect'
-import { parseFile, mergeIntoMmData, readUploadRows, unknownDomainSends, type MapDateOrder } from '@/lib/parsers'
+import { parseFile, mergeIntoMmData, readUploadRows, unknownDomainSends, checkUploadHasData, type MapDateOrder } from '@/lib/parsers'
 import { validateUpload, UPLOAD_SCHEMAS, type ValidationResult } from '@/lib/uploadValidation'
 import { buildProviderDomains, syncEspFromData, overwriteMmData } from '@/lib/utils'
 import { ESP_COLORS, ESP_LIST } from '@/lib/data'
@@ -118,6 +118,32 @@ export default function UploadView() {
       addLog(`📅 Found ${parsed.dates.length} date(s): ${parsed.dates.join(', ')}`)
       if (esp === 'Map') addLog(`🗓️ Dates read as ${mapOrderOverride === 'dmy' ? 'day-first (dd/mm/yyyy)' : 'month-first (mm/dd/yyyy)'}`)
       addLog(`🔎 Format: ${parsed.format}`)
+
+      // ── Guardrail: block uploads that parsed but would be invisible ──
+      // (all rows skipped, or metrics all zero from a column-header mismatch)
+      const dataIssue = checkUploadHasData(parsed)
+      if (dataIssue) {
+        if (dataIssue.kind === 'all-skipped') {
+          addLog(`⛔ Upload rejected — none of the ${dataIssue.totalRows.toLocaleString()} rows could be read.`)
+          setUploadError({
+            title: `Upload rejected — no usable rows`,
+            lines: [
+              `All ${dataIssue.totalRows.toLocaleString()} rows were skipped (no valid date/email).`,
+              `The file's columns likely don't match the ${esp} format. Nothing was saved.`,
+            ],
+          })
+        } else {
+          addLog(`⛔ Upload rejected — parsed ${parsed.dates.length} date(s) but 0 sends were counted.`)
+          setUploadError({
+            title: `Upload rejected — 0 sends counted`,
+            lines: [
+              `Rows parsed across ${dataIssue.dates} date(s), but no "sent" values were read.`,
+              `The metric columns likely don't match the ${esp} format, so this upload would not appear anywhere. Nothing was saved.`,
+            ],
+          })
+        }
+        return
+      }
 
       const unknownSends = unknownDomainSends(parsed)
       if (unknownSends > 0) {
