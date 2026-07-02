@@ -328,6 +328,17 @@ export function decideUpload(
   }
 
   const rows: AggRow[] = [...aggregated.values()]
+
+  // Zero-data guard (twin of the deliverability zero-sent guard): a file whose
+  // Registrations and FTD columns parse but sum to 0 across every row would
+  // commit as a silent no-op — almost always a wrong column mapping.
+  const totalRegFtds = rows.reduce((s, r) => s + r.reg + r.ftds, 0)
+  if (totalRegFtds === 0) {
+    return { kind: 'reject', warning:
+      'Upload rejected — this file adds 0 registrations and 0 FTDs.\n' +
+      'Check that the Registrations and FTD columns are mapped correctly. Nothing was uploaded.' }
+  }
+
   const plan = buildUploadPlan(rows, ipMatrix)
   const uploadDates = [...new Set(rows.map(r => r.date))]
   const dateOverwrites = computeDateOverwrites(uploadDates, existingDates)
