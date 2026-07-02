@@ -142,6 +142,18 @@ export function parseRegFtdsDate(val: unknown): string | null {
     const d = String(val.getDate()).padStart(2, '0')
     return `${y}-${m}-${d}`
   }
+  // Excel date serial (xlsx read with cellDates:false). Convert in UTC so the
+  // result is the date as written in the sheet, independent of the runtime
+  // timezone — reading with cellDates:true + local parts is off-by-a-day in any
+  // timezone west of the file's, which silently splits one day across two dates.
+  if (typeof val === 'number' && isFinite(val)) {
+    const d = new Date(Date.UTC(1899, 11, 30) + val * 86400000)
+    if (isNaN(d.getTime())) return null
+    const y = d.getUTCFullYear()
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+    const dd = String(d.getUTCDate()).padStart(2, '0')
+    return `${y}-${m}-${dd}`
+  }
   const s = String(val ?? '').trim()
   if (!s) return null
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s

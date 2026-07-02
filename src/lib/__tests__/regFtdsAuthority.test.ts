@@ -163,6 +163,13 @@ describe('parseRegFtdsDate', () => {
     expect(parseRegFtdsDate('')).toBeNull()
     expect(parseRegFtdsDate(undefined)).toBeNull()
   })
+  it('parses an Excel date serial as the date-as-written, in UTC (timezone-independent)', () => {
+    expect(parseRegFtdsDate(46204)).toBe('2026-07-01')  // serial for 1 Jul 2026
+    expect(parseRegFtdsDate(45292)).toBe('2024-01-01')  // serial for 1 Jan 2024
+  })
+  it('floors a serial that carries a time component to its UTC date', () => {
+    expect(parseRegFtdsDate(46204.9)).toBe('2026-07-01')
+  })
 })
 
 describe('isValidIpv4', () => {
