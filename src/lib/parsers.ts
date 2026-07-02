@@ -27,6 +27,9 @@ export interface ParseResult {
   skippedNoEmail: number
   newDates: number
   format: 'mailmodo' | 'generic' | 'netcore' | 'mms' | 'moosend' | 'kenscio' | 'mailjet' | 'elastic' | 'inboxroad' | 'map'
+  // MAP only: true when the Date column's month/day order could not be inferred
+  // from the file itself and a default was assumed — the caller must confirm.
+  dateAmbiguous: boolean
 }
 
 function splitCsvLine(line: string): string[] {
@@ -134,6 +137,69 @@ export function parseDate(raw: string | number, monthFirst = false): { str: stri
       return { str: d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0'), year }
   }
   return null
+}
+
+// MAP exports the Date column in an inconsistent 2-part numeric format: it may be
+// mm/dd/yyyy, dd/mm/yyyy, mm-dd-yyyy or dd-mm-yyyy — the separator does NOT imply
+// the order. 'mdy' = month-first, 'dmy' = day-first.
+export type MapDateOrder = 'mdy' | 'dmy'
+
+const TWO_PART_DATE = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/
+
+/**
+ * Infer the month/day order for a whole MAP file from its date cells.
+ * A single file is one format throughout, so any row with a component > 12
+ * (which can only be the day) locks the order for every row — including the
+ * rows that are individually ambiguous. Returns ambiguous=true only when the
+ * data itself can't decide (every 2-part date has both parts <= 12, or the
+ * evidence is contradictory), in which case the caller must ask the operator.
+ */
+export function resolveMapDateOrder(rawDates: (string | number)[]): { order: MapDateOrder | null; ambiguous: boolean } {
+  let sawDayFirst = false     // a first component > 12 proves day-first
+  let sawMonthFirst = false   // a second component > 12 proves month-first
+  let hadTwoPart = false
+
+  for (const raw of rawDates) {
+    if (typeof raw === 'number') continue
+    const m = String(raw ?? '').trim().match(TWO_PART_DATE)
+    if (!m) continue
+    hadTwoPart = true
+    const a = parseInt(m[1], 10)
+    const b = parseInt(m[2], 10)
+    if (a > 12) sawDayFirst = true
+    if (b > 12) sawMonthFirst = true
+  }
+
+  if (sawDayFirst && !sawMonthFirst) return { order: 'dmy', ambiguous: false }
+  if (sawMonthFirst && !sawDayFirst) return { order: 'mdy', ambiguous: false }
+  if (sawDayFirst && sawMonthFirst) return { order: null, ambiguous: true }   // contradictory
+  if (hadTwoPart) return { order: null, ambiguous: true }                     // all parts <= 12
+  return { order: null, ambiguous: false }                                    // nothing to resolve
+}
+
+/**
+ * Parse one MAP date with an explicit month/day order. A component > 12 always
+ * overrides the requested order (it can only be the day). ISO dates and Excel
+ * serials are unambiguous and pass through to parseDate.
+ */
+export function parseMapDate(raw: string | number, order: MapDateOrder): { str: string; year: number } | null {
+  if (typeof raw === 'string') {
+    const m = raw.trim().match(TWO_PART_DATE)
+    if (m) {
+      const a = parseInt(m[1], 10)
+      const b = parseInt(m[2], 10)
+      const year = parseInt(m[3], 10)
+      let month: number, day: number
+      if (a > 12) { day = a; month = b }
+      else if (b > 12) { month = a; day = b }
+      else if (order === 'mdy') { month = a; day = b }
+      else { day = a; month = b }
+      const d = new Date(year, month - 1, day)
+      if (isNaN(d.getTime())) return null
+      return { str: d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0'), year }
+    }
+  }
+  return parseDate(raw)
 }
 
 function extractDomain(email: string): string {
@@ -334,7 +400,7 @@ export async function readUploadRows(
   return { headers, rows }
 }
 
-export async function parseFile(file: File, espName?: string, knownDomains?: string[]): Promise<ParseResult> {
+export async function parseFile(file: File, espName?: string, knownDomains?: string[], mapDateOrder?: MapDateOrder): Promise<ParseResult> {
   const { rows } = await readUploadRows(file)
 
   if (rows.length === 0) throw new Error('No rows found in file')
@@ -357,6 +423,20 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
   const dateYears: Record<string, number> = {}
   let skipped = 0, totalRows = 0
   let skippedNoDate = 0, skippedNoEmail = 0
+
+  // MAP: resolve the whole file's month/day order once (see resolveMapDateOrder).
+  // A caller-supplied hint (operator's pick for a genuinely ambiguous file) wins.
+  let mapOrder: MapDateOrder = 'mdy'
+  let mapDateAmbiguous = false
+  if (isMap) {
+    if (mapDateOrder) {
+      mapOrder = mapDateOrder
+    } else {
+      const res = resolveMapDateOrder(rows.map(r => r['date'] ?? ''))
+      mapOrder = res.order ?? 'mdy'
+      mapDateAmbiguous = res.ambiguous
+    }
+  }
 
   rows.forEach(row => {
     totalRows++
@@ -913,20 +993,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
     // Delivered is not in the CSV — calculated as sent - hard_bounces - soft_bounces.
     if (isMap) {
       const rawDate = row['date'] || ''
-      const mapMatch = rawDate.match(/^(\d{2})-(\d{2})-(\d{4})$/)
-      let parsed: { str: string; year: number } | null = null
-      if (mapMatch) {
-        const day   = parseInt(mapMatch[1])
-        const month = parseInt(mapMatch[2])
-        const year  = parseInt(mapMatch[3])
-        const d = new Date(year, month - 1, day)
-        parsed = {
-          str: d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0'),
-          year,
-        }
-      } else {
-        parsed = parseDate(rawDate, false)
-      }
+      const parsed = parseMapDate(rawDate, mapOrder)
       if (!parsed) { skipped++; skippedNoDate++; return }
       const dateStr = parsed.str
       dateYears[dateStr] = parsed.year
@@ -1169,7 +1236,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
   }
 
   const format = isMap ? 'map' : isInboxroad ? 'inboxroad' : isElastic ? 'elastic' : isMailjet ? 'mailjet' : isKenscio ? 'kenscio' : isMoosend ? 'moosend' : isMMS ? 'mms' : isNetcore ? 'netcore' : isMailmodo ? 'mailmodo' : 'generic'
-  return { byDate, dates, dateYears, totalRows, skipped, skippedNoDate, skippedNoEmail, newDates: 0, format }
+  return { byDate, dates, dateYears, totalRows, skipped, skippedNoDate, skippedNoEmail, newDates: 0, format, dateAmbiguous: mapDateAmbiguous }
 }
 
 export function mergeIntoMmData(current: MmData, result: ReturnType<typeof parseFile> extends Promise<infer T> ? T : never, espName: string): { data: MmData; newDates: number } {

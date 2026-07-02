@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import CustomSelect from '@/components/ui/CustomSelect'
-import { parseFile, mergeIntoMmData, readUploadRows, unknownDomainSends } from '@/lib/parsers'
+import { parseFile, mergeIntoMmData, readUploadRows, unknownDomainSends, type MapDateOrder } from '@/lib/parsers'
 import { validateUpload, UPLOAD_SCHEMAS, type ValidationResult } from '@/lib/uploadValidation'
 import { buildProviderDomains, syncEspFromData, overwriteMmData } from '@/lib/utils'
 import { ESP_COLORS, ESP_LIST } from '@/lib/data'
@@ -33,6 +33,9 @@ export default function UploadView() {
   const [history, setHistory] = useState<UploadRecord[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
   const [historyEspFilter, setHistoryEspFilter] = useState('')
+  // MAP date-order disambiguation: when a MAP file's month/day order can't be
+  // inferred from its own data, hold both interpretations and let the operator pick.
+  const [mapPick, setMapPick] = useState<{ mdyDates: string[]; dmyDates: string[] } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { fetchHistory() }, [])
@@ -60,12 +63,13 @@ export default function UploadView() {
     setRejection(null)
   }
 
-  async function handleProcess() {
+  async function handleProcess(mapOrderOverride?: MapDateOrder) {
     if (!file || !esp) return
     setProcessing(true)
     setLog([])
     setResult(null)
     setRejection(null)
+    setMapPick(null)
 
     try {
       addLog(`📂 Reading ${file.name}…`)
@@ -88,12 +92,26 @@ export default function UploadView() {
         .map(r => r.domain?.trim())
         .filter((d): d is string => !!d)
       if (knownDomains.length) addLog(`🔎 Using ${knownDomains.length} registered domain(s) from IP Matrix for matching`)
-      const parsed = await parseFile(file, esp, knownDomains)
+      const parsed = await parseFile(file, esp, knownDomains, mapOrderOverride)
+
+      // ── MAP date-order disambiguation ──
+      // The MAP Date column can be mm/dd or dd/mm and the separator doesn't say
+      // which. parseFile resolves it from the file when possible; when it can't
+      // (single day, both parts ≤12), pause and let the operator pick rather than
+      // silently guessing (which is what misfiled Jul 1 → Jan 7).
+      if (parsed.dateAmbiguous && !mapOrderOverride) {
+        const dmy = await parseFile(file, esp, knownDomains, 'dmy')
+        setMapPick({ mdyDates: parsed.dates, dmyDates: dmy.dates })
+        addLog('⏸️ MAP dates are ambiguous (e.g. "07/01/2026" could be Jul 1 or Jan 7). Choose the format below to continue.')
+        return
+      }
+
       const skipDetail = parsed.skipped > 0
         ? ` — ${parsed.skippedNoDate} no-date, ${parsed.skippedNoEmail} no-email`
         : ''
       addLog(`✅ Parsed ${parsed.totalRows.toLocaleString()} rows (${parsed.skipped} skipped${skipDetail})`)
       addLog(`📅 Found ${parsed.dates.length} date(s): ${parsed.dates.join(', ')}`)
+      if (esp === 'Map') addLog(`🗓️ Dates read as ${mapOrderOverride === 'dmy' ? 'day-first (dd/mm/yyyy)' : 'month-first (mm/dd/yyyy)'}`)
       addLog(`🔎 Format: ${parsed.format}`)
 
       const unknownSends = unknownDomainSends(parsed)
@@ -280,8 +298,41 @@ export default function UploadView() {
     )
   }
 
+  const fmtRange = (ds: string[]) => ds.length === 0 ? '—' : ds.length === 1 ? ds[0] : `${ds[0]} … ${ds[ds.length - 1]} (${ds.length} dates)`
+
   return (
     <div className="view-page fade-up" style={{ maxWidth: 1200 }}>
+      {mapPick && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)' }}>
+          <div className={`rounded-2xl border w-full max-w-md p-6 ${isLight ? 'bg-white border-black/10' : 'bg-[#141820] border-white/10'}`}>
+            <div className={`text-[11px] font-mono tracking-[0.15em] uppercase mb-2 ${isLight ? 'text-[#b45309]' : 'text-[#ffd166]'}`}>Confirm MAP date format</div>
+            <p className={`text-sm mb-1 ${textMain}`}>This file&apos;s dates are ambiguous — the same value could be two different days.</p>
+            <p className={`text-xs mb-4 ${muted}`}>MAP exports use both <span className="font-mono">mm/dd/yyyy</span> and <span className="font-mono">dd/mm/yyyy</span>, and the file doesn&apos;t contain a date that settles which. Pick the correct reading:</p>
+            <div className="space-y-2.5">
+              <button
+                onClick={() => handleProcess('mdy')}
+                className={`w-full text-left rounded-xl border p-3.5 transition-all ${isLight ? 'border-black/15 hover:border-[#0d9488] hover:bg-[#0d9488]/5' : 'border-white/12 hover:border-[#0d9488] hover:bg-[#0d9488]/10'}`}
+              >
+                <div className={`text-sm font-semibold ${textMain}`}>Month first · mm/dd/yyyy</div>
+                <div className={`text-xs font-mono mt-1 ${muted}`}>Reads as {fmtRange(mapPick.mdyDates)}</div>
+              </button>
+              <button
+                onClick={() => handleProcess('dmy')}
+                className={`w-full text-left rounded-xl border p-3.5 transition-all ${isLight ? 'border-black/15 hover:border-[#0d9488] hover:bg-[#0d9488]/5' : 'border-white/12 hover:border-[#0d9488] hover:bg-[#0d9488]/10'}`}
+              >
+                <div className={`text-sm font-semibold ${textMain}`}>Day first · dd/mm/yyyy</div>
+                <div className={`text-xs font-mono mt-1 ${muted}`}>Reads as {fmtRange(mapPick.dmyDates)}</div>
+              </button>
+            </div>
+            <button
+              onClick={() => { setMapPick(null); setProcessing(false); addLog('✋ Upload cancelled — no date format chosen.') }}
+              className={`mt-4 w-full px-3 py-2 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/15 text-gray-500 hover:border-red-300 hover:text-red-500' : 'border-white/12 text-[#6b7280] hover:border-[#ff4757] hover:text-[#ff4757]'}`}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8 items-start">
       {/* ── LEFT: Upload Wizard ─────────────────── */}
       <div>
@@ -377,7 +428,7 @@ export default function UploadView() {
         </div>
         <div className="p-5">
           <button
-            onClick={handleProcess}
+            onClick={() => handleProcess()}
             disabled={!esp || !file || processing}
             className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold tracking-wide transition-all
               disabled:opacity-40 disabled:cursor-not-allowed
