@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useDashboardStore } from '@/lib/store'
 import CustomSelect from '@/components/ui/CustomSelect'
 import { parseFile, mergeIntoMmData, readUploadRows, unknownDomainSends, checkUploadHasData, type MapDateOrder } from '@/lib/parsers'
@@ -348,7 +349,10 @@ export default function UploadView() {
 
   return (
     <div className="view-page fade-up" style={{ maxWidth: 1200 }}>
-      {mapPick && (
+      {/* Portaled to <body>: the .fade-up wrapper keeps a persistent transform
+          (animation-fill-mode: both), which would otherwise make this fixed
+          overlay position relative to the tall wrapper instead of the viewport. */}
+      {mapPick && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)' }}>
           <div className={`rounded-2xl border w-full max-w-md p-6 ${isLight ? 'bg-white border-black/10' : 'bg-[#141820] border-white/10'}`}>
             <div className={`text-[11px] font-mono tracking-[0.15em] uppercase mb-2 ${isLight ? 'text-[#b45309]' : 'text-[#ffd166]'}`}>Confirm MAP date format</div>
@@ -377,7 +381,8 @@ export default function UploadView() {
               Cancel
             </button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8 items-start">
       {/* ── LEFT: Upload Wizard ─────────────────── */}
