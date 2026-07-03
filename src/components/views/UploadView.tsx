@@ -98,7 +98,22 @@ export default function UploadView() {
         .map(r => r.domain?.trim())
         .filter((d): d is string => !!d)
       if (knownDomains.length) addLog(`🔎 Using ${knownDomains.length} registered domain(s) from IP Matrix for matching`)
-      const parsed = await parseFile(file, esp, knownDomains, mapOrderOverride)
+
+      // Build MP-## code → sending domain map for this ESP (MAP convention).
+      // Only rows with BOTH a code and a domain participate; a blank domain
+      // would otherwise resolve a code to "" (see matchMpCode).
+      const mpCodeMap: Record<string, string> = {}
+      ipmData
+        .filter(r => r.esp?.toLowerCase() === esp.toLowerCase())
+        .forEach(r => {
+          const code = r.mpCode?.trim()
+          const dom = r.domain?.trim()
+          if (code && dom) mpCodeMap[code] = dom
+        })
+      const mpCodeCount = Object.keys(mpCodeMap).length
+      if (mpCodeCount) addLog(`🔎 Using ${mpCodeCount} MP-code mapping(s) from IP Matrix for matching`)
+
+      const parsed = await parseFile(file, esp, knownDomains, mapOrderOverride, mpCodeMap)
 
       // ── MAP date-order disambiguation ──
       // The MAP Date column can be mm/dd or dd/mm and the separator doesn't say
@@ -106,7 +121,7 @@ export default function UploadView() {
       // (single day, both parts ≤12), pause and let the operator pick rather than
       // silently guessing (which is what misfiled Jul 1 → Jan 7).
       if (parsed.dateAmbiguous && !mapOrderOverride) {
-        const dmy = await parseFile(file, esp, knownDomains, 'dmy')
+        const dmy = await parseFile(file, esp, knownDomains, 'dmy', mpCodeMap)
         setMapPick({ mdyDates: parsed.dates, dmyDates: dmy.dates })
         addLog('⏸️ MAP dates are ambiguous (e.g. "07/01/2026" could be Jul 1 or Jan 7). Choose the format below to continue.')
         return
