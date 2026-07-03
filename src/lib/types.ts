@@ -68,6 +68,7 @@ export interface IpmRecord {
   esp: string
   ip: string
   domain: string
+  mpCode?: string        // MAP campaign code, e.g. "MP-86" — resolves campaign → sending domain
   registrations?: number
   ftds?: number
 }
