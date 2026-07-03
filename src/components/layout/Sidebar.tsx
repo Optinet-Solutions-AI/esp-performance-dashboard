@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { useSession, signOut } from '@/lib/auth'
 import { useProfile } from '@/lib/profile'
+import { loadFromDB } from '@/lib/loadFromDB'
 import type { ViewName } from '@/lib/types'
 
 const STATUS_LABEL = { healthy: 'OK', warn: 'WARN', critical: 'CRIT' } as const
@@ -27,6 +28,22 @@ export default function Sidebar({ onClose, collapsed }: SidebarProps) {
   const isAdmin = profile?.is_admin === true
   const [providersOpen, setProvidersOpen] = useState(true)
   const [espListOpen, setEspListOpen] = useState(false)
+  const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  async function handleRefresh() {
+    if (refreshState === 'loading') return
+    setRefreshState('loading')
+    try {
+      await loadFromDB()
+      setRefreshState('done')
+    } catch (err) {
+      console.error('Manual refresh failed:', err)
+      setRefreshState('error')
+    }
+    if (refreshTimer.current) clearTimeout(refreshTimer.current)
+    refreshTimer.current = setTimeout(() => setRefreshState('idle'), 1500)
+  }
 
   const userEmail = user?.email ?? ''
   const userInitial = userEmail ? userEmail[0].toUpperCase() : '?'
@@ -357,6 +374,41 @@ export default function Sidebar({ onClose, collapsed }: SidebarProps) {
             )}
           </div>
         )}
+
+        {/* Refresh data */}
+        <button
+          onClick={handleRefresh}
+          disabled={refreshState === 'loading'}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? 0 : 10,
+            padding: collapsed ? '8px 0' : '10px 14px', marginBottom: 8, borderRadius: 12, border: `1px solid ${borderColor}`,
+            cursor: refreshState === 'loading' ? 'default' : 'pointer',
+            fontSize: 11, fontFamily: 'Space Mono,monospace', letterSpacing: '0.12em', textTransform: 'uppercase',
+            background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
+            color: refreshState === 'error' ? (isLight ? '#dc2626' : '#ff7b8a') : refreshState === 'done' ? activeAccent : textColor,
+            transition: 'border-color 0.15s, color 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = isLight ? '#d1d5db' : 'rgba(255,255,255,0.15)' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = borderColor }}
+          title="Reload all data from the database"
+        >
+          <svg
+            viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7"
+            style={{ width: 16, height: 16, flexShrink: 0 }}
+            className={refreshState === 'loading' ? 'animate-spin' : undefined}
+          >
+            <path d="M15 9a6 6 0 1 1-1.8-4.3" strokeLinecap="round" />
+            <path d="M15 2.5V6h-3.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {!collapsed && (
+            <span>
+              {refreshState === 'loading' ? 'Refreshing…'
+                : refreshState === 'done' ? 'Updated ✓'
+                : refreshState === 'error' ? 'Failed ✗'
+                : 'Refresh data'}
+            </span>
+          )}
+        </button>
 
         {/* Theme toggle */}
         <button
