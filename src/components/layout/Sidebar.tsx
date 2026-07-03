@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { useSession, signOut } from '@/lib/auth'
 import { useProfile } from '@/lib/profile'
@@ -29,6 +29,7 @@ export default function Sidebar({ onClose, collapsed }: SidebarProps) {
   const [providersOpen, setProvidersOpen] = useState(true)
   const [espListOpen, setEspListOpen] = useState(false)
   const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   async function handleRefresh() {
     if (refreshState === 'loading') return
@@ -40,7 +41,8 @@ export default function Sidebar({ onClose, collapsed }: SidebarProps) {
       console.error('Manual refresh failed:', err)
       setRefreshState('error')
     }
-    setTimeout(() => setRefreshState('idle'), 1500)
+    if (refreshTimer.current) clearTimeout(refreshTimer.current)
+    refreshTimer.current = setTimeout(() => setRefreshState('idle'), 1500)
   }
 
   const userEmail = user?.email ?? ''

@@ -7,16 +7,23 @@ import type { MmData } from '@/lib/types'
 /**
  * Pull all DB-backed state from Supabase and reconcile it into the Zustand
  * store. Idempotent: espData is rebuilt from INITIAL_MM_DATA per ESP, so
- * repeated calls never double-count. Rejects if any query/transform throws;
- * callers decide how to surface the error. Does not touch page-local UI flags.
+ * repeated calls never double-count. Applies every table that loads
+ * successfully — a failure in one table does not block the others. Once all
+ * six queries have run, throws an aggregated error if ANY of them failed
+ * (query-level Supabase errors resolve as `{ data: null, error }` rather than
+ * rejecting, so this is checked explicitly rather than relying solely on
+ * network-level promise rejection). Callers decide how to surface the error.
+ * Does not touch page-local UI flags.
  */
 export async function loadFromDB(): Promise<void> {
   const s = useDashboardStore.getState()
+  const errors: string[] = []
 
-  const { data: rows } = await supabase
+  const { data: rows, error: rowsError } = await supabase
     .from('uploads')
     .select('esp, solo_data')
     .order('uploaded_at', { ascending: true })
+  if (rowsError) errors.push(`uploads: ${rowsError.message}`)
 
   if (rows?.length) {
     const byEsp: Record<string, MmData[]> = {}
@@ -54,54 +61,60 @@ export async function loadFromDB(): Promise<void> {
   }
 
   // IP Matrix
-  const { data: ipmRows } = await supabase
+  const { data: ipmRows, error: ipmError } = await supabase
     .from('ip_matrix')
     .select('id, esp, ip, domain, mp_code, upload_id, registrations, ftds')
     .order('created_at', { ascending: true })
+  if (ipmError) errors.push(`ip_matrix: ${ipmError.message}`)
   if (ipmRows?.length) {
     s.setIpmData(ipmRows.map(r => ({ id: r.id, upload_id: r.upload_id, esp: r.esp, ip: r.ip, domain: r.domain ?? '', mpCode: r.mp_code ?? undefined, registrations: r.registrations ?? undefined, ftds: r.ftds ?? undefined })))
   }
 
   // Data Management
-  const { data: dmRows } = await supabase
+  const { data: dmRows, error: dmError } = await supabase
     .from('data_management')
     .select('raw_data')
     .order('created_at', { ascending: true })
+  if (dmError) errors.push(`data_management: ${dmError.message}`)
   if (dmRows?.length) {
     s.setDmData(dmRows.map(r => r.raw_data))
   }
 
   // Throttle Matrix (source of truth is Supabase, not localStorage)
-  const { data: throttleRows } = await supabase
+  const { data: throttleRows, error: throttleError } = await supabase
     .from('throttle_matrix')
     .select('esp, ip, from_domain, gmail, hotmail, outlook, yahoo, icloud, aol, live, gmx, web, others')
     .order('created_at', { ascending: true })
+  if (throttleError) errors.push(`throttle_matrix: ${throttleError.message}`)
   function parseThrottleVal(v: string | null): number | 'TBC' {
     if (!v || v.toUpperCase() === 'TBC') return 'TBC'
     const n = Number(v)
     return isNaN(n) ? 0 : n
   }
-  s.setThrottleData((throttleRows ?? []).map(r => ({
-    esp: r.esp ?? '',
-    ip: r.ip ?? '',
-    fromDomain: r.from_domain ?? '',
-    gmail:   parseThrottleVal(r.gmail),
-    hotmail: parseThrottleVal(r.hotmail),
-    outlook: parseThrottleVal(r.outlook),
-    yahoo:   parseThrottleVal(r.yahoo),
-    icloud:  parseThrottleVal(r.icloud),
-    aol:     parseThrottleVal(r.aol),
-    live:    parseThrottleVal(r.live),
-    gmx:     parseThrottleVal(r.gmx),
-    web:     parseThrottleVal(r.web),
-    others:  parseThrottleVal(r.others),
-  })))
+  if (!throttleError) {
+    s.setThrottleData((throttleRows ?? []).map(r => ({
+      esp: r.esp ?? '',
+      ip: r.ip ?? '',
+      fromDomain: r.from_domain ?? '',
+      gmail:   parseThrottleVal(r.gmail),
+      hotmail: parseThrottleVal(r.hotmail),
+      outlook: parseThrottleVal(r.outlook),
+      yahoo:   parseThrottleVal(r.yahoo),
+      icloud:  parseThrottleVal(r.icloud),
+      aol:     parseThrottleVal(r.aol),
+      live:    parseThrottleVal(r.live),
+      gmx:     parseThrottleVal(r.gmx),
+      web:     parseThrottleVal(r.web),
+      others:  parseThrottleVal(r.others),
+    })))
+  }
 
   // Reg & FTDs daily
-  const { data: rfRows } = await supabase
+  const { data: rfRows, error: rfError } = await supabase
     .from('reg_ftds_daily')
     .select('id, date, esp, ip, registrations, ftds')
     .order('date', { ascending: true })
+  if (rfError) errors.push(`reg_ftds_daily: ${rfError.message}`)
   if (rfRows?.length) {
     s.setRegFtdsDaily(rfRows.filter(r => isValidIsoDate(r.date)).map(r => ({
       id: r.id, date: r.date, esp: normalizeEspName(r.esp), ip: r.ip,
@@ -110,9 +123,14 @@ export async function loadFromDB(): Promise<void> {
   }
 
   // ESP visibility
-  const { data: visRows } = await supabase
+  const { data: visRows, error: visError } = await supabase
     .from('esp_visibility')
     .select('esp')
     .eq('hidden', true)
-  s.setHiddenEsps(visRows?.map(r => r.esp) ?? [])
+  if (visError) errors.push(`esp_visibility: ${visError.message}`)
+  if (!visError) {
+    s.setHiddenEsps(visRows?.map(r => r.esp) ?? [])
+  }
+
+  if (errors.length) throw new Error(`loadFromDB partial failure: ${errors.join('; ')}`)
 }
