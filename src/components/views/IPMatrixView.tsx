@@ -167,6 +167,7 @@ export default function IPMatrixView() {
     if (!esp || !ip) return
     const saved: IpmRecord = {
       esp, ip, domain: modal.rec.domain.trim(),
+      mpCode: modal.rec.mpCode?.trim() || undefined,
       registrations: modal.rec.registrations,
       ftds: modal.rec.ftds,
     }
@@ -175,10 +176,10 @@ export default function IPMatrixView() {
       const existing = ipmData[modal.idx]
       updateIpmRecord(modal.idx, { ...saved, id: existing.id })
       if (existing.id) {
-        await supabase.from('ip_matrix').update({ esp: saved.esp, ip: saved.ip, domain: saved.domain, registrations: saved.registrations ?? null, ftds: saved.ftds ?? null }).eq('id', existing.id)
+        await supabase.from('ip_matrix').update({ esp: saved.esp, ip: saved.ip, domain: saved.domain, mp_code: saved.mpCode ?? null, registrations: saved.registrations ?? null, ftds: saved.ftds ?? null }).eq('id', existing.id)
       }
     } else {
-      const { data: inserted } = await supabase.from('ip_matrix').insert({ esp: saved.esp, ip: saved.ip, domain: saved.domain, registrations: saved.registrations ?? null, ftds: saved.ftds ?? null }).select('id').single()
+      const { data: inserted } = await supabase.from('ip_matrix').insert({ esp: saved.esp, ip: saved.ip, domain: saved.domain, mp_code: saved.mpCode ?? null, registrations: saved.registrations ?? null, ftds: saved.ftds ?? null }).select('id').single()
       addIpmRecord({ ...saved, id: inserted?.id })
     }
     setModal({ open: false, idx: null, rec: { esp: '', ip: '', domain: '' } })
@@ -207,16 +208,18 @@ export default function IPMatrixView() {
       esp:           find('esp', 'provider', 'service'),
       ip:            find('ip', 'ipaddress', 'address'),
       domain:        find('domain', 'fromdomain', 'from', 'sender'),
+      mpcode:        find('mpcode'),
       registrations: find('registrations', 'registration', 'reg'),
       ftds:          find('ftds', 'ftd'),
     }
     const parseNum = (val: unknown) => { const n = Number(String(val ?? '').trim()); return isNaN(n) ? undefined : n }
-    const newRecords: { esp: string; ip: string; domain: string; registrations?: number; ftds?: number }[] = []
+    const newRecords: { esp: string; ip: string; domain: string; mpCode?: string; registrations?: number; ftds?: number }[] = []
     rows.slice(1).forEach(cols => {
       const r = {
         esp:           ci.esp    >= 0 ? normalizeEspName(String(cols[ci.esp] ?? '')) : '',
         ip:            ci.ip     >= 0 ? String(cols[ci.ip]     ?? '').trim() : '',
         domain:        ci.domain >= 0 ? String(cols[ci.domain] ?? '').trim() : '',
+        mpCode:        ci.mpcode >= 0 ? (String(cols[ci.mpcode] ?? '').trim() || undefined) : undefined,
         registrations: ci.registrations >= 0 ? parseNum(cols[ci.registrations]) : undefined,
         ftds:          ci.ftds   >= 0 ? parseNum(cols[ci.ftds]) : undefined,
       }
@@ -232,11 +235,11 @@ export default function IPMatrixView() {
         .single()
 
       const uploadId = uploadRec?.id
-      const recordsWithUpload = newRecords.map(r => ({ ...r, upload_id: uploadId }))
+      const recordsWithUpload = newRecords.map(({ mpCode, ...r }) => ({ ...r, mp_code: mpCode ?? null, upload_id: uploadId }))
 
-      const { data: inserted } = await supabase.from('ip_matrix').insert(recordsWithUpload).select('id, esp, ip, domain, upload_id, registrations, ftds')
+      const { data: inserted } = await supabase.from('ip_matrix').insert(recordsWithUpload).select('id, esp, ip, domain, mp_code, upload_id, registrations, ftds')
       if (inserted) {
-        inserted.forEach(row => addIpmRecord({ id: row.id, upload_id: row.upload_id, esp: row.esp, ip: row.ip, domain: row.domain, registrations: row.registrations ?? undefined, ftds: row.ftds ?? undefined }))
+        inserted.forEach(row => addIpmRecord({ id: row.id, upload_id: row.upload_id, esp: row.esp, ip: row.ip, domain: row.domain, mpCode: row.mp_code ?? undefined, registrations: row.registrations ?? undefined, ftds: row.ftds ?? undefined }))
       } else {
         newRecords.forEach(r => addIpmRecord(r))
       }
@@ -256,10 +259,10 @@ export default function IPMatrixView() {
       // Reload all IP data from Supabase to stay in sync
       const { data: allRows } = await supabase
         .from('ip_matrix')
-        .select('id, esp, ip, domain, upload_id, registrations, ftds')
+        .select('id, esp, ip, domain, mp_code, upload_id, registrations, ftds')
         .order('created_at', { ascending: true })
       const { setIpmData } = useDashboardStore.getState()
-      setIpmData(allRows?.map(r => ({ id: r.id, upload_id: r.upload_id, esp: r.esp, ip: r.ip, domain: r.domain ?? '', registrations: r.registrations ?? undefined, ftds: r.ftds ?? undefined })) ?? [])
+      setIpmData(allRows?.map(r => ({ id: r.id, upload_id: r.upload_id, esp: r.esp, ip: r.ip, domain: r.domain ?? '', mpCode: r.mp_code ?? undefined, registrations: r.registrations ?? undefined, ftds: r.ftds ?? undefined })) ?? [])
 
       await fetchUploadHistory()
     } catch {
@@ -754,6 +757,15 @@ export default function IPMatrixView() {
                   value={modal.rec.domain}
                   onChange={e => setModal(m => ({ ...m, rec: { ...m.rec, domain: e.target.value } }))}
                   placeholder="e.g. mail.example.com"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={`block text-[11px] font-mono tracking-widest uppercase mb-1.5 ${muted}`}>MP Code <span className={`normal-case ${muted}`}>(optional, MAP)</span></label>
+                <input
+                  value={modal.rec.mpCode ?? ''}
+                  onChange={e => setModal(m => ({ ...m, rec: { ...m.rec, mpCode: e.target.value } }))}
+                  placeholder="e.g. MP-86"
                   className={inputCls}
                 />
               </div>

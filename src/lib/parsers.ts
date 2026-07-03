@@ -309,15 +309,45 @@ function findKnownDomain(campaignName: string, knownDomains: string[]): string |
   return null
 }
 
-function extractSendingDomain(campaignName: string, knownDomains?: string[]): string {
+/**
+ * Match a MAP campaign name to a registered MP-## code (MAP convention).
+ *
+ * Codes are matched case-insensitively and must be boundary-delimited: the code
+ * is preceded by start-of-string or a non-[a-z0-9] char and followed by
+ * end-of-string or a non-[a-z0-9] char, so "MP-86" matches in "...-MP-86-..."
+ * but NOT inside "MP-861" or "xMP-86y". Returns the code's mapped sending
+ * domain, or null when nothing matches or the matched code maps to a blank
+ * domain (callers should fall through to domain/regex extraction).
+ */
+export function matchMpCode(campaignName: string, mpCodeMap?: Record<string, string>): string | null {
+  if (!mpCodeMap || !campaignName) return null
+  const haystack = campaignName.toLowerCase()
+  for (const [code, domain] of Object.entries(mpCodeMap)) {
+    const c = code.toLowerCase().trim()
+    const d = (domain || '').toLowerCase().trim()
+    if (!c || !d) continue
+    const esc = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(`(?:^|[^a-z0-9])${esc}(?![a-z0-9])`, 'i')
+    if (re.test(haystack)) return d
+  }
+  return null
+}
+
+function extractSendingDomain(campaignName: string, knownDomains?: string[], mpCodeMap?: Record<string, string>): string {
   // 1. Highest priority: match against domains registered in the IP Matrix.
   //    This is the most reliable approach because it relies on user-curated data,
   //    not pattern guessing. Adding a domain to IP Matrix automatically improves
-  //    parsing — no code changes needed.
+  //    parsing — no code changes needed. Subdomain is authoritative: if a
+  //    registered domain is present it wins even when an MP-code is also present.
   const matched = findKnownDomain(campaignName, knownDomains || [])
   if (matched) return matched
 
-  // 2. Fall back to regex extraction for campaigns where the domain isn't registered yet.
+  // 2. MAP convention: resolve a registered MP-## code to its sending domain.
+  //    Only reached when no registered subdomain matched above.
+  const byCode = matchMpCode(campaignName, mpCodeMap)
+  if (byCode) return byCode
+
+  // 3. Fall back to regex extraction for campaigns where the domain isn't registered yet.
   //    A "domain" here = a word followed by optional .subdomain segments ending in a TLD.
   //    Use \b word boundary so hyphens/underscores in campaign names act as separators.
 
@@ -400,7 +430,7 @@ export async function readUploadRows(
   return { headers, rows }
 }
 
-export async function parseFile(file: File, espName?: string, knownDomains?: string[], mapDateOrder?: MapDateOrder): Promise<ParseResult> {
+export async function parseFile(file: File, espName?: string, knownDomains?: string[], mapDateOrder?: MapDateOrder, mpCodeMap?: Record<string, string>): Promise<ParseResult> {
   const { rows } = await readUploadRows(file)
 
   if (rows.length === 0) throw new Error('No rows found in file')
@@ -1000,7 +1030,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
 
       const providerDomain = (row['domains'] || 'unknown').toLowerCase().trim()
 
-      const rawSendingDomain = extractSendingDomain(row['campaign-name'] || '', knownDomains)
+      const rawSendingDomain = extractSendingDomain(row['campaign-name'] || '', knownDomains, mpCodeMap)
       const sendingDomain = normalizeDomainForEsp(rawSendingDomain, espName || 'map') || 'unknown'
 
       const sent         = parseInt(row['messages-sent']     || '0') || 0
@@ -1057,7 +1087,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
       : explicitFromEmail
         ? extractDomain(explicitFromEmail)
         : isMailmodo
-          ? extractSendingDomain(row['campaign-name'] || '', knownDomains)
+          ? extractSendingDomain(row['campaign-name'] || '', knownDomains, mpCodeMap)
           : 'unknown'
     const sendingDomain = normalizeDomainForEsp(rawSendingDomain, espName)
 
