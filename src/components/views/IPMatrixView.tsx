@@ -208,7 +208,7 @@ export default function IPMatrixView() {
       esp:           find('esp', 'provider', 'service'),
       ip:            find('ip', 'ipaddress', 'address'),
       domain:        find('domain', 'fromdomain', 'from', 'sender'),
-      mpcode:        find('mpcode', 'code'),
+      mpcode:        find('mpcode'),
       registrations: find('registrations', 'registration', 'reg'),
       ftds:          find('ftds', 'ftd'),
     }

@@ -108,7 +108,7 @@ export default function UploadView() {
         .forEach(r => {
           const code = r.mpCode?.trim()
           const dom = r.domain?.trim()
-          if (code && dom) mpCodeMap[code] = dom
+          if (code && dom && !(code in mpCodeMap)) mpCodeMap[code] = dom
         })
       const mpCodeCount = Object.keys(mpCodeMap).length
       if (mpCodeCount) addLog(`🔎 Using ${mpCodeCount} MP-code mapping(s) from IP Matrix for matching`)
