@@ -6,6 +6,7 @@ import { supabase, addLog } from '@/lib/supabase'
 import { isValidIsoDate } from '@/lib/utils'
 import { ESP_COLORS, normalizeEspName, ESP_LIST } from '@/lib/data'
 import { applyCorrections, decideUpload, type UploadReview, type AggRow } from '@/lib/regFtdsAuthority'
+import { fetchAllRows } from '@/lib/paginate'
 import IpAuthorityModal from '@/components/ui/IpAuthorityModal'
 
 const ACTIVE_ESP_SET = new Set<string>(ESP_LIST)
@@ -71,7 +72,10 @@ export default function RegFtdsView() {
   }, [])
 
   const fetchBadDates = useCallback(async () => {
-    const { data } = await supabase.from('reg_ftds_daily').select('date')
+    const { data } = await fetchAllRows(() => supabase
+      .from('reg_ftds_daily')
+      .select('date')
+      .order('date', { ascending: true }))
     if (!data) return
     const counts = new Map<string, number>()
     for (const r of data) {
@@ -226,10 +230,10 @@ export default function RegFtdsView() {
     })
     if (error) { setWarning('Upload failed while saving records. Please try again.'); return }
 
-    const { data: allRows } = await supabase
+    const { data: allRows } = await fetchAllRows(() => supabase
       .from('reg_ftds_daily')
       .select('id, upload_id, date, esp, ip, registrations, ftds')
-      .order('date', { ascending: true })
+      .order('date', { ascending: true }))
     setRegFtdsDaily((allRows ?? []).filter(r => isValidIsoDate(r.date)).map(r => ({
       id: r.id, upload_id: r.upload_id, date: r.date, esp: normalizeEspName(r.esp), ip: r.ip,
       registrations: r.registrations ?? 0, ftds: r.ftds ?? 0,
@@ -275,10 +279,10 @@ export default function RegFtdsView() {
       await supabase.from('reg_ftds_uploads').delete().eq('id', upload.id)
 
       // Reload daily data
-      const { data: allRows } = await supabase
+      const { data: allRows } = await fetchAllRows(() => supabase
         .from('reg_ftds_daily')
         .select('id, upload_id, date, esp, ip, registrations, ftds')
-        .order('date', { ascending: true })
+        .order('date', { ascending: true }))
       setRegFtdsDaily((allRows ?? []).filter(r => isValidIsoDate(r.date)).map(r => ({
         id: r.id, upload_id: r.upload_id, date: r.date, esp: normalizeEspName(r.esp), ip: r.ip,
         registrations: r.registrations ?? 0, ftds: r.ftds ?? 0,

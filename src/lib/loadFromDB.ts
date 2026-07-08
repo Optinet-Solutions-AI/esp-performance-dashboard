@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { useDashboardStore } from '@/lib/store'
 import { syncEspFromData, overwriteMmData, isValidIsoDate } from '@/lib/utils'
 import { ESP_COLORS, INITIAL_MM_DATA, normalizeEspName } from '@/lib/data'
+import { fetchAllRows } from '@/lib/paginate'
 import type { MmData } from '@/lib/types'
 
 /**
@@ -109,11 +110,13 @@ export async function loadFromDB(): Promise<void> {
     })))
   }
 
-  // Reg & FTDs daily
-  const { data: rfRows, error: rfError } = await supabase
+  // Reg & FTDs daily — paginated: this table crosses Supabase's 1000-row cap,
+  // and a single unbounded request drops the newest dates (ascending order puts
+  // them last), silently hiding freshly-uploaded ESPs from every view.
+  const { data: rfRows, error: rfError } = await fetchAllRows(() => supabase
     .from('reg_ftds_daily')
     .select('id, date, esp, ip, registrations, ftds')
-    .order('date', { ascending: true })
+    .order('date', { ascending: true }))
   if (rfError) errors.push(`reg_ftds_daily: ${rfError.message}`)
   if (rfRows?.length) {
     s.setRegFtdsDaily(rfRows.filter(r => isValidIsoDate(r.date)).map(r => ({
