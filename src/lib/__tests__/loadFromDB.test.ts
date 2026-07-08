@@ -80,6 +80,27 @@ describe('loadFromDB', () => {
     expect(useDashboardStore.getState().regFtdsDaily).toHaveLength(1500)
   })
 
+  it('paginates every large table (uploads, ip_matrix, data_management, throttle_matrix) past the 1000-row cap', async () => {
+    // Reset accumulating store slices so this assertion is not polluted by
+    // earlier tests (loadFromDB appends to esps across calls).
+    const s = useDashboardStore.getState()
+    s.setEsps([]); s.setIpmData([]); s.setDmData([]); s.setThrottleData([])
+
+    const emptyMm = { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
+    tableData['uploads']         = Array.from({ length: 1500 }, (_, i) => ({ esp: `ESP_${i}`, solo_data: emptyMm }))
+    tableData['ip_matrix']       = Array.from({ length: 1500 }, (_, i) => ({ id: `m${i}`, esp: 'Map', ip: `1.1.${(i / 256) | 0}.${i % 256}`, domain: '', mp_code: null, upload_id: null, registrations: null, ftds: null }))
+    tableData['data_management'] = Array.from({ length: 1500 }, (_, i) => ({ raw_data: { row: i } }))
+    tableData['throttle_matrix'] = Array.from({ length: 1500 }, (_, i) => ({ esp: `ESP_${i}`, ip: '1.2.3.4', from_domain: 'x.com' }))
+
+    await loadFromDB()
+
+    const st = useDashboardStore.getState()
+    expect(st.esps).toHaveLength(1500)         // uploads → one esp each
+    expect(st.ipmData).toHaveLength(1500)      // ip_matrix
+    expect(st.dmData).toHaveLength(1500)       // data_management
+    expect(st.throttleData).toHaveLength(1500) // throttle_matrix
+  })
+
   it('applies successful tables but still rejects with an aggregated error when a table query fails', async () => {
     tableData['ip_matrix'] = [
       { id: 'b2', esp: 'Mailgun', ip: '5.6.7.8', domain: 'y.com', mp_code: null, upload_id: null, registrations: null, ftds: null },

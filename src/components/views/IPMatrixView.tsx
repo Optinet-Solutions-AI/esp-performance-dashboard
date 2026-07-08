@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import * as XLSX from 'xlsx'
 import { useDashboardStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
+import { fetchAllRows } from '@/lib/paginate'
 import { normalizeEspName } from '@/lib/data'
 import type { IpmRecord, IpmUploadRecord } from '@/lib/types'
 import CustomSelect from '@/components/ui/CustomSelect'
@@ -256,11 +257,12 @@ export default function IPMatrixView() {
       await supabase.from('ip_matrix').delete().eq('upload_id', upload.id)
       await supabase.from('ip_matrix_uploads').delete().eq('id', upload.id)
 
-      // Reload all IP data from Supabase to stay in sync
-      const { data: allRows } = await supabase
+      // Reload all IP data from Supabase to stay in sync (paginated past the
+      // 1000-row cap so a large registry isn't silently truncated).
+      const { data: allRows } = await fetchAllRows(() => supabase
         .from('ip_matrix')
         .select('id, esp, ip, domain, mp_code, upload_id, registrations, ftds')
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: true }))
       const { setIpmData } = useDashboardStore.getState()
       setIpmData(allRows?.map(r => ({ id: r.id, upload_id: r.upload_id, esp: r.esp, ip: r.ip, domain: r.domain ?? '', mpCode: r.mp_code ?? undefined, registrations: r.registrations ?? undefined, ftds: r.ftds ?? undefined })) ?? [])
 
