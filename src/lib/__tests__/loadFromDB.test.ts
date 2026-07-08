@@ -18,11 +18,24 @@ const { tableData, tableErrors } = vi.hoisted(() => ({
   tableErrors: {} as Record<string, { message: string } | null>,
 }))
 
+// Emulates Supabase's real behavior: an unbounded request is capped at 1000
+// rows, while `.range(from, to)` pages through the full set. This lets the
+// pagination test below actually catch a regression to a single capped read.
+const CAP = 1000
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: (table: string) => ({
       select: () => ({
-        order: () => Promise.resolve({ data: tableData[table] ?? [], error: tableErrors[table] ?? null }),
+        order: () => {
+          const err = tableErrors[table] ?? null
+          const rows = tableData[table] ?? []
+          const p = Promise.resolve({ data: err ? null : rows.slice(0, CAP), error: err }) as Promise<unknown> & {
+            range?: (from: number, to: number) => Promise<unknown>
+          }
+          p.range = (from: number, to: number) =>
+            Promise.resolve({ data: err ? null : rows.slice(from, to + 1), error: err })
+          return p
+        },
         eq: () => Promise.resolve({ data: tableData[table] ?? [], error: tableErrors[table] ?? null }),
       }),
     }),
@@ -53,6 +66,18 @@ describe('loadFromDB', () => {
 
   it('resolves without throwing when every table is empty', async () => {
     await expect(loadFromDB()).resolves.toBeUndefined()
+  })
+
+  it('paginates reg_ftds_daily past Supabase\'s 1000-row cap so the newest rows are not dropped', async () => {
+    // 1500 rows > the 1000-row cap. A single unbounded read returns only 1000;
+    // pagination must recover all 1500 (the tail is the freshest data).
+    tableData['reg_ftds_daily'] = Array.from({ length: 1500 }, (_, i) => ({
+      id: `r${i}`, date: '2026-01-01', esp: 'Map', ip: '1.2.3.4', registrations: 1, ftds: 0,
+    }))
+
+    await loadFromDB()
+
+    expect(useDashboardStore.getState().regFtdsDaily).toHaveLength(1500)
   })
 
   it('applies successful tables but still rejects with an aggregated error when a table query fails', async () => {
