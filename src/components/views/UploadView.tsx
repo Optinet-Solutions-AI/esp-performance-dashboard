@@ -7,6 +7,7 @@ import { parseFile, mergeIntoMmData, readUploadRows, unknownDomainSends, checkUp
 import { validateUpload, UPLOAD_SCHEMAS, type ValidationResult } from '@/lib/uploadValidation'
 import { buildProviderDomains, syncEspFromData, overwriteMmData } from '@/lib/utils'
 import { ESP_COLORS, ESP_LIST } from '@/lib/data'
+import { fetchAllRows } from '@/lib/paginate'
 import type { MmData } from '@/lib/types'
 import { supabase, addLog as logToDb } from '@/lib/supabase'
 
@@ -225,11 +226,11 @@ export default function UploadView() {
       addLog('☁️ Saved to database.')
 
       // Rebuild this ESP's data from all uploads in order — later uploads override earlier ones for same dates
-      const { data: allUploads } = await supabase
+      const { data: allUploads } = await fetchAllRows(() => supabase
         .from('uploads')
         .select('solo_data')
         .eq('esp', esp)
-        .order('uploaded_at', { ascending: true })
+        .order('uploaded_at', { ascending: true }))
 
       let merged = freshEmpty()
       if (allUploads?.length) {
@@ -283,11 +284,11 @@ export default function UploadView() {
       await supabase.from('uploads').delete().eq('id', record.id)
 
       // Rebuild this ESP's data from remaining uploads
-      const { data: remaining } = await supabase
+      const { data: remaining } = await fetchAllRows(() => supabase
         .from('uploads')
         .select('solo_data')
         .eq('esp', record.esp)
-        .order('uploaded_at', { ascending: true })
+        .order('uploaded_at', { ascending: true }))
 
       const freshEmpty = (): MmData => ({ dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} })
       let merged = freshEmpty()

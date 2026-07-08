@@ -197,9 +197,12 @@ export default function RegFtdsView() {
       if (fileRows.length < 2) return
 
       // Fetch the registry fresh — decisions must reflect the current matrix.
-      const { data: matrixRows, error: matrixErr } = await supabase
+      // Paginated + explicitly ordered so a large registry validates completely
+      // (a truncated matrix would misclassify IPs as unknown/corrections).
+      const { data: matrixRows, error: matrixErr } = await fetchAllRows(() => supabase
         .from('ip_matrix')
         .select('esp, ip')
+        .order('created_at', { ascending: true }))
       if (matrixErr) {
         setWarning('Could not load the IP Matrix to validate this upload. Nothing was uploaded — please try again.')
         return

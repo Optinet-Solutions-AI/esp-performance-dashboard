@@ -20,10 +20,10 @@ export async function loadFromDB(): Promise<void> {
   const s = useDashboardStore.getState()
   const errors: string[] = []
 
-  const { data: rows, error: rowsError } = await supabase
+  const { data: rows, error: rowsError } = await fetchAllRows(() => supabase
     .from('uploads')
     .select('esp, solo_data')
-    .order('uploaded_at', { ascending: true })
+    .order('uploaded_at', { ascending: true }))
   if (rowsError) errors.push(`uploads: ${rowsError.message}`)
 
   if (rows?.length) {
@@ -62,30 +62,30 @@ export async function loadFromDB(): Promise<void> {
   }
 
   // IP Matrix
-  const { data: ipmRows, error: ipmError } = await supabase
+  const { data: ipmRows, error: ipmError } = await fetchAllRows(() => supabase
     .from('ip_matrix')
     .select('id, esp, ip, domain, mp_code, upload_id, registrations, ftds')
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: true }))
   if (ipmError) errors.push(`ip_matrix: ${ipmError.message}`)
   if (ipmRows?.length) {
     s.setIpmData(ipmRows.map(r => ({ id: r.id, upload_id: r.upload_id, esp: r.esp, ip: r.ip, domain: r.domain ?? '', mpCode: r.mp_code ?? undefined, registrations: r.registrations ?? undefined, ftds: r.ftds ?? undefined })))
   }
 
   // Data Management
-  const { data: dmRows, error: dmError } = await supabase
+  const { data: dmRows, error: dmError } = await fetchAllRows(() => supabase
     .from('data_management')
     .select('raw_data')
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: true }))
   if (dmError) errors.push(`data_management: ${dmError.message}`)
   if (dmRows?.length) {
     s.setDmData(dmRows.map(r => r.raw_data))
   }
 
   // Throttle Matrix (source of truth is Supabase, not localStorage)
-  const { data: throttleRows, error: throttleError } = await supabase
+  const { data: throttleRows, error: throttleError } = await fetchAllRows(() => supabase
     .from('throttle_matrix')
     .select('esp, ip, from_domain, gmail, hotmail, outlook, yahoo, icloud, aol, live, gmx, web, others')
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: true }))
   if (throttleError) errors.push(`throttle_matrix: ${throttleError.message}`)
   function parseThrottleVal(v: string | null): number | 'TBC' {
     if (!v || v.toUpperCase() === 'TBC') return 'TBC'
