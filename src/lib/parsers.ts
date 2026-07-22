@@ -1326,6 +1326,8 @@ export function mergeIntoMmData(current: MmData, result: ReturnType<typeof parse
     mergeMetrics(data.overallByDate[date], bucket.providers ? Object.values(bucket.providers).reduce((acc, m) => {
       acc.sent += m.sent; acc.delivered += m.delivered; acc.opened += m.opened
       acc.clicked += m.clicked; acc.bounced += m.bounced
+      acc.hardBounced = (acc.hardBounced || 0) + (m.hardBounced || 0)
+      acc.softBounced = (acc.softBounced || 0) + (m.softBounced || 0)
       return acc
     }, blankMetrics()) : blankMetrics())
     recalcRates(data.overallByDate[date])
