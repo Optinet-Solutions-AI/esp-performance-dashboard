@@ -84,6 +84,31 @@ describe('validateUpload — mismatch hint', () => {
   })
 })
 
+describe('validateUpload — Kenscio bounce-classification warning', () => {
+  // Real Kenscio export columns (post-normalisation). The July 2026 exports
+  // dropped soft-bounce/hard-bounce, which silently disabled the bounce split.
+  const K_FULL = ['campaign-name', 'domain-name', 'email-sent', 'timestamp', 'delivered', 'open', 'click', 'bounce', 'soft-bounce', 'hard-bounce']
+  const kenscioRow = (extra = 2) =>
+    ['CAMP-x', 'test.com', 'a@gmail.com', '23-06-2026 17:32', 'b@gmail.com', '', '', 'c@gmail.com', ...Array(extra).fill('')]
+
+  it('warns (non-blocking) when a Kenscio file has no Soft/Hard Bounce columns', () => {
+    const headers = K_FULL.filter(h => h !== 'soft-bounce' && h !== 'hard-bounce')
+    const { rows } = build(headers, [kenscioRow(0), kenscioRow(0)])
+    const r = validateUpload(headers, rows, 'Kenscio')
+    expect(r.ok).toBe(true)          // must NOT block the upload
+    expect(r.errors).toEqual([])
+    expect(r.warnings.join(' ')).toMatch(/soft bounce/i)
+    expect(r.warnings.join(' ')).toMatch(/hard bounce/i)
+  })
+
+  it('does not warn when the Soft/Hard Bounce columns are present', () => {
+    const { headers, rows } = build(K_FULL, [kenscioRow(), kenscioRow()])
+    const r = validateUpload(headers, rows, 'Kenscio')
+    expect(r.ok).toBe(true)
+    expect(r.warnings).toEqual([])
+  })
+})
+
 describe('validateUpload — Inboxroad named columns', () => {
   // Real Inboxroad export columns (post-normalisation), trimmed to what the
   // parser/validator depend on.

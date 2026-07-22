@@ -21,6 +21,8 @@ export interface UploadSchema {
   positionalDateIndex?: number
   /** Human-readable date format hint shown in the rejection message. */
   dateFormatHint?: string
+  /** Non-blocking: emit `message` as a warning when any of `columns` (post-normalization) is absent. */
+  warnIfMissingColumns?: { columns: string[]; message: string }
 }
 
 export interface ValidationResult {
@@ -105,6 +107,12 @@ export const UPLOAD_SCHEMAS: Record<string, UploadSchema> = {
     dateColumn: 'timestamp',
     monthFirst: false,
     dateFormatHint: 'dd-mm-yyyy or dd-mm-yyyy HH:MM — e.g. 25-05-2026 or 25-05-2026 10:30',
+    // July 2026 Kenscio exports silently dropped these columns, disabling the
+    // hard/soft bounce split for weeks before anyone noticed.
+    warnIfMissingColumns: {
+      columns: ['soft-bounce', 'hard-bounce'],
+      message: 'This file has no "Soft Bounce" / "Hard Bounce" columns — bounce classification will be unavailable for these dates. Ask Kenscio to include both columns in the export.',
+    },
   },
   Mailjet: {
     esp: 'Mailjet',
@@ -219,6 +227,12 @@ export function validateUpload(
     if (missing.length) {
       errors.push(`Missing required column(s) for ${schema.esp}: ${missing.join(', ')}.`)
     }
+  }
+
+  // ── Non-blocking column warnings ──────────────────────────────
+  if (schema.warnIfMissingColumns) {
+    const absent = schema.warnIfMissingColumns.columns.filter(c => !headerSet.has(c))
+    if (absent.length) warnings.push(schema.warnIfMissingColumns.message)
   }
 
   // ── Content sanity (date) — hard reject on any unparseable row ─
