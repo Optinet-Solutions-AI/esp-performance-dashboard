@@ -1328,6 +1328,8 @@ export function mergeIntoMmData(current: MmData, result: ReturnType<typeof parse
       acc.clicked += m.clicked; acc.bounced += m.bounced
       acc.hardBounced = (acc.hardBounced || 0) + (m.hardBounced || 0)
       acc.softBounced = (acc.softBounced || 0) + (m.softBounced || 0)
+      acc.unsubscribed = (acc.unsubscribed || 0) + (m.unsubscribed || 0)
+      acc.complained = (acc.complained || 0) + (m.complained || 0)
       return acc
     }, blankMetrics()) : blankMetrics())
     recalcRates(data.overallByDate[date])
