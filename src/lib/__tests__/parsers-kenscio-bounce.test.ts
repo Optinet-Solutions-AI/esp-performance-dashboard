@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { parseFile } from '../parsers'
+import { parseFile, mergeIntoMmData } from '../parsers'
+import type { MmData } from '../types'
+
+function emptyMmData(): MmData {
+  return { dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} }
+}
 
 // Kenscio export: each column is an independent list of emails (a non-empty cell
 // = one event). Columns: Campaign, Domain, Email-Sent, Timestamp, Delivered,
@@ -33,5 +38,15 @@ describe('parseFile — Kenscio hard/soft bounce split', () => {
     expect(dom.bounced).toBe(2)       // total Bounce column (soft row + hard row)
     expect(dom.sent).toBe(3)
     expect(dom.delivered).toBe(2)
+  })
+
+  it('propagates hard/soft bounces into overallByDate (KPI/TOTAL source)', async () => {
+    const res = await parseFile(kenscioFile(), 'Kenscio')
+    const { data } = mergeIntoMmData(emptyMmData(), res, 'Kenscio')
+    const day = data.overallByDate['Jun 23']
+    expect(day).toBeDefined()
+    expect(day.hardBounced).toBe(1)
+    expect(day.softBounced).toBe(1)
+    expect(day.bounced).toBe(2)
   })
 })
