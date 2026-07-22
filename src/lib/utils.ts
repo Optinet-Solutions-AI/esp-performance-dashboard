@@ -73,6 +73,18 @@ export function aggDates(
   }
 }
 
+// Hard/soft bounce split for display. `classified` is false when bounces
+// exist but carry no hard/soft label (e.g. uploads parsed before the split
+// existed) — views render "—" instead of a misleading 0 in that case.
+export function bounceSplit(
+  m: { bounced?: number; hardBounced?: number; softBounced?: number } | null | undefined
+): { hard: number; soft: number; classified: boolean } {
+  const bounced = m?.bounced || 0
+  const hard = m?.hardBounced || 0
+  const soft = m?.softBounced || 0
+  return { hard, soft, classified: !(bounced > 0 && hard + soft === 0) }
+}
+
 export function buildProviderDomains(data: MmData): MmData['providerDomains'] {
   const pd: MmData['providerDomains'] = {}
 
