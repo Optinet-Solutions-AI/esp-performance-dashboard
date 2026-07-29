@@ -101,7 +101,7 @@ export default function UploadView() {
         addLog(`⚠️ ${unknownSends.toLocaleString()} send(s) have an unparseable sending domain — stored under "unknown". Check the campaign names or register the domain in the IP Matrix.`)
       }
 
-      // ── IP Matrix domain validation — block if any sending domain is unregistered ──
+      // ── IP Matrix domain validation ──
       const ipmEspDomains = new Set(
         ipmData
           .filter(r => r.esp?.toLowerCase() === esp.toLowerCase())
@@ -115,6 +115,18 @@ export default function UploadView() {
             if (dom && dom !== 'unknown') parsedDomains.add(dom.toLowerCase())
           }
         }
+
+        // Block if every send fell back to "unknown" despite domains being registered —
+        // a strong signal the campaign-name format changed and extraction totally failed,
+        // rather than a normal partial-match gap.
+        if (parsedDomains.size === 0 && unknownSends > 0) {
+          addLog(`⛔ Upload rejected — 0 sending domains matched despite ${ipmEspDomains.size} registered for ${esp}:`)
+          ;[...ipmEspDomains].slice(0, 5).forEach(d => addLog(`   • ${d}`))
+          addLog('Every row fell back to "unknown". The campaign-name format may have changed — check the file. Nothing was uploaded.')
+          return
+        }
+
+        // Block if any sending domain is unregistered
         const unregistered = [...parsedDomains].filter(d => !ipmEspDomains.has(d))
         if (unregistered.length > 0) {
           addLog(`⛔ Upload rejected — ${unregistered.length} sending domain${unregistered.length === 1 ? '' : 's'} not registered in IP Matrix for ${esp}:`)
