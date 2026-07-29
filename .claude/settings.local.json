@@ -59,7 +59,9 @@
       "Bash(curl -s -w '\\\\nHTTP:%{http_code}\\\\n' https://pms-nu-eight.vercel.app/api/projects/cmnsp252a000004l547mu9cvd -H 'X-Auth-Token: REDACTED' -H 'Accept: application/json')",
       "Bash(curl -s -w '\\\\nHTTP:%{http_code}\\\\n' https://pms-nu-eight.vercel.app/api/projects/cmnsp252a000004l547mu9cvd?apiKey=REDACTED -H 'Accept: application/json')",
       "Bash(curl -s -w '\\\\nHTTP:%{http_code}\\\\n' https://pms-nu-eight.vercel.app/api/v1/projects/cmnsp252a000004l547mu9cvd -H 'Authorization: Bearer REDACTED' -H 'Accept: application/json')",
-      "Bash(TOKEN='REDACTED' *)"
+      "Bash(TOKEN='REDACTED' *)",
+      "Bash(rtk wc *)",
+      "Read(//c/tmp/**)"
     ]
   }
 }
