@@ -819,27 +819,32 @@ export default function KenscioView() {
             </button>
           </div>
 
+          {/* ── Volume/Rate IP filter ──────────────────────────────── */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <span className={`text-[11px] font-mono uppercase tracking-wider ${muted}`}>
+              {isolatedEntity ? isolatedEntity.name : `All ${tabLabel}s`}
+            </span>
+            <div className="flex items-center gap-2">
+              <CustomSelect value={selectedRow ?? 'all'} onChange={v => setSelected(v === 'all' ? null : v)} isLight={isLight} minWidth={110} maxHeight={200} align="right"
+                options={[{ value: 'all', label: 'All IPs' }, ...entityData.map(e => ({ value: e.name, label: e.name }))]} />
+              {isolatedEntity && (
+                <button onClick={() => setSelected(null)}
+                  className={`text-[11px] font-mono px-2 py-1 rounded border transition-all
+                    ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}>
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* ── Volume + Rate Charts ──────────────────────────────── */}
           <div className="flex flex-col gap-4">
 
             <div className={`${card} p-4`}>
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className={`text-xs font-medium ${txt}`}>Volume Trend{isolatedEntity ? ` — ${isolatedEntity.name}` : ''}</div>
-                  <div className={`text-[11px] font-mono mt-0.5 ${muted}`}>
-                    Sent · Delivered · Opens · Clicks — {isolatedEntity ? isolatedEntity.name : `all ${tabLabel}s`} · {granularity}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CustomSelect value={selectedRow ?? 'all'} onChange={v => setSelected(v === 'all' ? null : v)} isLight={isLight} minWidth={110} maxHeight={200} align="right"
-                    options={[{ value: 'all', label: 'All IPs' }, ...entityData.map(e => ({ value: e.name, label: e.name }))]} />
-                  {isolatedEntity && (
-                    <button onClick={() => setSelected(null)}
-                      className={`text-[11px] font-mono px-2 py-1 rounded border transition-all
-                        ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}>
-                      Reset
-                    </button>
-                  )}
+              <div className="mb-3">
+                <div className={`text-xs font-medium ${txt}`}>Volume Trend{isolatedEntity ? ` — ${isolatedEntity.name}` : ''}</div>
+                <div className={`text-[11px] font-mono mt-0.5 ${muted}`}>
+                  Sent · Delivered · Opens · Clicks — {isolatedEntity ? isolatedEntity.name : `all ${tabLabel}s`} · {granularity}
                 </div>
               </div>
               <div style={{ height: 200 }}><canvas ref={volRef} /></div>
@@ -854,23 +859,10 @@ export default function KenscioView() {
             </div>
 
             <div className={`${card} p-4`}>
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className={`text-xs font-medium ${txt}`}>Rate Trends{isolatedEntity ? ` — ${isolatedEntity.name}` : ''}</div>
-                  <div className={`text-[11px] font-mono mt-0.5 ${muted}`}>
-                    {isolatedEntity ? 'Click row again to reset' : `Click table row to isolate · ${granularity}`}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CustomSelect value={selectedRow ?? 'all'} onChange={v => setSelected(v === 'all' ? null : v)} isLight={isLight} minWidth={110} maxHeight={200} align="right"
-                    options={[{ value: 'all', label: 'All IPs' }, ...entityData.map(e => ({ value: e.name, label: e.name }))]} />
-                  {isolatedEntity && (
-                    <button onClick={() => setSelected(null)}
-                      className={`text-[11px] font-mono px-2 py-1 rounded border transition-all
-                        ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}>
-                      Reset
-                    </button>
-                  )}
+              <div className="mb-3">
+                <div className={`text-xs font-medium ${txt}`}>Rate Trends{isolatedEntity ? ` — ${isolatedEntity.name}` : ''}</div>
+                <div className={`text-[11px] font-mono mt-0.5 ${muted}`}>
+                  {isolatedEntity ? 'Click row again to reset' : `Click table row to isolate · ${granularity}`}
                 </div>
               </div>
               <div style={{ height: 200 }}><canvas ref={rateRef} /></div>
