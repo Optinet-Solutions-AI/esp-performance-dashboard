@@ -425,7 +425,9 @@ export default function MailmodoView({ filter }: { filter?: 'mailgun' | 'mailmod
   useEffect(() => {
     if (volInst.current) { volInst.current.destroy(); volInst.current = null }
     if (!volRef.current || !dateGroups.length) return
-    const od = data.overallByDate
+    const od = selectedRow
+      ? buildIpAggByDate(data.domains, ipEntityData.find(e => e.name === selectedRow)?.subDomains ?? [])
+      : data.overallByDate
     volInst.current = new Chart(volRef.current, {
       type: 'line',
       data: {
@@ -458,7 +460,7 @@ export default function MailmodoView({ filter }: { filter?: 'mailgun' | 'mailmod
       },
     })
     return () => { volInst.current?.destroy(); volInst.current = null }
-  }, [groupsKey, selectedEsp, isLight]) // eslint-disable-line
+  }, [groupsKey, selectedEsp, selectedRow, isLight]) // eslint-disable-line
 
   // ── Rate trend chart ─────────────────────────────────────────────
   useEffect(() => {
@@ -466,7 +468,7 @@ export default function MailmodoView({ filter }: { filter?: 'mailgun' | 'mailmod
     if (!rateRef.current || !dateGroups.length) return
 
     const src = selectedRow
-      ? (mmTab === 'provider' ? data.providers[selectedRow]?.byDate : data.domains[selectedRow]?.byDate) ?? {}
+      ? buildIpAggByDate(data.domains, ipEntityData.find(e => e.name === selectedRow)?.subDomains ?? [])
       : data.overallByDate
 
     const rateMetrics = dateGroups.map(g => aggDates(src, g.dates))
@@ -840,10 +842,23 @@ export default function MailmodoView({ filter }: { filter?: 'mailgun' | 'mailmod
           <div className="flex flex-col gap-4">
 
             <div className={`${card} p-4`}>
-              <div className="mb-3">
-                <div className={`text-xs font-medium ${txt}`}>Volume Trend</div>
-                <div className={`text-[11px] font-mono mt-0.5 ${muted}`}>
-                  Sent · Delivered · Opens · Clicks — all {tabLabel}s · {granularity}
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <div className={`text-xs font-medium ${txt}`}>Volume Trend{selectedRow ? ` — ${selectedRow}` : ''}</div>
+                  <div className={`text-[11px] font-mono mt-0.5 ${muted}`}>
+                    Sent · Delivered · Opens · Clicks — {selectedRow ? selectedRow : `all ${tabLabel}s`} · {granularity}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CustomSelect value={selectedRow ?? 'all'} onChange={v => setSelected(v === 'all' ? null : v)} isLight={isLight} minWidth={110} maxHeight={200} align="right"
+                    options={[{ value: 'all', label: 'All IPs' }, ...entityData.map(e => ({ value: e.name, label: e.name }))]} />
+                  {selectedRow && (
+                    <button onClick={() => setSelected(null)}
+                      className={`text-[11px] font-mono px-2 py-1 rounded border transition-all
+                        ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}>
+                      Reset
+                    </button>
+                  )}
                 </div>
               </div>
               <div style={{ height: 200 }}><canvas ref={volRef} /></div>
@@ -865,13 +880,17 @@ export default function MailmodoView({ filter }: { filter?: 'mailgun' | 'mailmod
                     {selectedRow ? 'Click row again to reset' : `Click table row to isolate · ${granularity}`}
                   </div>
                 </div>
-                {selectedRow && (
-                  <button onClick={() => setSelected(null)}
-                    className={`text-[11px] font-mono px-2 py-1 rounded border transition-all
-                      ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}>
-                    Reset
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  <CustomSelect value={selectedRow ?? 'all'} onChange={v => setSelected(v === 'all' ? null : v)} isLight={isLight} minWidth={110} maxHeight={200} align="right"
+                    options={[{ value: 'all', label: 'All IPs' }, ...entityData.map(e => ({ value: e.name, label: e.name }))]} />
+                  {selectedRow && (
+                    <button onClick={() => setSelected(null)}
+                      className={`text-[11px] font-mono px-2 py-1 rounded border transition-all
+                        ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}>
+                      Reset
+                    </button>
+                  )}
+                </div>
               </div>
               <div style={{ height: 200 }}><canvas ref={rateRef} /></div>
               <div className="flex gap-3 mt-3 flex-wrap">
