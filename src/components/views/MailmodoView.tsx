@@ -389,6 +389,11 @@ export default function MailmodoView({ filter }: { filter?: 'mailgun' | 'mailmod
 
   const entityData = mmTab === 'ip' ? ipEntityData : domainEntityData
 
+  // Falls back to the all-IP aggregate when selectedRow doesn't resolve in
+  // this view's entityData — e.g. a stale selection left over from another
+  // ESP view, since all views share one global store field and stay mounted.
+  const isolatedEntity = selectedRow ? entityData.find(e => e.name === selectedRow) : undefined
+
   // By IP / By Domain KPI charts render one entity at a time; fall back to the
   // top-volume entity when nothing is selected or the selection is stale
   // (e.g. after an ESP or tab switch changes the available entity names).
@@ -426,7 +431,9 @@ export default function MailmodoView({ filter }: { filter?: 'mailgun' | 'mailmod
   useEffect(() => {
     if (volInst.current) { volInst.current.destroy(); volInst.current = null }
     if (!volRef.current || !dateGroups.length) return
-    const od = data.overallByDate
+    const od = isolatedEntity
+      ? buildIpAggByDate(data.domains, isolatedEntity.subDomains)
+      : data.overallByDate
     volInst.current = new Chart(volRef.current, {
       type: 'line',
       data: {
@@ -459,15 +466,17 @@ export default function MailmodoView({ filter }: { filter?: 'mailgun' | 'mailmod
       },
     })
     return () => { volInst.current?.destroy(); volInst.current = null }
-  }, [groupsKey, selectedEsp, isLight]) // eslint-disable-line
+  }, [groupsKey, selectedEsp, selectedRow, isLight]) // eslint-disable-line
 
   // ── Rate trend chart ─────────────────────────────────────────────
   useEffect(() => {
     if (rateInst.current) { rateInst.current.destroy(); rateInst.current = null }
     if (!rateRef.current || !dateGroups.length) return
 
-    const src = selectedRow
-      ? (mmTab === 'provider' ? data.providers[selectedRow]?.byDate : data.domains[selectedRow]?.byDate) ?? {}
+    // mmTab is fixed to 'ip' today; if a provider/domain tab is reintroduced,
+    // this will need a data.domains[selectedRow]-style branch again.
+    const src = isolatedEntity
+      ? buildIpAggByDate(data.domains, isolatedEntity.subDomains)
       : data.overallByDate
 
     const rateMetrics = dateGroups.map(g => aggDates(src, g.dates))
@@ -841,14 +850,32 @@ export default function MailmodoView({ filter }: { filter?: 'mailgun' | 'mailmod
             </button>
           </div>
 
+          {/* ── Volume/Rate IP filter ──────────────────────────────── */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <span className={`text-[11px] font-mono uppercase tracking-wider ${muted}`}>
+              {isolatedEntity ? isolatedEntity.name : `All ${tabLabel}s`}
+            </span>
+            <div className="flex items-center gap-2">
+              <CustomSelect value={selectedRow ?? 'all'} onChange={v => setSelected(v === 'all' ? null : v)} isLight={isLight} minWidth={110} maxHeight={200} align="right"
+                options={[{ value: 'all', label: 'All IPs' }, ...entityData.map(e => ({ value: e.name, label: e.name }))]} />
+              {isolatedEntity && (
+                <button onClick={() => setSelected(null)}
+                  className={`text-[11px] font-mono px-2 py-1 rounded border transition-all
+                    ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}>
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* ── Volume + Rate Charts ──────────────────────────────── */}
           <div className="flex flex-col gap-4">
 
             <div className={`${card} p-4`}>
               <div className="mb-3">
-                <div className={`text-xs font-medium ${txt}`}>Volume Trend</div>
+                <div className={`text-xs font-medium ${txt}`}>Volume Trend{isolatedEntity ? ` — ${isolatedEntity.name}` : ''}</div>
                 <div className={`text-[11px] font-mono mt-0.5 ${muted}`}>
-                  Sent · Delivered · Opens · Clicks — all {tabLabel}s · {granularity}
+                  Sent · Delivered · Opens · Clicks — {isolatedEntity ? isolatedEntity.name : `all ${tabLabel}s`} · {granularity}
                 </div>
               </div>
               <div style={{ height: 200 }}><canvas ref={volRef} /></div>
@@ -863,20 +890,11 @@ export default function MailmodoView({ filter }: { filter?: 'mailgun' | 'mailmod
             </div>
 
             <div className={`${card} p-4`}>
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className={`text-xs font-medium ${txt}`}>Rate Trends{selectedRow ? ` — ${selectedRow}` : ''}</div>
-                  <div className={`text-[11px] font-mono mt-0.5 ${muted}`}>
-                    {selectedRow ? 'Click row again to reset' : `Click table row to isolate · ${granularity}`}
-                  </div>
+              <div className="mb-3">
+                <div className={`text-xs font-medium ${txt}`}>Rate Trends{isolatedEntity ? ` — ${isolatedEntity.name}` : ''}</div>
+                <div className={`text-[11px] font-mono mt-0.5 ${muted}`}>
+                  {isolatedEntity ? 'Click row again to reset' : `Click table row to isolate · ${granularity}`}
                 </div>
-                {selectedRow && (
-                  <button onClick={() => setSelected(null)}
-                    className={`text-[11px] font-mono px-2 py-1 rounded border transition-all
-                      ${isLight ? 'border-black/20 text-gray-500 hover:border-black/40' : 'border-white/13 text-[#a8b0be] hover:border-white/30'}`}>
-                    Reset
-                  </button>
-                )}
               </div>
               <div style={{ height: 200 }}><canvas ref={rateRef} /></div>
               <div className="flex gap-3 mt-3 flex-wrap">
