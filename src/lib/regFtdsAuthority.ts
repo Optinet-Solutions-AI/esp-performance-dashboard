@@ -142,6 +142,18 @@ export function parseRegFtdsDate(val: unknown): string | null {
     const d = String(val.getDate()).padStart(2, '0')
     return `${y}-${m}-${d}`
   }
+  // Excel date serial (xlsx read with cellDates:false). Convert in UTC so the
+  // result is the date as written in the sheet, independent of the runtime
+  // timezone — reading with cellDates:true + local parts is off-by-a-day in any
+  // timezone west of the file's, which silently splits one day across two dates.
+  if (typeof val === 'number' && isFinite(val)) {
+    const d = new Date(Date.UTC(1899, 11, 30) + val * 86400000)
+    if (isNaN(d.getTime())) return null
+    const y = d.getUTCFullYear()
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+    const dd = String(d.getUTCDate()).padStart(2, '0')
+    return `${y}-${m}-${dd}`
+  }
   const s = String(val ?? '').trim()
   if (!s) return null
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
@@ -328,6 +340,17 @@ export function decideUpload(
   }
 
   const rows: AggRow[] = [...aggregated.values()]
+
+  // Zero-data guard (twin of the deliverability zero-sent guard): a file whose
+  // Registrations and FTD columns parse but sum to 0 across every row would
+  // commit as a silent no-op — almost always a wrong column mapping.
+  const totalRegFtds = rows.reduce((s, r) => s + r.reg + r.ftds, 0)
+  if (totalRegFtds === 0) {
+    return { kind: 'reject', warning:
+      'Upload rejected — this file adds 0 registrations and 0 FTDs.\n' +
+      'Check that the Registrations and FTD columns are mapped correctly. Nothing was uploaded.' }
+  }
+
   const plan = buildUploadPlan(rows, ipMatrix)
   const uploadDates = [...new Set(rows.map(r => r.date))]
   const dateOverwrites = computeDateOverwrites(uploadDates, existingDates)

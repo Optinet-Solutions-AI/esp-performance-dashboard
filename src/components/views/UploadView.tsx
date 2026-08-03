@@ -1,11 +1,13 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useDashboardStore } from '@/lib/store'
 import CustomSelect from '@/components/ui/CustomSelect'
-import { parseFile, mergeIntoMmData, readUploadRows, unknownDomainSends } from '@/lib/parsers'
+import { parseFile, mergeIntoMmData, readUploadRows, unknownDomainSends, checkUploadHasData, type MapDateOrder } from '@/lib/parsers'
 import { validateUpload, UPLOAD_SCHEMAS, type ValidationResult } from '@/lib/uploadValidation'
 import { buildProviderDomains, syncEspFromData, overwriteMmData } from '@/lib/utils'
 import { ESP_COLORS, ESP_LIST } from '@/lib/data'
+import { fetchAllRows } from '@/lib/paginate'
 import type { MmData } from '@/lib/types'
 import { supabase, addLog as logToDb } from '@/lib/supabase'
 
@@ -29,10 +31,16 @@ export default function UploadView() {
   const [log, setLog] = useState<string[]>([])
   const [result, setResult] = useState<{ rows: number; dates: string[]; newDates: number } | null>(null)
   const [rejection, setRejection] = useState<ValidationResult | null>(null)
+  // Hard failures that must NOT look like success (domain gate, DB save error).
+  // Surfaced as a loud banner + stops the flow, instead of a line buried in the log.
+  const [uploadError, setUploadError] = useState<{ title: string; lines: string[] } | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [history, setHistory] = useState<UploadRecord[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
   const [historyEspFilter, setHistoryEspFilter] = useState('')
+  // MAP date-order disambiguation: when a MAP file's month/day order can't be
+  // inferred from its own data, hold both interpretations and let the operator pick.
+  const [mapPick, setMapPick] = useState<{ mdyDates: string[]; dmyDates: string[] } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { fetchHistory() }, [])
@@ -58,14 +66,17 @@ export default function UploadView() {
     setLog([])
     setResult(null)
     setRejection(null)
+    setUploadError(null)
   }
 
-  async function handleProcess() {
+  async function handleProcess(mapOrderOverride?: MapDateOrder) {
     if (!file || !esp) return
     setProcessing(true)
     setLog([])
     setResult(null)
     setRejection(null)
+    setUploadError(null)
+    setMapPick(null)
 
     try {
       addLog(`📂 Reading ${file.name}…`)
@@ -88,13 +99,68 @@ export default function UploadView() {
         .map(r => r.domain?.trim())
         .filter((d): d is string => !!d)
       if (knownDomains.length) addLog(`🔎 Using ${knownDomains.length} registered domain(s) from IP Matrix for matching`)
-      const parsed = await parseFile(file, esp, knownDomains)
+
+      // Build MP-## code → sending domain map for this ESP (MAP convention).
+      // Only rows with BOTH a code and a domain participate; a blank domain
+      // would otherwise resolve a code to "" (see matchMpCode).
+      const mpCodeMap: Record<string, string> = {}
+      ipmData
+        .filter(r => r.esp?.toLowerCase() === esp.toLowerCase())
+        .forEach(r => {
+          const code = r.mpCode?.trim()
+          const dom = r.domain?.trim()
+          if (code && dom && !(code in mpCodeMap)) mpCodeMap[code] = dom
+        })
+      const mpCodeCount = Object.keys(mpCodeMap).length
+      if (mpCodeCount) addLog(`🔎 Using ${mpCodeCount} MP-code mapping(s) from IP Matrix for matching`)
+
+      const parsed = await parseFile(file, esp, knownDomains, mapOrderOverride, mpCodeMap)
+
+      // ── MAP date-order disambiguation ──
+      // The MAP Date column can be mm/dd or dd/mm and the separator doesn't say
+      // which. parseFile resolves it from the file when possible; when it can't
+      // (single day, both parts ≤12), pause and let the operator pick rather than
+      // silently guessing (which is what misfiled Jul 1 → Jan 7).
+      if (parsed.dateAmbiguous && !mapOrderOverride) {
+        const dmy = await parseFile(file, esp, knownDomains, 'dmy', mpCodeMap)
+        setMapPick({ mdyDates: parsed.dates, dmyDates: dmy.dates })
+        addLog('⏸️ MAP dates are ambiguous (e.g. "07/01/2026" could be Jul 1 or Jan 7). Choose the format below to continue.')
+        return
+      }
+
       const skipDetail = parsed.skipped > 0
         ? ` — ${parsed.skippedNoDate} no-date, ${parsed.skippedNoEmail} no-email`
         : ''
       addLog(`✅ Parsed ${parsed.totalRows.toLocaleString()} rows (${parsed.skipped} skipped${skipDetail})`)
       addLog(`📅 Found ${parsed.dates.length} date(s): ${parsed.dates.join(', ')}`)
+      if (esp === 'Map') addLog(`🗓️ Dates read as ${mapOrderOverride === 'dmy' ? 'day-first (dd/mm/yyyy)' : 'month-first (mm/dd/yyyy)'}`)
       addLog(`🔎 Format: ${parsed.format}`)
+
+      // ── Guardrail: block uploads that parsed but would be invisible ──
+      // (all rows skipped, or metrics all zero from a column-header mismatch)
+      const dataIssue = checkUploadHasData(parsed)
+      if (dataIssue) {
+        if (dataIssue.kind === 'all-skipped') {
+          addLog(`⛔ Upload rejected — none of the ${dataIssue.totalRows.toLocaleString()} rows could be read.`)
+          setUploadError({
+            title: `Upload rejected — no usable rows`,
+            lines: [
+              `All ${dataIssue.totalRows.toLocaleString()} rows were skipped (no valid date/email).`,
+              `The file's columns likely don't match the ${esp} format. Nothing was saved.`,
+            ],
+          })
+        } else {
+          addLog(`⛔ Upload rejected — parsed ${parsed.dates.length} date(s) but 0 sends were counted.`)
+          setUploadError({
+            title: `Upload rejected — 0 sends counted`,
+            lines: [
+              `Rows parsed across ${dataIssue.dates} date(s), but no "sent" values were read.`,
+              `The metric columns likely don't match the ${esp} format, so this upload would not appear anywhere. Nothing was saved.`,
+            ],
+          })
+        }
+        return
+      }
 
       const unknownSends = unknownDomainSends(parsed)
       if (unknownSends > 0) {
@@ -133,6 +199,14 @@ export default function UploadView() {
           unregistered.slice(0, 5).forEach(d => addLog(`   • ${d}`))
           if (unregistered.length > 5) addLog(`   …and ${unregistered.length - 5} more`)
           addLog('Register these domains in the IP Matrix before uploading. Nothing was uploaded.')
+          setUploadError({
+            title: `Upload rejected — ${unregistered.length} sending domain${unregistered.length === 1 ? '' : 's'} not registered in the IP Matrix for ${esp}`,
+            lines: [
+              ...unregistered.slice(0, 8),
+              ...(unregistered.length > 8 ? [`…and ${unregistered.length - 8} more`] : []),
+              'Register these domains in the IP Matrix, then re-upload. Nothing was saved.',
+            ],
+          })
           return
         }
       }
@@ -151,17 +225,24 @@ export default function UploadView() {
         solo_data: soloData,
       })
       if (insertError) {
-        addLog(`⚠️ Save failed: ${insertError.message}`)
-      } else {
-        addLog('☁️ Saved to database.')
+        addLog(`❌ Save failed: ${insertError.message}`)
+        setUploadError({
+          title: 'Upload failed — nothing was saved',
+          lines: [
+            `The database rejected this upload: ${insertError.message}`,
+            'The dashboard was NOT updated. Please try again; if it keeps failing, send us this message.',
+          ],
+        })
+        return
       }
+      addLog('☁️ Saved to database.')
 
       // Rebuild this ESP's data from all uploads in order — later uploads override earlier ones for same dates
-      const { data: allUploads } = await supabase
+      const { data: allUploads } = await fetchAllRows(() => supabase
         .from('uploads')
         .select('solo_data')
         .eq('esp', esp)
-        .order('uploaded_at', { ascending: true })
+        .order('uploaded_at', { ascending: true }))
 
       let merged = freshEmpty()
       if (allUploads?.length) {
@@ -215,11 +296,11 @@ export default function UploadView() {
       await supabase.from('uploads').delete().eq('id', record.id)
 
       // Rebuild this ESP's data from remaining uploads
-      const { data: remaining } = await supabase
+      const { data: remaining } = await fetchAllRows(() => supabase
         .from('uploads')
         .select('solo_data')
         .eq('esp', record.esp)
-        .order('uploaded_at', { ascending: true })
+        .order('uploaded_at', { ascending: true }))
 
       const freshEmpty = (): MmData => ({ dates: [], datesFull: [], providers: {}, domains: {}, overallByDate: {}, providerDomains: {} })
       let merged = freshEmpty()
@@ -292,8 +373,45 @@ export default function UploadView() {
     )
   }
 
+  const fmtRange = (ds: string[]) => ds.length === 0 ? '—' : ds.length === 1 ? ds[0] : `${ds[0]} … ${ds[ds.length - 1]} (${ds.length} dates)`
+
   return (
     <div className="view-page fade-up" style={{ maxWidth: 1200 }}>
+      {/* Portaled to <body>: the .fade-up wrapper keeps a persistent transform
+          (animation-fill-mode: both), which would otherwise make this fixed
+          overlay position relative to the tall wrapper instead of the viewport. */}
+      {mapPick && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)' }}>
+          <div className={`rounded-2xl border w-full max-w-md p-6 ${isLight ? 'bg-white border-black/10' : 'bg-[#141820] border-white/10'}`}>
+            <div className={`text-[11px] font-mono tracking-[0.15em] uppercase mb-2 ${isLight ? 'text-[#b45309]' : 'text-[#ffd166]'}`}>Confirm MAP date format</div>
+            <p className={`text-sm mb-1 ${textMain}`}>This file&apos;s dates are ambiguous — the same value could be two different days.</p>
+            <p className={`text-xs mb-4 ${muted}`}>MAP exports use both <span className="font-mono">mm/dd/yyyy</span> and <span className="font-mono">dd/mm/yyyy</span>, and the file doesn&apos;t contain a date that settles which. Pick the correct reading:</p>
+            <div className="space-y-2.5">
+              <button
+                onClick={() => handleProcess('mdy')}
+                className={`w-full text-left rounded-xl border p-3.5 transition-all ${isLight ? 'border-black/15 hover:border-[#0d9488] hover:bg-[#0d9488]/5' : 'border-white/12 hover:border-[#0d9488] hover:bg-[#0d9488]/10'}`}
+              >
+                <div className={`text-sm font-semibold ${textMain}`}>Month first · mm/dd/yyyy</div>
+                <div className={`text-xs font-mono mt-1 ${muted}`}>Reads as {fmtRange(mapPick.mdyDates)}</div>
+              </button>
+              <button
+                onClick={() => handleProcess('dmy')}
+                className={`w-full text-left rounded-xl border p-3.5 transition-all ${isLight ? 'border-black/15 hover:border-[#0d9488] hover:bg-[#0d9488]/5' : 'border-white/12 hover:border-[#0d9488] hover:bg-[#0d9488]/10'}`}
+              >
+                <div className={`text-sm font-semibold ${textMain}`}>Day first · dd/mm/yyyy</div>
+                <div className={`text-xs font-mono mt-1 ${muted}`}>Reads as {fmtRange(mapPick.dmyDates)}</div>
+              </button>
+            </div>
+            <button
+              onClick={() => { setMapPick(null); setProcessing(false); addLog('✋ Upload cancelled — no date format chosen.') }}
+              className={`mt-4 w-full px-3 py-2 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all ${isLight ? 'border-black/15 text-gray-500 hover:border-red-300 hover:text-red-500' : 'border-white/12 text-[#6b7280] hover:border-[#ff4757] hover:text-[#ff4757]'}`}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8 items-start">
       {/* ── LEFT: Upload Wizard ─────────────────── */}
       <div>
@@ -389,7 +507,7 @@ export default function UploadView() {
         </div>
         <div className="p-5">
           <button
-            onClick={handleProcess}
+            onClick={() => handleProcess()}
             disabled={!esp || !file || processing}
             className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold tracking-wide transition-all
               disabled:opacity-40 disabled:cursor-not-allowed
@@ -425,6 +543,17 @@ export default function UploadView() {
                     .join(', ') || `at least ${UPLOAD_SCHEMAS[esp].minColumns} columns`}.
                 </div>
               )}
+            </div>
+          )}
+
+          {uploadError && (
+            <div className="rounded-xl border p-4 mb-3 mt-4" style={{ borderColor: '#ff4757', background: isLight ? 'rgba(255,71,87,0.12)' : 'rgba(255,71,87,0.08)' }}>
+              <div className="text-sm font-bold mb-2" style={{ color: isLight ? '#c81e2c' : '#ff4757' }}>
+                {uploadError.title}
+              </div>
+              <ul className="list-disc pl-5 text-xs space-y-1" style={{ color: isLight ? '#c81e2c' : '#ff4757' }}>
+                {uploadError.lines.map((l, i) => <li key={i}>{l}</li>)}
+              </ul>
             </div>
           )}
 

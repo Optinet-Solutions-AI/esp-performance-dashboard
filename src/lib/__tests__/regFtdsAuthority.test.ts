@@ -163,6 +163,13 @@ describe('parseRegFtdsDate', () => {
     expect(parseRegFtdsDate('')).toBeNull()
     expect(parseRegFtdsDate(undefined)).toBeNull()
   })
+  it('parses an Excel date serial as the date-as-written, in UTC (timezone-independent)', () => {
+    expect(parseRegFtdsDate(46204)).toBe('2026-07-01')  // serial for 1 Jul 2026
+    expect(parseRegFtdsDate(45292)).toBe('2024-01-01')  // serial for 1 Jan 2024
+  })
+  it('floors a serial that carries a time component to its UTC date', () => {
+    expect(parseRegFtdsDate(46204.9)).toBe('2026-07-01')
+  })
 })
 
 describe('isValidIpv4', () => {
@@ -295,6 +302,21 @@ describe('decideUpload', () => {
     const d = decideUpload([H_DECIDE, ['2026-06-10', 'Ethan', '', '', '']], MATRIX_DECIDE, [], ACTIVE_DECIDE)
     expect(d.kind).toBe('reject')
     expect(d.kind === 'reject' && d.warning).toContain('No valid rows')
+  })
+
+  it('rejects when the file totals 0 registrations and 0 FTDs', () => {
+    const d = decideUpload([
+      H_DECIDE,
+      ['2026-06-10', 'Map', '91.222.98.16', '0', '0'],
+      ['2026-06-10', 'Mailmodo', '156.70.46.105', '0', '0'],
+    ], MATRIX_DECIDE, [], ACTIVE_DECIDE)
+    expect(d.kind).toBe('reject')
+    expect(d.kind === 'reject' && d.warning).toContain('0 registrations and 0 FTDs')
+  })
+
+  it('does NOT reject when only FTDs are present (reg all zero)', () => {
+    const d = decideUpload([H_DECIDE, ['2026-06-10', 'Map', '91.222.98.16', '0', '3']], MATRIX_DECIDE, [], ACTIVE_DECIDE)
+    expect(d.kind).not.toBe('reject')
   })
 
   it('commits a clean file with matching IPs and all-new dates', () => {

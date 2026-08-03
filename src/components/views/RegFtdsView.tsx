@@ -6,6 +6,7 @@ import { supabase, addLog } from '@/lib/supabase'
 import { isValidIsoDate } from '@/lib/utils'
 import { ESP_COLORS, normalizeEspName, ESP_LIST } from '@/lib/data'
 import { applyCorrections, decideUpload, type UploadReview, type AggRow } from '@/lib/regFtdsAuthority'
+import { fetchAllRows } from '@/lib/paginate'
 import IpAuthorityModal from '@/components/ui/IpAuthorityModal'
 
 const ACTIVE_ESP_SET = new Set<string>(ESP_LIST)
@@ -71,7 +72,10 @@ export default function RegFtdsView() {
   }, [])
 
   const fetchBadDates = useCallback(async () => {
-    const { data } = await supabase.from('reg_ftds_daily').select('date')
+    const { data } = await fetchAllRows(() => supabase
+      .from('reg_ftds_daily')
+      .select('date')
+      .order('date', { ascending: true }))
     if (!data) return
     const counts = new Map<string, number>()
     for (const r of data) {
@@ -178,7 +182,11 @@ export default function RegFtdsView() {
       let fileRows: string[][]
       if (isExcel) {
         const buf = await file.arrayBuffer()
-        const wb  = XLSX.read(buf, { type: 'array', cellDates: true })
+        // cellDates:false → date cells arrive as raw Excel serials, which
+        // parseRegFtdsDate converts in UTC (timezone-independent). Reading with
+        // cellDates:true yields a Date whose local parts shift by a day in
+        // timezones west of the file's, splitting one day across two dates.
+        const wb  = XLSX.read(buf, { type: 'array', cellDates: false })
         const ws  = wb.Sheets[wb.SheetNames[0]]
         fileRows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '' }) as string[][]
         fileRows = fileRows.filter(r => r.some(c => String(c).trim() !== ''))
@@ -189,9 +197,12 @@ export default function RegFtdsView() {
       if (fileRows.length < 2) return
 
       // Fetch the registry fresh — decisions must reflect the current matrix.
-      const { data: matrixRows, error: matrixErr } = await supabase
+      // Paginated + explicitly ordered so a large registry validates completely
+      // (a truncated matrix would misclassify IPs as unknown/corrections).
+      const { data: matrixRows, error: matrixErr } = await fetchAllRows(() => supabase
         .from('ip_matrix')
         .select('esp, ip')
+        .order('created_at', { ascending: true }))
       if (matrixErr) {
         setWarning('Could not load the IP Matrix to validate this upload. Nothing was uploaded — please try again.')
         return
@@ -222,10 +233,10 @@ export default function RegFtdsView() {
     })
     if (error) { setWarning('Upload failed while saving records. Please try again.'); return }
 
-    const { data: allRows } = await supabase
+    const { data: allRows } = await fetchAllRows(() => supabase
       .from('reg_ftds_daily')
       .select('id, upload_id, date, esp, ip, registrations, ftds')
-      .order('date', { ascending: true })
+      .order('date', { ascending: true }))
     setRegFtdsDaily((allRows ?? []).filter(r => isValidIsoDate(r.date)).map(r => ({
       id: r.id, upload_id: r.upload_id, date: r.date, esp: normalizeEspName(r.esp), ip: r.ip,
       registrations: r.registrations ?? 0, ftds: r.ftds ?? 0,
@@ -271,10 +282,10 @@ export default function RegFtdsView() {
       await supabase.from('reg_ftds_uploads').delete().eq('id', upload.id)
 
       // Reload daily data
-      const { data: allRows } = await supabase
+      const { data: allRows } = await fetchAllRows(() => supabase
         .from('reg_ftds_daily')
         .select('id, upload_id, date, esp, ip, registrations, ftds')
-        .order('date', { ascending: true })
+        .order('date', { ascending: true }))
       setRegFtdsDaily((allRows ?? []).filter(r => isValidIsoDate(r.date)).map(r => ({
         id: r.id, upload_id: r.upload_id, date: r.date, esp: normalizeEspName(r.esp), ip: r.ip,
         registrations: r.registrations ?? 0, ftds: r.ftds ?? 0,

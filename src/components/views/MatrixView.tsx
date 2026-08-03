@@ -410,6 +410,17 @@ export default function MatrixView() {
       : (throttle as number).toLocaleString()
     const thrColor = throttle === 'TBC' ? (isLight ? '#b45309' : '#ffd166') : txt
 
+    // Reg & FTDs are pinned to the right edge so they're visible without
+    // horizontal scrolling. They MUST be fully opaque to cover the cells that
+    // scroll under them. Row tints (ipBg/fdBg/provBg) are near-transparent
+    // rgba overlays, so we lay them over an opaque surface via inset box-shadow
+    // rather than using them as the background directly (which bleeds through).
+    const rowTint = style.background as string | undefined
+    const frozenBase: React.CSSProperties = { ...style, color: txt, position: 'sticky', zIndex: 3, background: surfaceBg }
+    if (rowTint) frozenBase.boxShadow = `inset 0 0 0 9999px ${rowTint}`
+    const regStyle: React.CSSProperties = { ...frozenBase, right: 60, borderLeft: `2px solid ${bdr}` }
+    const ftdsStyle: React.CSSProperties = { ...frozenBase, right: 0 }
+
     return (
       <>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.sent)}</td>
@@ -432,10 +443,10 @@ export default function MatrixView() {
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: thrColor, fontStyle: throttle === 'TBC' ? 'italic' : 'normal' }}>
           {thrDisplay}
         </td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>
+        <td className={`${tdCls} ${fw}`} style={regStyle}>
           {reg ? reg.toLocaleString() : ''}
         </td>
-        <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>
+        <td className={`${tdCls} ${fw}`} style={ftdsStyle}>
           {ftds ? ftds.toLocaleString() : ''}
         </td>
       </>
@@ -913,8 +924,8 @@ export default function MatrixView() {
                 <th className={thCls} style={{ borderColor: bdr, color: txt, width: 90, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('throttling')}>
                   <span className="inline-flex items-center">Throttling{renderSortIcon('throttling')}</span>
                 </th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 60, position: 'sticky', top: 0, zIndex: 5, background: headerBg, cursor: 'default' }}><span className="inline-flex items-center">Reg</span></th>
-                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 60, position: 'sticky', top: 0, zIndex: 5, background: headerBg, cursor: 'default' }}><span className="inline-flex items-center">FTDs</span></th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 60, position: 'sticky', top: 0, right: 60, zIndex: 6, background: headerBg, cursor: 'default', borderLeft: `2px solid ${bdr}` }}><span className="inline-flex items-center">Reg</span></th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 60, position: 'sticky', top: 0, right: 0, zIndex: 6, background: headerBg, cursor: 'default' }}><span className="inline-flex items-center">FTDs</span></th>
               </tr>
             </thead>
             <tbody>{buildRows(getSortedEspList())}</tbody>

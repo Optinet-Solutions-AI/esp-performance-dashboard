@@ -27,6 +27,9 @@ export interface ParseResult {
   skippedNoEmail: number
   newDates: number
   format: 'mailmodo' | 'generic' | 'netcore' | 'mms' | 'moosend' | 'kenscio' | 'mailjet' | 'elastic' | 'inboxroad' | 'map'
+  // MAP only: true when the Date column's month/day order could not be inferred
+  // from the file itself and a default was assumed — the caller must confirm.
+  dateAmbiguous: boolean
 }
 
 function splitCsvLine(line: string): string[] {
@@ -136,6 +139,69 @@ export function parseDate(raw: string | number, monthFirst = false): { str: stri
   return null
 }
 
+// MAP exports the Date column in an inconsistent 2-part numeric format: it may be
+// mm/dd/yyyy, dd/mm/yyyy, mm-dd-yyyy or dd-mm-yyyy — the separator does NOT imply
+// the order. 'mdy' = month-first, 'dmy' = day-first.
+export type MapDateOrder = 'mdy' | 'dmy'
+
+const TWO_PART_DATE = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/
+
+/**
+ * Infer the month/day order for a whole MAP file from its date cells.
+ * A single file is one format throughout, so any row with a component > 12
+ * (which can only be the day) locks the order for every row — including the
+ * rows that are individually ambiguous. Returns ambiguous=true only when the
+ * data itself can't decide (every 2-part date has both parts <= 12, or the
+ * evidence is contradictory), in which case the caller must ask the operator.
+ */
+export function resolveMapDateOrder(rawDates: (string | number)[]): { order: MapDateOrder | null; ambiguous: boolean } {
+  let sawDayFirst = false     // a first component > 12 proves day-first
+  let sawMonthFirst = false   // a second component > 12 proves month-first
+  let hadTwoPart = false
+
+  for (const raw of rawDates) {
+    if (typeof raw === 'number') continue
+    const m = String(raw ?? '').trim().match(TWO_PART_DATE)
+    if (!m) continue
+    hadTwoPart = true
+    const a = parseInt(m[1], 10)
+    const b = parseInt(m[2], 10)
+    if (a > 12) sawDayFirst = true
+    if (b > 12) sawMonthFirst = true
+  }
+
+  if (sawDayFirst && !sawMonthFirst) return { order: 'dmy', ambiguous: false }
+  if (sawMonthFirst && !sawDayFirst) return { order: 'mdy', ambiguous: false }
+  if (sawDayFirst && sawMonthFirst) return { order: null, ambiguous: true }   // contradictory
+  if (hadTwoPart) return { order: null, ambiguous: true }                     // all parts <= 12
+  return { order: null, ambiguous: false }                                    // nothing to resolve
+}
+
+/**
+ * Parse one MAP date with an explicit month/day order. A component > 12 always
+ * overrides the requested order (it can only be the day). ISO dates and Excel
+ * serials are unambiguous and pass through to parseDate.
+ */
+export function parseMapDate(raw: string | number, order: MapDateOrder): { str: string; year: number } | null {
+  if (typeof raw === 'string') {
+    const m = raw.trim().match(TWO_PART_DATE)
+    if (m) {
+      const a = parseInt(m[1], 10)
+      const b = parseInt(m[2], 10)
+      const year = parseInt(m[3], 10)
+      let month: number, day: number
+      if (a > 12) { day = a; month = b }
+      else if (b > 12) { month = a; day = b }
+      else if (order === 'mdy') { month = a; day = b }
+      else { day = a; month = b }
+      const d = new Date(year, month - 1, day)
+      if (isNaN(d.getTime())) return null
+      return { str: d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0'), year }
+    }
+  }
+  return parseDate(raw)
+}
+
 function extractDomain(email: string): string {
   const at = email.indexOf('@')
   return at >= 0 ? email.slice(at + 1).toLowerCase().trim() : 'unknown'
@@ -243,15 +309,45 @@ function findKnownDomain(campaignName: string, knownDomains: string[]): string |
   return null
 }
 
-function extractSendingDomain(campaignName: string, knownDomains?: string[]): string {
+/**
+ * Match a MAP campaign name to a registered MP-## code (MAP convention).
+ *
+ * Codes are matched case-insensitively and must be boundary-delimited: the code
+ * is preceded by start-of-string or a non-[a-z0-9] char and followed by
+ * end-of-string or a non-[a-z0-9] char, so "MP-86" matches in "...-MP-86-..."
+ * but NOT inside "MP-861" or "xMP-86y". Returns the code's mapped sending
+ * domain, or null when nothing matches or the matched code maps to a blank
+ * domain (callers should fall through to domain/regex extraction).
+ */
+export function matchMpCode(campaignName: string, mpCodeMap?: Record<string, string>): string | null {
+  if (!mpCodeMap || !campaignName) return null
+  const haystack = campaignName.toLowerCase()
+  for (const [code, domain] of Object.entries(mpCodeMap)) {
+    const c = code.toLowerCase().trim()
+    const d = (domain || '').toLowerCase().trim()
+    if (!c || !d) continue
+    const esc = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(`(?:^|[^a-z0-9])${esc}(?![a-z0-9])`, 'i')
+    if (re.test(haystack)) return d
+  }
+  return null
+}
+
+function extractSendingDomain(campaignName: string, knownDomains?: string[], mpCodeMap?: Record<string, string>): string {
   // 1. Highest priority: match against domains registered in the IP Matrix.
   //    This is the most reliable approach because it relies on user-curated data,
   //    not pattern guessing. Adding a domain to IP Matrix automatically improves
-  //    parsing — no code changes needed.
+  //    parsing — no code changes needed. Subdomain is authoritative: if a
+  //    registered domain is present it wins even when an MP-code is also present.
   const matched = findKnownDomain(campaignName, knownDomains || [])
   if (matched) return matched
 
-  // 2. Fall back to regex extraction for campaigns where the domain isn't registered yet.
+  // 2. MAP convention: resolve a registered MP-## code to its sending domain.
+  //    Only reached when no registered subdomain matched above.
+  const byCode = matchMpCode(campaignName, mpCodeMap)
+  if (byCode) return byCode
+
+  // 3. Fall back to regex extraction for campaigns where the domain isn't registered yet.
   //    A "domain" here = a word followed by optional .subdomain segments ending in a TLD.
   //    Use \b word boundary so hyphens/underscores in campaign names act as separators.
 
@@ -334,7 +430,7 @@ export async function readUploadRows(
   return { headers, rows }
 }
 
-export async function parseFile(file: File, espName?: string, knownDomains?: string[]): Promise<ParseResult> {
+export async function parseFile(file: File, espName?: string, knownDomains?: string[], mapDateOrder?: MapDateOrder, mpCodeMap?: Record<string, string>): Promise<ParseResult> {
   const { rows } = await readUploadRows(file)
 
   if (rows.length === 0) throw new Error('No rows found in file')
@@ -357,6 +453,20 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
   const dateYears: Record<string, number> = {}
   let skipped = 0, totalRows = 0
   let skippedNoDate = 0, skippedNoEmail = 0
+
+  // MAP: resolve the whole file's month/day order once (see resolveMapDateOrder).
+  // A caller-supplied hint (operator's pick for a genuinely ambiguous file) wins.
+  let mapOrder: MapDateOrder = 'mdy'
+  let mapDateAmbiguous = false
+  if (isMap) {
+    if (mapDateOrder) {
+      mapOrder = mapDateOrder
+    } else {
+      const res = resolveMapDateOrder(rows.map(r => r['date'] ?? ''))
+      mapOrder = res.order ?? 'mdy'
+      mapDateAmbiguous = res.ambiguous
+    }
+  }
 
   rows.forEach(row => {
     totalRows++
@@ -913,27 +1023,14 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
     // Delivered is not in the CSV — calculated as sent - hard_bounces - soft_bounces.
     if (isMap) {
       const rawDate = row['date'] || ''
-      const mapMatch = rawDate.match(/^(\d{2})-(\d{2})-(\d{4})$/)
-      let parsed: { str: string; year: number } | null = null
-      if (mapMatch) {
-        const day   = parseInt(mapMatch[1])
-        const month = parseInt(mapMatch[2])
-        const year  = parseInt(mapMatch[3])
-        const d = new Date(year, month - 1, day)
-        parsed = {
-          str: d.toLocaleString('en-US', { month: 'short' }) + ' ' + String(d.getDate()).padStart(2, '0'),
-          year,
-        }
-      } else {
-        parsed = parseDate(rawDate, false)
-      }
+      const parsed = parseMapDate(rawDate, mapOrder)
       if (!parsed) { skipped++; skippedNoDate++; return }
       const dateStr = parsed.str
       dateYears[dateStr] = parsed.year
 
       const providerDomain = (row['domains'] || 'unknown').toLowerCase().trim()
 
-      const rawSendingDomain = extractSendingDomain(row['campaign-name'] || '', knownDomains)
+      const rawSendingDomain = extractSendingDomain(row['campaign-name'] || '', knownDomains, mpCodeMap)
       const sendingDomain = normalizeDomainForEsp(rawSendingDomain, espName || 'map') || 'unknown'
 
       const sent         = parseInt(row['messages-sent']     || '0') || 0
@@ -990,7 +1087,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
       : explicitFromEmail
         ? extractDomain(explicitFromEmail)
         : isMailmodo
-          ? extractSendingDomain(row['campaign-name'] || '', knownDomains)
+          ? extractSendingDomain(row['campaign-name'] || '', knownDomains, mpCodeMap)
           : 'unknown'
     const sendingDomain = normalizeDomainForEsp(rawSendingDomain, espName)
 
@@ -1169,7 +1266,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
   }
 
   const format = isMap ? 'map' : isInboxroad ? 'inboxroad' : isElastic ? 'elastic' : isMailjet ? 'mailjet' : isKenscio ? 'kenscio' : isMoosend ? 'moosend' : isMMS ? 'mms' : isNetcore ? 'netcore' : isMailmodo ? 'mailmodo' : 'generic'
-  return { byDate, dates, dateYears, totalRows, skipped, skippedNoDate, skippedNoEmail, newDates: 0, format }
+  return { byDate, dates, dateYears, totalRows, skipped, skippedNoDate, skippedNoEmail, newDates: 0, format, dateAmbiguous: mapDateAmbiguous }
 }
 
 export function mergeIntoMmData(current: MmData, result: ReturnType<typeof parseFile> extends Promise<infer T> ? T : never, espName: string): { data: MmData; newDates: number } {
@@ -1229,6 +1326,10 @@ export function mergeIntoMmData(current: MmData, result: ReturnType<typeof parse
     mergeMetrics(data.overallByDate[date], bucket.providers ? Object.values(bucket.providers).reduce((acc, m) => {
       acc.sent += m.sent; acc.delivered += m.delivered; acc.opened += m.opened
       acc.clicked += m.clicked; acc.bounced += m.bounced
+      acc.hardBounced = (acc.hardBounced || 0) + (m.hardBounced || 0)
+      acc.softBounced = (acc.softBounced || 0) + (m.softBounced || 0)
+      acc.unsubscribed = (acc.unsubscribed || 0) + (m.unsubscribed || 0)
+      acc.complained = (acc.complained || 0) + (m.complained || 0)
       return acc
     }, blankMetrics()) : blankMetrics())
     recalcRates(data.overallByDate[date])
@@ -1314,4 +1415,23 @@ export function parseThrottleCsv(text: string): ThrottleRecord[] {
 export function unknownDomainSends(parsed: ParseResult): number {
   return Object.values(parsed.byDate)
     .reduce((sum, b) => sum + (b.domains['unknown']?.sent ?? 0), 0)
+}
+
+export type UploadDataIssue =
+  | { kind: 'all-skipped'; totalRows: number }   // rows present but none parsed into a date
+  | { kind: 'zero-sent'; dates: number }         // dates parsed but 0 sends counted (column mismatch)
+
+/**
+ * Detect an upload that parsed but would be invisible — either every row was
+ * skipped, or metrics all came out zero (usually a column-header mismatch).
+ * Returns null when the upload has usable, visible data.
+ */
+export function checkUploadHasData(parsed: ParseResult): UploadDataIssue | null {
+  if (parsed.dates.length === 0) return { kind: 'all-skipped', totalRows: parsed.totalRows }
+  let sent = 0
+  for (const b of Object.values(parsed.byDate)) {
+    for (const m of Object.values(b.providers)) sent += m.sent || 0
+  }
+  if (sent === 0) return { kind: 'zero-sent', dates: parsed.dates.length }
+  return null
 }
