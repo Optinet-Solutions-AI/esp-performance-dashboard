@@ -1040,7 +1040,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
       const delivered    = Math.max(0, sent - bounced)
       const opened       = parseInt(row['confirmed-openers'] || '0') || 0
       const clicked      = parseInt(row['clickers']          || '0') || 0
-      const unsubscribed = parseInt(row['unsubscribed']      || '0') || 0
+      const unsubscribed = parseInt(row['unsubscribed'] || row['unsubscribes'] || '0') || 0
 
       if (!byDate[dateStr]) byDate[dateStr] = { rows: 0, providers: {}, domains: {}, providerDomains: {} }
       const bucket = byDate[dateStr]
