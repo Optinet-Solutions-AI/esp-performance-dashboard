@@ -498,14 +498,14 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
       bucket.rows++
 
       const sent        = Number(row['sent'] || 0)
-      const delivered   = Number(row['success'] || 0)
-      const bounced     = Number(row['failed'] || 0)
-      const hardBounced = Number(row['hard-bounces'] || 0)
-      const softBounced = Number(row['soft-bounces'] || 0)
+      const delivered   = Number(row['success'] || row['delivered'] || 0)
+      const bounced     = Number(row['failed'] || row['bounced'] || row['total-bounces'] || 0)
+      const hardBounced = Number(row['hard-bounces'] || row['hard-bounce'] || row['hard_bounce'] || row['hardbounce'] || 0)
+      const softBounced = Number(row['soft-bounces'] || row['soft-bounce'] || row['soft_bounce'] || row['softbounce'] || 0)
       const opened      = Number(row['unique-opens'] || row['opens'] || 0)
       const clicked     = Number(row['unique-clickers'] || row['unique-clicks'] || row['clicks'] || 0)
       const unsubscribed = Number(row['unsubscribes'] || row['unsubscribed'] || 0)
-      const complained  = Number(row['complaints'] || 0)
+      const complained  = Number(row['complaints'] || row['complaint'] || row['spam'] || 0)
 
       const metrics = { sent, delivered, opened, clicked, bounced, hardBounced, softBounced, unsubscribed, complained }
 
@@ -625,7 +625,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
       const providerDomain = extractDomain(email)
       const sendingDomain = (row['domain'] || 'unknown').toLowerCase().trim()
 
-      const bounceRaw      = (row['bounce'] || '').trim()
+      const bounceRaw      = (row['bounce'] || row['bounced'] || '').trim()
       const bounceTypeRaw  = (row['bounce-type'] || '').toLowerCase().trim()
       const isBounced      = bounceRaw !== '' ? 1 : 0
       const isHard         = (bounceTypeRaw.includes('hard') || bounceTypeRaw.includes('internal')) ? isBounced : 0
@@ -634,7 +634,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
       const metrics = {
         sent:         1,
         delivered:    (row['process-status'] || '').toLowerCase() === 'success' ? 1 : 0,
-        opened:       (row['open-email'] || '').trim() !== '' ? 1 : 0,
+        opened:       (row['open-email'] || row['opened'] || row['open'] || '').trim() !== '' ? 1 : 0,
         clicked:      (row['clicks'] || '').trim() !== '' ? 1 : 0,
         bounced:      isBounced,
         hardBounced:  isHard,
@@ -687,7 +687,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
       const providerDomain = extractDomain(email)
       const sendingDomain = (row['domain'] || 'unknown').toLowerCase().trim()
 
-      const isBounced = (row['bounced'] || '').includes('@') ? 1 : 0
+      const isBounced = (row['bounced'] || row['bounce'] || row['bounces'] || '').includes('@') ? 1 : 0
 
       const metrics = {
         sent:         1,
@@ -697,7 +697,7 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
         bounced:      isBounced,
         hardBounced:  0,
         softBounced:  0,
-        unsubscribed: (row['unsubscribes'] || '').includes('@') ? 1 : 0,
+        unsubscribed: (row['unsubscribes'] || row['unsubscribed'] || row['unsubscribe'] || row['unsub'] || '').includes('@') ? 1 : 0,
         complained:   0,
       }
 
@@ -751,8 +751,8 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
         opened:       (row['open'] || '').trim() !== '' ? 1 : 0,
         clicked:      (row['click'] || '').trim() !== '' ? 1 : 0,
         bounced:      (row['bounce'] || '').trim() !== '' ? 1 : 0,
-        hardBounced:  (row['hard-bounce'] || '').trim() !== '' ? 1 : 0,
-        softBounced:  (row['soft-bounce'] || '').trim() !== '' ? 1 : 0,
+        hardBounced:  (row['hard-bounce'] || row['hard-bounces'] || row['hard_bounce'] || row['hardbounce'] || '').trim() !== '' ? 1 : 0,
+        softBounced:  (row['soft-bounce'] || row['soft-bounces'] || row['soft_bounce'] || row['softbounce'] || '').trim() !== '' ? 1 : 0,
         unsubscribed: 0,
         complained:   0,
       }
@@ -816,8 +816,8 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
         const s = (v || '').trim().toUpperCase()
         return s === 'TRUE' || s === '1'
       }
-      const isHard = isTrue(row['hard_bounce']) ? 1 : 0
-      const isSoft = isTrue(row['soft_bounce']) ? 1 : 0
+      const isHard = isTrue(row['hard_bounce'] || row['hard-bounce'] || row['hard-bounces'] || row['hardbounce']) ? 1 : 0
+      const isSoft = isTrue(row['soft_bounce'] || row['soft-bounce'] || row['soft-bounces'] || row['softbounce']) ? 1 : 0
 
       const metrics = {
         sent:         1,
@@ -827,8 +827,8 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
         bounced:      (isHard || isSoft) ? 1 : 0,
         hardBounced:  isHard,
         softBounced:  isSoft,
-        unsubscribed: isTrue(row['unsub']) ? 1 : 0,
-        complained:   isTrue(row['spam'])  ? 1 : 0,
+        unsubscribed: isTrue(row['unsub'] || row['unsubscribed'] || row['unsubscribe'] || row['unsubscribes']) ? 1 : 0,
+        complained:   isTrue(row['spam'] || row['complaint'] || row['complaints'] || row['abuse'])  ? 1 : 0,
       }
 
       if (!byDate[dateStr]) byDate[dateStr] = { rows: 0, providers: {}, domains: {}, providerDomains: {} }
@@ -1030,12 +1030,12 @@ export async function parseFile(file: File, espName?: string, knownDomains?: str
 
       const providerDomain = (row['domains'] || 'unknown').toLowerCase().trim()
 
-      const rawSendingDomain = extractSendingDomain(row['campaign-name'] || '', knownDomains, mpCodeMap)
+      const rawSendingDomain = extractSendingDomain(row['campaign-name'] || row['camapign-name'] || row['campaign'] || '', knownDomains, mpCodeMap)
       const sendingDomain = normalizeDomainForEsp(rawSendingDomain, espName || 'map') || 'unknown'
 
       const sent         = parseInt(row['messages-sent']     || '0') || 0
-      const hardBounced  = parseInt(row['hard-bounces']      || '0') || 0
-      const softBounced  = parseInt(row['soft-bounces']      || '0') || 0
+      const hardBounced  = parseInt(row['hard-bounces'] || row['hard-bounce'] || row['hard_bounce'] || '0') || 0
+      const softBounced  = parseInt(row['soft-bounces'] || row['soft-bounce'] || row['soft_bounce'] || '0') || 0
       const bounced      = hardBounced + softBounced
       const delivered    = Math.max(0, sent - bounced)
       const opened       = parseInt(row['confirmed-openers'] || '0') || 0
