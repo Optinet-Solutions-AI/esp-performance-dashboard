@@ -75,6 +75,25 @@ describe('parseMapDate — order-aware parsing', () => {
   })
 })
 
+describe('parseFile — MAP unsubscribed column', () => {
+  it('reads unsubscribed counts from a "Unsubscribed" header', async () => {
+    const text = [MAP_HEADER, 'CMP-07/01/2026-su.testdomain.com,07/01/2026,gmail.com,100,90%,10,10%,1,1%,0,0%,0,0%,,,,5']
+      .join('\n')
+    const file = new File([text], 'map.csv', { type: 'text/csv' })
+    const r = await parseFile(file, 'Map')
+    expect(r.byDate['Jul 01'].providers['gmail.com'].unsubscribed).toBe(5)
+  })
+
+  it('reads unsubscribed counts from a "Unsubscribes" header (current MAP export format)', async () => {
+    const header = MAP_HEADER.replace('Unsubscribed', 'Unsubscribes')
+    const text = [header, 'CMP-07/01/2026-su.testdomain.com,07/01/2026,gmail.com,100,90%,10,10%,1,1%,0,0%,0,0%,,,,5']
+      .join('\n')
+    const file = new File([text], 'map.csv', { type: 'text/csv' })
+    const r = await parseFile(file, 'Map')
+    expect(r.byDate['Jul 01'].providers['gmail.com'].unsubscribed).toBe(5)
+  })
+})
+
 describe('parseFile — MAP date resolution', () => {
   it('auto-resolves month-first from a disambiguating row and is not ambiguous', async () => {
     const r = await parseFile(mapCsv(['07/15/2026', '07/01/2026']), 'Map')
