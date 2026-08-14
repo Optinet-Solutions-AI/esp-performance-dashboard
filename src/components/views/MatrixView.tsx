@@ -469,6 +469,8 @@ export default function MatrixView() {
   function buildRows(sortedList: string[]) {
     const rows: React.ReactNode[] = []
     const renderedEsps = new Set<string>()   // ESPs that got a deliverability header row
+    const grandTotal = emptyAgg()
+    let grandReg = 0, grandFtds = 0
 
     sortedList.forEach(espName => {
       const espData = store.espData[espName]
@@ -519,6 +521,9 @@ export default function MatrixView() {
       const espKey = `esp||${espName}`
       const espEx = !!expanded[espKey]
       const espSums = getIpmSums(espName)
+      addAgg(grandTotal, espTot)
+      grandReg += espSums.reg
+      grandFtds += espSums.ftds
 
       // ESP header row
       rows.push(
@@ -698,6 +703,8 @@ export default function MatrixView() {
       .filter(([, v]) => v.reg > 0 || v.ftds > 0)
       .sort((a, b) => b[1].ftds - a[1].ftds || b[1].reg - a[1].reg)
       .forEach(([espName, v]) => {
+        grandReg += v.reg
+        grandFtds += v.ftds
         const ipMap = getIpMap(espName)
         const ipRecordIds = getIpRecordIds(espName)
 
@@ -775,6 +782,16 @@ export default function MatrixView() {
           )
         }
       })
+
+    rows.push(
+      <tr key="grand-total">
+        <td className={`${tdCls} text-left font-bold`} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}`, color: txt }}>
+          Total
+        </td>
+        <td className={tdCls} style={{ borderBottom: `1px solid ${bdr}`, background: isLight ? '#e8eaef' : '#1a1e26', borderTop: `2px solid ${isLight ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)'}` }}></td>
+        {DataRow({ agg: grandTotal, isTotal: true, throttle: null, reg: grandReg, ftds: grandFtds })}
+      </tr>
+    )
 
     return rows
   }
