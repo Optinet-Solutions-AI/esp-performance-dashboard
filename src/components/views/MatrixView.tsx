@@ -169,7 +169,7 @@ export default function MatrixView() {
   }
 
   function downloadCsv() {
-    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'Bounce Rate %', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Unsubscribed', 'Complaints', 'Throttling']
+    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'BNC Rate %', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Unsubscribed', 'Complaints', 'Throttling']
     const csvRows: string[][] = [headers]
 
     function aggToRow(level: string, esp: string, ip: string, fd: string, prov: string, agg: Agg, throttle?: number | 'TBC' | null): string[] {
@@ -927,7 +927,7 @@ export default function MatrixView() {
                   <span className="inline-flex items-center">Hard BNC{renderSortIcon('hardBounced')}</span>
                 </th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('hardBounceRate')}>
-                  <span className="inline-flex items-center">Bounce Rate{renderSortIcon('hardBounceRate')}</span>
+                  <span className="inline-flex items-center">BNC Rate{renderSortIcon('hardBounceRate')}</span>
                 </th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('opened')}>
                   <span className="inline-flex items-center">Opens{renderSortIcon('opened')}</span>
