@@ -37,6 +37,7 @@ function rates(a: Agg) {
     or: a.delivered > 0 ? a.opened / a.delivered * 100 : 0,
     ctr: a.opened > 0 ? a.clicked / a.opened * 100 : 0,
     br: a.sent > 0 ? a.bounced / a.sent * 100 : 0,
+    hbr: a.sent > 0 ? a.hardBounced / a.sent * 100 : 0,
     thr,
     trr: a.sent > 0 ? thr / a.sent * 100 : 0,
   }
@@ -137,6 +138,7 @@ export default function MatrixView() {
         case 'bounced': aVal = aAgg.bounced; bVal = bAgg.bounced; break
         case 'softBounced': aVal = aAgg.softBounced; bVal = bAgg.softBounced; break
         case 'hardBounced': aVal = aAgg.hardBounced; bVal = bAgg.hardBounced; break
+        case 'hardBounceRate': aVal = aR.hbr; bVal = bR.hbr; break
         case 'opened': aVal = aAgg.opened; bVal = bAgg.opened; break
         case 'openRate': aVal = aR.or; bVal = bR.or; break
         case 'clicked': aVal = aAgg.clicked; bVal = bAgg.clicked; break
@@ -167,7 +169,7 @@ export default function MatrixView() {
   }
 
   function downloadCsv() {
-    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Unsubscribed', 'Complaints', 'Throttling']
+    const headers = ['Level', 'ESP', 'IP', 'From Domain', 'Email Provider', 'Sent', 'Delivered', 'Total Bounces', 'Soft Bounce', 'Hard Bounce', 'BNC Rate %', 'Opens', 'Open Rate %', 'Clicks', 'Click Rate %', 'Unsubscribed', 'Complaints', 'Throttling']
     const csvRows: string[][] = [headers]
 
     function aggToRow(level: string, esp: string, ip: string, fd: string, prov: string, agg: Agg, throttle?: number | 'TBC' | null): string[] {
@@ -178,6 +180,7 @@ export default function MatrixView() {
       return [
         level, esp, ip, fd, prov,
         String(agg.sent), String(agg.delivered), String(agg.bounced), String(agg.softBounced), String(agg.hardBounced),
+        agg.sent > 0 ? R.hbr.toFixed(2) + '%' : '',
         String(agg.opened),
         agg.delivered > 0 ? R.or.toFixed(2) + '%' : '',
         String(agg.clicked),
@@ -430,6 +433,9 @@ export default function MatrixView() {
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor() }}>{fmtMx(agg.bounced)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: txt }}>{fmtMx(agg.softBounced)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor() }}>{fmtMx(agg.hardBounced)}</td>
+        <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(), cursor: agg.sent > 0 ? 'help' : undefined }}
+          onMouseEnter={e => { if (agg.sent > 0) showTip(e, 'BOUNCE RATE', R.hbr.toFixed(2) + '%', 'Hard Bounces ÷ Sent × 100', `${fmtMx(agg.hardBounced)} ÷ ${fmtMx(agg.sent)} × 100 = ${R.hbr.toFixed(2)}%`) }}
+          onMouseLeave={() => setTip(null)}>{R.hbr > 0 ? R.hbr.toFixed(1) + '%' : ''}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor() }}>{fmtMx(agg.opened)}</td>
         <td className={`${tdCls} ${fw}`} style={{ ...style, color: rateColor(), cursor: R.or > 0 ? 'help' : undefined }}
           onMouseEnter={e => { if (R.or > 0) showTip(e, 'OPEN RATE', R.or.toFixed(2) + '%', 'Opens ÷ Delivered × 100', `${fmtMx(agg.opened)} ÷ ${fmtMx(agg.delivered)} × 100 = ${R.or.toFixed(2)}%`) }}
@@ -919,6 +925,9 @@ export default function MatrixView() {
                 </th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('hardBounced')}>
                   <span className="inline-flex items-center">Hard BNC{renderSortIcon('hardBounced')}</span>
+                </th>
+                <th className={thCls} style={{ borderColor: bdr, color: txt, width: 80, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('hardBounceRate')}>
+                  <span className="inline-flex items-center">BNC Rate{renderSortIcon('hardBounceRate')}</span>
                 </th>
                 <th className={thCls} style={{ borderColor: bdr, color: txt, width: 70, position: 'sticky', top: 0, zIndex: 5, background: headerBg }} onClick={() => handleSort('opened')}>
                   <span className="inline-flex items-center">Opens{renderSortIcon('opened')}</span>
