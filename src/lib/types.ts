@@ -208,6 +208,8 @@ export interface AIContextInput {
   espData: Record<string, MmData>
   ipmData: IpmRecord[]
   throttleData: ThrottleRecord[]
+  regFtdsDaily: RegFtdsDailyRecord[]
+  dmData: DmRecord[]
 }
 
 // --- AI wire protocol (Ask AI <-> /api/ask-ai) ---

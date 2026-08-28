@@ -27,6 +27,8 @@ export function useAskAI(): UseAskAIReturn {
         espData: store.espData,
         ipmData: store.ipmData,
         throttleData: store.throttleData,
+        regFtdsDaily: store.regFtdsDaily,
+        dmData: store.dmData,
       }
       const context = buildAIContext(toolCtx)
 
