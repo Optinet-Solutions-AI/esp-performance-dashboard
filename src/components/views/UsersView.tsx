@@ -12,6 +12,8 @@ import {
 } from '@/lib/profile'
 import type { Profile } from '@/lib/types'
 
+const APPROVED_USER_CAP = 9
+
 export default function UsersView() {
   const { isLight } = useDashboardStore()
   const { profile } = useProfile()
@@ -56,6 +58,10 @@ export default function UsersView() {
   }, [isAdmin])
 
   async function handleApprove(userId: string) {
+    if (approved.length >= APPROVED_USER_CAP) {
+      alert(`Approved user cap reached (${APPROVED_USER_CAP}/${APPROVED_USER_CAP}). Remove or demote an existing user before approving another.`)
+      return
+    }
     setPendingBusyId(userId)
     const { error } = await approveUser(userId)
     setPendingBusyId(null)
@@ -137,11 +143,15 @@ export default function UsersView() {
             <div>
               <h2 className={`text-base font-semibold ${isLight ? 'text-gray-900' : 'text-[#f0f2f5]'}`}>
                 Approved Users
-                {approved.length > 0 && (
-                  <span className={`ml-2 text-xs font-mono ${isLight ? 'text-gray-500' : 'text-[#a8b0be]'}`}>
-                    {approved.length}
-                  </span>
-                )}
+                <span
+                  className={`ml-2 text-xs font-mono ${
+                    approved.length >= APPROVED_USER_CAP
+                      ? (isLight ? 'text-[#b45309]' : 'text-[#ffd166]')
+                      : (isLight ? 'text-gray-500' : 'text-[#a8b0be]')
+                  }`}
+                >
+                  {approved.length} / {APPROVED_USER_CAP}
+                </span>
               </h2>
               <p className={`text-xs mt-0.5 ${isLight ? 'text-gray-500' : 'text-[#a8b0be]'}`}>
                 Accounts with dashboard access. Promote a user to grant admin privileges, or delete to remove permanently.
@@ -267,6 +277,7 @@ export default function UsersView() {
           <div>
             {pending.map(p => {
               const busy = pendingBusyId === p.id
+              const capReached = approved.length >= APPROVED_USER_CAP
               return (
                 <div
                   key={p.id}
@@ -281,12 +292,13 @@ export default function UsersView() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleApprove(p.id)}
-                      disabled={busy}
+                      disabled={busy || capReached}
+                      title={capReached ? `Approved user cap reached (${APPROVED_USER_CAP}/${APPROVED_USER_CAP})` : undefined}
                       className={`px-3 py-1.5 rounded-lg border text-[11px] font-mono uppercase tracking-wider transition-all
                         ${isLight ? 'border-[#0d9488]/40 text-[#0d9488] hover:bg-[#0d9488]/[0.08]' : 'border-[#00e5c3]/40 text-[#00e5c3] hover:bg-[#00e5c3]/10'}
-                        ${busy ? 'opacity-50 cursor-wait' : ''}`}
+                        ${(busy || capReached) ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
-                      Approve
+                      {capReached ? 'Cap reached' : 'Approve'}
                     </button>
                     <button
                       onClick={() => handleReject(p.id, p.email)}
