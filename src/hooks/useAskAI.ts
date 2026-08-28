@@ -2,7 +2,10 @@
 import { useState } from 'react'
 import { useDashboardStore } from '@/lib/store'
 import { buildAIContext } from '@/lib/aiContext'
-import type { ChatMessage, UseAskAIReturn } from '@/lib/types'
+import { executeAiTool } from '@/lib/aiTools'
+import type { AIContextInput, ChatMessage, UseAskAIReturn, WireMessage } from '@/lib/types'
+
+const MAX_TOOL_ROUNDS = 5
 
 export function useAskAI(): UseAskAIReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -19,26 +22,58 @@ export function useAskAI(): UseAskAIReturn {
     setError(null)
 
     try {
-      const context = buildAIContext({
+      const toolCtx: AIContextInput = {
         esps: store.esps,
         espData: store.espData,
         ipmData: store.ipmData,
         throttleData: store.throttleData,
-      })
+        regFtdsDaily: store.regFtdsDaily,
+        dmData: store.dmData,
+      }
+      const context = buildAIContext(toolCtx)
 
-      const res = await fetch('/api/ask-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: nextMessages, context }),
-      })
+      const wire: WireMessage[] = nextMessages.map(m => ({ role: m.role, content: m.content }))
 
-      const data = await res.json() as { reply?: string; error?: string }
+      let finalReply = ''
+      let finalFollowups: string[] = []
 
-      if (!res.ok || data.error) {
-        throw new Error(data.error ?? 'Request failed')
+      for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+        const res = await fetch('/api/ask-ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: wire, context }),
+        })
+
+        const data = await res.json() as { message?: WireMessage; error?: string }
+
+        if (!res.ok || data.error || !data.message) {
+          throw new Error(data.error ?? 'Request failed')
+        }
+
+        const assistantMessage = data.message
+        wire.push(assistantMessage)
+
+        if (assistantMessage.tool_calls?.length) {
+          for (const call of assistantMessage.tool_calls) {
+            let args: Record<string, unknown> = {}
+            try { args = JSON.parse(call.function.arguments || '{}') } catch { /* leave empty */ }
+            const result = executeAiTool(call.function.name, args, toolCtx)
+            wire.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) })
+          }
+          continue
+        }
+
+        try {
+          const parsed = JSON.parse(assistantMessage.content ?? '{}') as { reply?: string; followups?: string[] }
+          finalReply = parsed.reply ?? ''
+          finalFollowups = parsed.followups ?? []
+        } catch {
+          finalReply = assistantMessage.content ?? ''
+        }
+        break
       }
 
-      const assistantMsg: ChatMessage = { role: 'assistant', content: data.reply ?? '' }
+      const assistantMsg: ChatMessage = { role: 'assistant', content: finalReply, followups: finalFollowups }
       setMessages(prev => [...prev, assistantMsg])
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'

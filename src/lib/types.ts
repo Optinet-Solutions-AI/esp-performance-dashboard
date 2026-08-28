@@ -192,6 +192,7 @@ export interface DateFilter {
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+  followups?: string[]
 }
 
 export interface UseAskAIReturn {
@@ -207,4 +208,23 @@ export interface AIContextInput {
   espData: Record<string, MmData>
   ipmData: IpmRecord[]
   throttleData: ThrottleRecord[]
+  regFtdsDaily: RegFtdsDailyRecord[]
+  dmData: DmRecord[]
+}
+
+// --- AI wire protocol (Ask AI <-> /api/ask-ai) ---
+// Mirrors the subset of the OpenAI chat message shape needed for a
+// function-calling round trip, without importing the OpenAI SDK client-side.
+
+export interface AiToolCall {
+  id: string
+  type: 'function'
+  function: { name: string; arguments: string }
+}
+
+export interface WireMessage {
+  role: 'system' | 'user' | 'assistant' | 'tool'
+  content: string | null
+  tool_calls?: AiToolCall[]
+  tool_call_id?: string
 }

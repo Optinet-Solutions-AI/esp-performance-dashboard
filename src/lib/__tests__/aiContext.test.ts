@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildAIContext } from '../aiContext'
-import type { AIContextInput, EspRecord, MmData, IpmRecord, ThrottleRecord } from '../types'
+import type { AIContextInput, EspRecord, MmData, IpmRecord, ThrottleRecord, RegFtdsDailyRecord } from '../types'
 
 function makeEsp(overrides: Partial<EspRecord> = {}): EspRecord {
   return {
@@ -49,7 +49,7 @@ function makeMmData(): MmData {
   }
 }
 
-const emptyInput: AIContextInput = { esps: [], espData: {}, ipmData: [], throttleData: [] }
+const emptyInput: AIContextInput = { esps: [], espData: {}, ipmData: [], throttleData: [], regFtdsDaily: [], dmData: [] }
 
 describe('buildAIContext', () => {
   it('returns no-data message when esps array is empty', () => {
@@ -100,6 +100,24 @@ describe('buildAIContext', () => {
     expect(result).toContain('Total Registrations: 100')
   })
 
+  it('summarizes the partner roster by country when dmData is present', () => {
+    const dmData = [
+      { country: 'US', domain: 'a.com', partner: 'Acme' },
+      { country: 'US', domain: 'b.com', partner: 'Beta' },
+      { country: 'CA', domain: 'c.com', partner: 'Gamma' },
+    ]
+    const result = buildAIContext({ ...emptyInput, esps: [makeEsp()], dmData })
+    expect(result).toContain('Partner Roster')
+    expect(result).toContain('Total partner records: 3')
+    expect(result).toContain('US (2)')
+    expect(result).toContain('CA (1)')
+  })
+
+  it('omits the partner roster summary when dmData is empty', () => {
+    const result = buildAIContext({ ...emptyInput, esps: [makeEsp()] })
+    expect(result).not.toContain('Partner Roster')
+  })
+
   it('flags throttle combos with non-zero rates', () => {
     const throttleData: ThrottleRecord[] = [
       {
@@ -108,7 +126,7 @@ describe('buildAIContext', () => {
       },
     ]
     const result = buildAIContext({ ...emptyInput, esps: [makeEsp()], throttleData })
-    expect(result).toContain('Throttl')
+    expect(result).toContain('## Throttling Issues')
     expect(result).toContain('Mailgun')
   })
 
@@ -120,7 +138,30 @@ describe('buildAIContext', () => {
       },
     ]
     const result = buildAIContext({ ...emptyInput, esps: [makeEsp()], throttleData })
-    expect(result).not.toContain('Throttl')
+    expect(result).not.toContain('## Throttling Issues')
+  })
+
+  it('ranks ESPs by FTDs descending in the Reg & FTDs summary', () => {
+    const regFtdsDaily: RegFtdsDailyRecord[] = [
+      { date: '2026-08-01', esp: 'Mailmodo', ip: '1.1.1.1', registrations: 100, ftds: 5 },
+      { date: '2026-08-01', esp: 'Inboxroad', ip: '2.2.2.2', registrations: 200, ftds: 40 },
+      { date: '2026-08-02', esp: 'Inboxroad', ip: '2.2.2.2', registrations: 50, ftds: 10 },
+    ]
+    const result = buildAIContext({ ...emptyInput, esps: [makeEsp()], regFtdsDaily })
+    expect(result).toContain('Reg & FTDs Summary')
+    const inboxroadLine = result.split('\n').find(l => l.startsWith('| Inboxroad'))
+    const mailmodoLine = result.split('\n').find(l => l.startsWith('| Mailmodo'))
+    expect(inboxroadLine).toContain('250')
+    expect(inboxroadLine).toContain('50')
+    expect(mailmodoLine).toContain('100')
+    expect(mailmodoLine).toContain('5')
+    // Inboxroad (50 FTDs) should be ranked above Mailmodo (5 FTDs)
+    expect(result.indexOf('| Inboxroad')).toBeLessThan(result.indexOf('| Mailmodo'))
+  })
+
+  it('omits Reg & FTDs summary when no daily data is loaded', () => {
+    const result = buildAIContext({ ...emptyInput, esps: [makeEsp()] })
+    expect(result).not.toContain('Reg & FTDs Summary')
   })
 
   it('does not include throttle section when all values are TBC', () => {
@@ -135,6 +176,6 @@ describe('buildAIContext', () => {
       },
     ]
     const result = buildAIContext({ ...emptyInput, esps: [makeEsp()], throttleData })
-    expect(result).not.toContain('Throttl')
+    expect(result).not.toContain('## Throttling Issues')
   })
 })
