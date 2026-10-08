@@ -16,6 +16,7 @@ create or replace function enforce_approved_user_cap()
 returns trigger
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
   v_approved_count int;
@@ -23,7 +24,7 @@ begin
   -- only gate transitions INTO 'approved' (idempotent re-approves, and
   -- inserts/updates that don't touch status, are left alone)
   if new.status = 'approved' and (tg_op = 'INSERT' or old.status is distinct from 'approved') then
-    select count(*) into v_approved_count from profiles where status = 'approved';
+    select count(*) into v_approved_count from public.profiles where status = 'approved';
     if v_approved_count >= 9 then
       raise exception 'Approved user cap reached (9/9). Remove or demote an existing user before approving another.';
     end if;
@@ -32,9 +33,9 @@ begin
 end;
 $$;
 
-drop trigger if exists trg_enforce_approved_user_cap on profiles;
+drop trigger if exists trg_enforce_approved_user_cap on public.profiles;
 
 create trigger trg_enforce_approved_user_cap
-  before insert or update on profiles
+  before insert or update on public.profiles
   for each row
   execute function enforce_approved_user_cap();
