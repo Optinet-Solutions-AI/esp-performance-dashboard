@@ -72,6 +72,25 @@ step_abort() {
   echo "  nothing committed (reg_ftds_daily RLS still off)"
 }
 
+ROLLBACK="$SQL_DIR/2026-11-23_rls-lockdown-ROLLBACK.sql"
+
+step_rollback() {
+  # lockdown + rollback must restore the access rules exactly.
+  load_fixture || { echo "  fixture failed to load"; return 1; }
+  [ -f "$ROLLBACK" ] || { echo "  missing $ROLLBACK"; return 1; }
+  local before after
+  before=$(pg -At < "$HERE/snapshot.sql") || return 1
+  pg < "$LOCKDOWN" >/dev/null || { echo "  lockdown script failed"; return 1; }
+  pg < "$ROLLBACK" >/dev/null || { echo "  rollback script failed"; return 1; }
+  after=$(pg -At < "$HERE/snapshot.sql") || return 1
+  if [ "$before" != "$after" ]; then
+    echo "  access rules differ after rollback:"
+    diff <(echo "$before") <(echo "$after") | sed 's/^/    /'
+    return 1
+  fi
+  echo "  identical to before ($(echo "$before" | wc -l) rules compared)"
+}
+
 FAILED=0
 for s in "${STEPS[@]}"; do
   if ! declare -F "step_$s" >/dev/null; then
