@@ -132,8 +132,12 @@ begin
     raise exception 'RLS lockdown self-check failed: no approved profile to test with';
   end if;
 
-  -- anonymous visitor: blocked or 0 rows on every table in public
-  for t in select tablename from pg_tables where schemaname = 'public' order by tablename loop
+  -- anonymous visitor: blocked or 0 rows on every table, view, materialized
+  -- view and foreign table in public (views run as their owner, so RLS alone
+  -- does not protect them)
+  for t in select c.relname from pg_class c
+            where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p', 'v', 'm', 'f')
+            order by c.relname loop
     begin
       perform set_config('request.jwt.claims', '{"role":"anon"}', true);
       execute 'set local role anon';

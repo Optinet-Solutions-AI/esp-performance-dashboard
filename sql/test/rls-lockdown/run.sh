@@ -2,7 +2,7 @@
 # Local rehearsal of the RLS lockdown against a throwaway postgres:15 container
 # seeded with the production access rules (fixture.sql). Never touches Supabase.
 #
-#   bash sql/test/rls-lockdown/run.sh [red] [lock] [abort] [rollback]
+#   bash sql/test/rls-lockdown/run.sh [red] [lock] [abort] [view] [rollback]
 #
 # Each step starts from a fresh container + fixture. Prints PASS/FAIL per step,
 # exits non-zero if any step fails. SQL is piped over stdin (no volume mounts,
@@ -12,7 +12,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 SQL_DIR="$(cd "$HERE/../.." && pwd)"
 IMAGE="postgres:15-alpine"
 STEPS=("$@")
-[ ${#STEPS[@]} -eq 0 ] && STEPS=(red lock abort rollback)
+[ ${#STEPS[@]} -eq 0 ] && STEPS=(red lock abort view rollback)
 
 CONTAINER=""
 cleanup() { [ -n "$CONTAINER" ] && docker rm -f "$CONTAINER" >/dev/null 2>&1; CONTAINER=""; }
@@ -70,6 +70,22 @@ step_abort() {
   rls=$(pg -At -c "select relrowsecurity from pg_class where oid = 'public.reg_ftds_daily'::regclass")
   [ "$rls" = "f" ] || { echo "  partial apply: reg_ftds_daily RLS is '$rls'"; return 1; }
   echo "  nothing committed (reg_ftds_daily RLS still off)"
+}
+
+step_view() {
+  # A view runs as its owner, so RLS does not protect it. If one exists that
+  # anon can read, the self-check must notice and refuse (nothing committed).
+  load_fixture || { echo "  fixture failed to load"; return 1; }
+  [ -f "$LOCKDOWN" ] || { echo "  missing $LOCKDOWN"; return 1; }
+  pg -c "create view public.uploads_summary as select esp from public.uploads; grant select on public.uploads_summary to anon;" >/dev/null || return 1
+  local out rls
+  if out=$(pg < "$LOCKDOWN" 2>&1); then
+    echo "  lockdown committed although anon can still read a view"; return 1
+  fi
+  echo "  refused: $(echo "$out" | grep -o 'ERROR:.*' | head -1)"
+  echo "$out" | grep -q 'anon/uploads_summary' || { echo "  refused for the wrong reason"; return 1; }
+  rls=$(pg -At -c "select relrowsecurity from pg_class where oid = 'public.reg_ftds_daily'::regclass")
+  [ "$rls" = "f" ] || { echo "  partial apply: reg_ftds_daily RLS is '$rls'"; return 1; }
 }
 
 ROLLBACK="$SQL_DIR/2026-11-23_rls-lockdown-ROLLBACK.sql"

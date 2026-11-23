@@ -17,8 +17,11 @@ begin
     raise exception 'assert setup: no approved non-admin profile in fixture';
   end if;
 
-  -- 1) anon (no login): permission error or 0 rows on EVERY public table
-  for t in select tablename from pg_tables where schemaname = 'public' order by tablename loop
+  -- 1) anon (no login): permission error or 0 rows on EVERY public table, view,
+  --    materialized view and foreign table
+  for t in select c.relname from pg_class c
+            where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p', 'v', 'm', 'f')
+            order by c.relname loop
     begin
       perform set_config('request.jwt.claims', '{"role":"anon"}', true);
       execute 'set local role anon';
