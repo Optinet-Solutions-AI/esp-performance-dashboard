@@ -1,11 +1,15 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession, signIn, signUp, signOut, requestPasswordReset } from '@/lib/auth'
+import { useSession, signIn, signOut, requestPasswordReset } from '@/lib/auth'
 import { fetchProfile } from '@/lib/profile'
 import { useDashboardStore } from '@/lib/store'
 
-type Mode = 'signin' | 'signup' | 'forgot'
+// No self-service sign-up: public signups are disabled in Supabase (anyone holding the
+// public anon key could otherwise create accounts and trigger confirmation emails to
+// throwaway addresses, which bounced and put the project's email sending at risk).
+// New users come in via portal SSO (/auth/portal-callback) or an admin invite.
+type Mode = 'signin' | 'forgot'
 
 export default function LoginPage() {
   const { isLight } = useDashboardStore()
@@ -51,17 +55,6 @@ export default function LoginPage() {
             router.replace('/')
           }
         }
-      } else if (mode === 'signup') {
-        const { error, data } = await signUp(email, password)
-        if (error) {
-          setError(error.message)
-        } else if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-          setError('This email is already registered. Try signing in instead.')
-        } else {
-          // Trigger creates a pending profile. Sign out the auto-created session.
-          await signOut()
-          setInfo('Account created. An admin will review and approve your account before you can sign in.')
-        }
       } else {
         const { error } = await requestPasswordReset(email)
         if (error) {
@@ -86,22 +79,6 @@ export default function LoginPage() {
   const accentText = isLight ? '#ffffff' : '#0a1628'
   const dangerColor = isLight ? '#b91c1c' : '#ff7b8a'
   const infoColor = isLight ? '#0369a1' : '#7dd3fc'
-
-  const tabStyle = (active: boolean): React.CSSProperties => ({
-    flex: 1,
-    padding: '10px 0',
-    fontSize: 11,
-    fontFamily: 'Space Mono, monospace',
-    fontWeight: 600,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    color: active ? accent : muted,
-    borderBottom: `2px solid ${active ? accent : 'transparent'}`,
-    transition: 'color 0.15s, border-color 0.15s',
-  })
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
@@ -128,17 +105,6 @@ export default function LoginPage() {
         </div>
 
         <div style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
-          {mode !== 'forgot' && (
-            <div style={{ display: 'flex', borderBottom: `1px solid ${border}` }}>
-              <button type="button" style={tabStyle(mode === 'signin')} onClick={() => { setMode('signin'); setError(''); setInfo('') }}>
-                Sign in
-              </button>
-              <button type="button" style={tabStyle(mode === 'signup')} onClick={() => { setMode('signup'); setError(''); setInfo('') }}>
-                Sign up
-              </button>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <label style={{ display: 'block', fontSize: 11, fontFamily: 'Space Mono, monospace', letterSpacing: '0.08em', textTransform: 'uppercase', color: muted, marginBottom: 6 }}>
@@ -163,7 +129,7 @@ export default function LoginPage() {
                   type="password"
                   required
                   minLength={6}
-                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                  autoComplete="current-password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   style={inputStyle}
@@ -206,9 +172,7 @@ export default function LoginPage() {
                 ? 'Working…'
                 : mode === 'signin'
                   ? 'Sign in'
-                  : mode === 'signup'
-                    ? 'Create account'
-                    : 'Send reset link'}
+                  : 'Send reset link'}
             </button>
 
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
@@ -231,6 +195,11 @@ export default function LoginPage() {
                 </button>
               )}
             </div>
+            {mode === 'signin' && (
+              <p style={{ margin: 0, textAlign: 'center', fontSize: 12, color: muted }}>
+                Need an account? Ask an admin for access.
+              </p>
+            )}
           </form>
         </div>
       </div>
