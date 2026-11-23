@@ -46,6 +46,32 @@ step_red() {
   echo "  assert-locked failed as expected: $(echo "$out" | grep -o 'ERROR:.*' | head -1)"
 }
 
+LOCKDOWN="$SQL_DIR/2026-11-23_rls-lockdown.sql"
+
+step_lock() {
+  # Lockdown applies cleanly (its own self-check passes) and the assertions hold.
+  load_fixture || { echo "  fixture failed to load"; return 1; }
+  [ -f "$LOCKDOWN" ] || { echo "  missing $LOCKDOWN"; return 1; }
+  pg < "$LOCKDOWN" >/dev/null || { echo "  lockdown script failed"; return 1; }
+  pg < "$HERE/assert-locked.sql" 2>&1 | grep -o 'ERROR:.*\|assert-locked:.*' | head -1 | sed 's/^/  /'
+  return "${PIPESTATUS[0]}"
+}
+
+step_abort() {
+  # Break the approval helper so approved users would see nothing: the
+  # self-check must refuse, and NOTHING may be committed.
+  load_fixture || { echo "  fixture failed to load"; return 1; }
+  [ -f "$LOCKDOWN" ] || { echo "  missing $LOCKDOWN"; return 1; }
+  local out rls
+  if out=$(sed "s/select status = 'approved'/select status = 'nope'/" "$LOCKDOWN" | pg 2>&1); then
+    echo "  broken lockdown was NOT refused"; return 1
+  fi
+  echo "  refused: $(echo "$out" | grep -o 'ERROR:.*' | head -1)"
+  rls=$(pg -At -c "select relrowsecurity from pg_class where oid = 'public.reg_ftds_daily'::regclass")
+  [ "$rls" = "f" ] || { echo "  partial apply: reg_ftds_daily RLS is '$rls'"; return 1; }
+  echo "  nothing committed (reg_ftds_daily RLS still off)"
+}
+
 FAILED=0
 for s in "${STEPS[@]}"; do
   if ! declare -F "step_$s" >/dev/null; then

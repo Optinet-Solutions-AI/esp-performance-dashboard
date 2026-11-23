@@ -74,5 +74,53 @@ begin
     end if;
   end loop;
 
+  -- 5) Review Focus: the app's real write paths still work for approved users
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', approved_id, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+
+  -- Reg & FTDs upload RPC (security invoker, so the new policies apply to it)
+  declare
+    v_upload uuid;
+  begin
+    execute 'select public.replace_reg_ftds_upload($1, $2)' into v_upload
+      using 't.csv', '[{"date":"2026-11-01","esp":"X","ip":"1.1.1.1","registrations":1,"ftds":0}]'::jsonb;
+    if v_upload is null then
+      raise exception 'replace_reg_ftds_upload returned no upload id for approved user';
+    end if;
+    select count(*) into n from public.reg_ftds_daily where date = '2026-11-01';
+    if n <> 1 then
+      raise exception 'replace_reg_ftds_upload left % rows for 2026-11-01, expected 1', n;
+    end if;
+  end;
+
+  -- ESP visibility toggle is an upsert: needs insert + update
+  insert into public.esp_visibility (esp, hidden, updated_at) values ('Mailmodo', true, now())
+    on conflict (esp) do update set hidden = excluded.hidden, updated_at = excluded.updated_at;
+
+  -- logs: approved can add, cannot delete
+  insert into public.logs (action) values ('upload');
+  delete from public.logs;
+  get diagnostics n = row_count;
+  if n <> 0 then
+    raise exception 'approved user deleted % log rows; logs must be add-only', n;
+  end if;
+  execute 'reset role';
+
+  -- signed in but not approved: writes are rejected
+  blocked := false;
+  begin
+    perform set_config('request.jwt.claims',
+      json_build_object('sub', gen_random_uuid(), 'role', 'authenticated')::text, true);
+    execute 'set local role authenticated';
+    insert into public.uploads (esp) values ('intruder');
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  execute 'reset role';
+  if not blocked then
+    raise exception 'not-approved user could insert into uploads';
+  end if;
+
   raise notice 'assert-locked: all expectations hold';
 end $$;
