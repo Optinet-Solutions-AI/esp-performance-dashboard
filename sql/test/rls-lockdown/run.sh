@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Local rehearsal of the RLS lockdown against a throwaway postgres:15 container
+# seeded with the production access rules (fixture.sql). Never touches Supabase.
+#
+#   bash sql/test/rls-lockdown/run.sh [red] [lock] [abort] [rollback]
+#
+# Each step starts from a fresh container + fixture. Prints PASS/FAIL per step,
+# exits non-zero if any step fails. SQL is piped over stdin (no volume mounts,
+# so it works the same from Git Bash on Windows).
+set -u
+HERE="$(cd "$(dirname "$0")" && pwd)"
+SQL_DIR="$(cd "$HERE/../.." && pwd)"
+IMAGE="postgres:15-alpine"
+STEPS=("$@")
+[ ${#STEPS[@]} -eq 0 ] && STEPS=(red lock abort rollback)
+
+CONTAINER=""
+cleanup() { [ -n "$CONTAINER" ] && docker rm -f "$CONTAINER" >/dev/null 2>&1; CONTAINER=""; }
+trap cleanup EXIT
+
+start_db() {
+  cleanup
+  CONTAINER="rls-lockdown-test-$$-$RANDOM"
+  docker run -d --name "$CONTAINER" -e POSTGRES_HOST_AUTH_METHOD=trust "$IMAGE" >/dev/null || return 1
+  # TCP only answers after initdb's temporary server has stopped and the real one is up
+  for _ in $(seq 1 60); do
+    docker exec "$CONTAINER" pg_isready -q -U postgres -h 127.0.0.1 && return 0
+    sleep 1
+  done
+  echo "  database did not become ready" >&2
+  return 1
+}
+
+# psql reading SQL from stdin; extra args passed through
+pg() { docker exec -i "$CONTAINER" psql -X -q -U postgres -d postgres -v ON_ERROR_STOP=1 "$@"; }
+
+load_fixture() { pg < "$HERE/fixture.sql" >/dev/null; }
+
+step_red() {
+  # Production as it is today must FAIL the lockdown assertions.
+  load_fixture || { echo "  fixture failed to load"; return 1; }
+  local out
+  if out=$(pg < "$HERE/assert-locked.sql" 2>&1); then
+    echo "  assert-locked unexpectedly passed on today's rules"; return 1
+  fi
+  echo "  assert-locked failed as expected: $(echo "$out" | grep -o 'ERROR:.*' | head -1)"
+}
+
+FAILED=0
+for s in "${STEPS[@]}"; do
+  if ! declare -F "step_$s" >/dev/null; then
+    echo "FAIL $s (unknown step)"; FAILED=1; continue
+  fi
+  if start_db && "step_$s"; then echo "PASS $s"; else echo "FAIL $s"; FAILED=1; fi
+  cleanup
+done
+exit $FAILED
